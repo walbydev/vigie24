@@ -31,7 +31,7 @@ public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
             .Options;
 
         _context = new Vigie24DbContext(options);
-        await _context.Database.MigrateAsync();
+        _context.Database.EnsureCreated();
     }
 
     public async Task DisposeAsync()
@@ -43,11 +43,15 @@ public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
     [Fact]
     public async Task SaveAndRetrieveArticle_WithPostgreSQL_ShouldPersistData()
     {
-        // Arrange
+        // Arrange - Créer d'abord une Category valide
+        var category = new Category { Id = Guid.NewGuid(), Slug = "test-category" };
+        _context.Categories.Add(category);
+        await _context.SaveChangesAsync();
+
         var article = new Article
         {
             Id = Guid.NewGuid(),
-            CategoryId = Guid.NewGuid(),
+            CategoryId = category.Id,
             CanonicalUrl = "https://example.com/article",
             Title = "Test Article PostgreSQL",
             Summary = "Test summary",
@@ -76,15 +80,18 @@ public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
     [Fact]
     public async Task BulkInsert_WithPostgreSQL_ShouldHandleManyArticles()
     {
-        // Arrange
-        var categoryId = Guid.NewGuid();
+        // Arrange - Créer une Category valide
+        var category = new Category { Id = Guid.NewGuid(), Slug = "bulk-test" };
+        _context.Categories.Add(category);
+        await _context.SaveChangesAsync();
+
         var articles = new List<Article>();
         for (int i = 0; i < 100; i++)
         {
             articles.Add(new Article
             {
                 Id = Guid.NewGuid(),
-                CategoryId = categoryId,
+                CategoryId = category.Id,
                 CanonicalUrl = $"https://example.com/{i}",
                 Title = $"Article {i}",
                 Summary = $"Summary {i}",
@@ -110,15 +117,17 @@ public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
     [Fact]
     public async Task ComplexQuery_WithPostgreSQL_ShouldReturnCorrectResults()
     {
-        // Arrange
-        var categoryId = Guid.NewGuid();
+        // Arrange - Créer une Category valide
+        var category = new Category { Id = Guid.NewGuid(), Slug = "complex-query" };
+        _context.Categories.Add(category);
+        await _context.SaveChangesAsync();
         
         for (int i = 0; i < 50; i++)
         {
             _context.Articles.Add(new Article
             {
                 Id = Guid.NewGuid(),
-                CategoryId = categoryId,
+                CategoryId = category.Id,
                 CanonicalUrl = $"https://example.com/{i}",
                 Title = $"Article {i}",
                 Summary = $"Summary {i}",
@@ -135,7 +144,7 @@ public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
 
         // Act
         var recentHighScoreArticles = await _context.Articles
-            .Where(a => a.CategoryId == categoryId && a.RankingScore >= 70m)
+            .Where(a => a.CategoryId == category.Id && a.RankingScore >= 70m)
             .OrderByDescending(a => a.PublishedAt)
             .Take(10)
             .ToListAsync();
@@ -162,10 +171,14 @@ public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
             UpdatedAt = DateTime.UtcNow
         };
 
+        var category = new Category { Id = Guid.NewGuid(), Slug = "test-source" };
+        _context.Categories.Add(category);
+        await _context.SaveChangesAsync();
+
         var article = new Article
         {
             Id = Guid.NewGuid(),
-            CategoryId = Guid.NewGuid(),
+            CategoryId = category.Id,
             CanonicalUrl = "https://example.com/article",
             Title = "Test Article",
             Summary = "Test",
@@ -193,11 +206,15 @@ public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
     [Fact]
     public async Task UpdateArticle_WithPostgreSQL_ShouldUpdateTimestamp()
     {
-        // Arrange
+        // Arrange - Créer une Category valide
+        var category = new Category { Id = Guid.NewGuid(), Slug = "update-test" };
+        _context.Categories.Add(category);
+        await _context.SaveChangesAsync();
+
         var article = new Article
         {
             Id = Guid.NewGuid(),
-            CategoryId = Guid.NewGuid(),
+            CategoryId = category.Id,
             CanonicalUrl = "https://example.com",
             Title = "Original",
             Summary = "Original",
@@ -227,11 +244,15 @@ public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
     [Fact]
     public async Task DeleteArticle_WithPostgreSQL_ShouldRemoveFromDatabase()
     {
-        // Arrange
+        // Arrange - Créer une Category valide
+        var category = new Category { Id = Guid.NewGuid(), Slug = "delete-test" };
+        _context.Categories.Add(category);
+        await _context.SaveChangesAsync();
+
         var article = new Article
         {
             Id = Guid.NewGuid(),
-            CategoryId = Guid.NewGuid(),
+            CategoryId = category.Id,
             CanonicalUrl = "https://example.com",
             Title = "To Delete",
             Summary = "Test",
