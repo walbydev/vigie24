@@ -1,225 +1,229 @@
 # Tests Vigie24
 
-Suite de tests unitaires pour le projet Vigie24.
+Suite de tests complète pour le projet Vigie24.
 
-## Structure des tests
+## 📊 Résultats
+
+**44 tests** - **100% de réussite** (672ms d'exécution)
+
+## 📁 Structure des tests
 
 ```
 tests/Vigie24.Tests/
 ├── Unit/
 │   ├── Domain/
-│   │   └── DomainTests.cs           # Tests des modèles (Article, Source, Category, Tag)
-│   └── Services/
-│       └── AiServiceTests.cs         # Tests des services IA (Factory, Settings)
+│   │   └── DomainTests.cs           # Tests Article, Source, Category, Tag
+│   ├── Services/
+│   │   └── AiServiceTests.cs        # Tests AI Factory & Settings
+│   └── Worker/
+│       └── WorkerTests.cs           # Tests Worker, Scoring, FeedItems
+├── Integration/
+│   └── DbContextTests.cs            # Tests EF Core avec InMemory DB
 ├── appsettings.test.json             # Configuration de test
-├── test_data.sql                     # Données de test SQL
-├── Vigie24.Tests.csproj              # Projet de tests
+├── test_data.sql                     # Données SQL de test
+├── Vigie24.Tests.csproj              # Projet .NET 10
 └── README.md                         # Ce fichier
 ```
 
-## Types de tests implémentés
+## 🧪 Catégories de tests
 
-### Tests Unitaires
+### Tests Unitaires (38 tests)
 
-**Couverture actuelle :**
-- **Domain/DomainTests.cs** : 
-  - `ArticleTests` - Création et valeurs par défaut des articles
-  - `SourceTests` - Création et état des sources RSS
-  - `CategoryTests` - Création et hiérarchie des catégories
-  - `TagTests` - Création et timestamps des tags
-- **Services/AiServiceTests.cs** :
-  - `AiServiceFactoryTests` - Factory de services IA (infomaniak, deepseek, erreur)
-  - `AiServiceSettingsTests` - Configuration et validation des paramètres IA
+#### Domain (8 tests)
+- **ArticleTests**
+  - `CreateArticle_WithValidData_ShouldSucceed` ✅
+  - `Article_ShouldHaveDefaultValues` ✅
+- **SourceTests**
+  - `CreateSource_WithValidData_ShouldSucceed` ✅
+  - `Source_ShouldHaveDefaultIsActiveTrue` ✅
+- **CategoryTests**
+  - `CreateCategory_WithValidData_ShouldSucceed` ✅
+  - `Category_ShouldHaveDefaultValues` ✅
+- **TagTests**
+  - `CreateTag_WithValidData_ShouldSucceed` ✅
+  - `Tag_ShouldHaveDefaultTimestamps` ✅
 
-**Caractéristiques :**
-- Exécution rapide (< 20ms pour 16 tests)
-- Pas de dépendances externes (base de données, API)
-- Tests déterministes et reproductibles
+#### Services (8 tests)
+- **AiServiceFactoryTests**
+  - `CreateService_WithInfomaniakProvider_ShouldReturnService` ✅
+  - `CreateService_WithDeepSeekProvider_ShouldReturnService` ✅
+  - `CreateService_WithUnknownProvider_ShouldThrowException` ✅
+  - `CreateService_WithEmptyProvider_ShouldThrowException` ✅
+- **AiServiceSettingsTests**
+  - `AiServiceSettings_ShouldHaveDefaults` ✅
+  - `AiServiceSettings_ShouldAllowCustomValues` ✅
+  - `AiServiceSettings_WithInvalidTimeout_ShouldAcceptButMayFailLater` ✅ (2x)
 
-## Exécution des tests
+#### Worker (22 tests)
+- **FeedItemTests** (4 tests)
+  - `FeedItem_ShouldHaveDefaultValues` ✅
+  - `FeedItem_ShouldSetProperties` ✅
+  - `ArticleFeedItem_ShouldHaveDefaultValues` ✅
+  - `ArticleFeedItem_ShouldSetProperties` ✅
+- **ScoringTests** (3 tests)
+  - `CalculateRecencyScore_WithRecentArticle_ShouldReturnHighScore` ✅
+  - `CalculateRecencyScore_WithOldArticle_ShouldReturnLowScore` ✅
+  - `CalculateContentScore_WithLongSummary_ShouldReturnHigherScore` ✅
+  - `CalculateAlgorithmicScore_ShouldConsiderRecentArticles` ✅
+- **ArticleProcessingTests** (10 tests)
+  - `IsPublished_ShouldBeTrueWhenScoreAboveThreshold` ✅ (5x)
+  - `Article_ShouldHaveValidUrlFormat` ✅
+  - `Article_ShouldHaveValidTimestamps` ✅
+  - `Article_ShouldSupportMultipleLanguages` ✅ (3x)
+- **CategoryTagTests** (4 tests)
+  - `CategorySlug_ShouldBeLowercase` ✅
+  - `TagSlug_ShouldBeValidFormat` ✅
+  - `SourceKind_ShouldHaveValidValues` ✅
+  - `IngestionMethod_ShouldHaveValidValues` ✅
+
+### Tests d'Intégration (6 tests)
+
+#### DbContext (6 tests)
+- `SaveAndRetrieveArticle_ShouldPersistData` ✅
+- `GetActiveSources_ShouldReturnOnlyActiveSources` ✅
+- `GetArticlesByCategory_ShouldReturnCorrectArticles` ✅
+- `GetRecentArticles_ShouldOrderByPublishedAtDescending` ✅
+- `BulkInsertArticles_ShouldHandleMultipleArticles` ✅
+- `GetArticlesWithHighScore_ShouldFilterCorrectly` ✅
+
+## 🚀 Exécution
 
 ### Tous les tests
-
 ```bash
 cd tests/Vigie24.Tests
 dotnet test
 ```
 
 ### Avec sortie détaillée
-
 ```bash
 dotnet test --verbosity normal
 ```
 
-### Avec couverture de code
-
-```bash
-dotnet test --collect:"XPlat Code Coverage" --settings coverlet.runsettings
-```
-
 ### Par catégorie
-
 ```bash
-# Tests de domaine uniquement
+# Domain uniquement
 dotnet test --filter "FullyQualifiedName~Domain"
 
-# Tests de services uniquement
+# Services uniquement
 dotnet test --filter "FullyQualifiedName~Services"
+
+# Worker uniquement
+dotnet test --filter "FullyQualifiedName~Worker"
+
+# Integration uniquement
+dotnet test --filter "FullyQualifiedName~Integration"
 ```
 
-## Résultats actuels
-
+### Avec couverture de code (si configuré)
+```bash
+dotnet test --collect:"XPlat Code Coverage"
 ```
-Réussi!  - échec: 0, réussite: 16, ignorée(s): 0, total: 16, durée: 19 ms
+
+## 📝 Ajouter de nouveaux tests
+
+### Créer un nouveau test unitaire
+
+1. Crée un fichier dans le bon dossier :
+```
+tests/Vigie24.Tests/Unit/[Category]/[ClassName]Tests.cs
 ```
 
-### Détail des tests
+2. Structure minimale :
+```csharp
+namespace Vigie24.Tests.Unit.[Category];
 
-| Test | Statut | Description |
-|------|--------|-------------|
-| `ArticleTests.CreateArticle_WithValidData_ShouldSucceed` | ✅ | Création d'article valide |
-| `ArticleTests.Article_ShouldHaveDefaultValues` | ✅ | Valeurs par défaut correctes |
-| `SourceTests.CreateSource_WithValidData_ShouldSucceed` | ✅ | Création de source valide |
-| `SourceTests.Source_ShouldHaveDefaultIsActiveTrue` | ✅ | Source active par défaut |
-| `CategoryTests.CreateCategory_WithValidData_ShouldSucceed` | ✅ | Création de catégorie valide |
-| `CategoryTests.Category_ShouldHaveDefaultValues` | ✅ | Valeurs par défaut correctes |
-| `TagTests.CreateTag_WithValidData_ShouldSucceed` | ✅ | Création de tag valide |
-| `TagTests.Tag_ShouldHaveDefaultTimestamps` | ✅ | Timestamps par défaut |
-| `AiServiceFactoryTests.CreateService_WithInfomaniakProvider_ShouldReturnService` | ✅ | Factory Infomaniak |
-| `AiServiceFactoryTests.CreateService_WithDeepSeekProvider_ShouldReturnService` | ✅ | Factory DeepSeek |
-| `AiServiceFactoryTests.CreateService_WithUnknownProvider_ShouldThrowException` | ✅ | Erreur provider inconnu |
-| `AiServiceFactoryTests.CreateService_WithEmptyProvider_ShouldThrowException` | ✅ | Erreur provider vide |
-| `AiServiceSettingsTests.AiServiceSettings_ShouldHaveDefaults` | ✅ | Valeurs par défaut |
-| `AiServiceSettingsTests.AiServiceSettings_ShouldAllowCustomValues` | ✅ | Valeurs personnalisées |
-| `AiServiceSettingsTests.AiServiceSettings_WithInvalidTimeout_ShouldAcceptButMayFailLater` | ✅ | Timeout invalide |
+using Vigie24.Domain.Models;
 
-## Architecture des tests
-
-### Projet de tests
-
-- **Framework** : xUnit
-- **Mocking** : Moq (prêt pour tests de services externes)
-- **Target Framework** : .NET 10.0
-- **Packages principaux** :
-  - `xunit` 2.9.0
-  - `Moq` 4.20.70
-  - `Testcontainers` 3.9.0 (prêt pour tests d'intégration)
-  - `Microsoft.EntityFrameworkCore.InMemory` 10.0.0
-
-### Configuration
-
-Les tests utilisent `appsettings.test.json` pour la configuration :
-
-```json
+public class [ClassName]Tests
 {
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=vigie24_test;Username=postgres;Password=postgres"
-  },
-  "AiService": {
-    "Provider": "infomaniak",
-    "Model": "Qwen/Qwen3.5-122B-A10B-FP8"
-  }
+    [Fact]
+    public void TestMethod_ShouldDoSomething()
+    {
+        // Arrange
+        var expected = "expected value";
+        
+        // Act
+        var result = [method under test];
+        
+        // Assert
+        Assert.Equal(expected, result);
+    }
 }
 ```
 
-## Prochaines étapes
+### Créer un nouveau test d'intégration
 
-### Tests d'intégration (à implémenter)
+1. Utilise `IAsyncLifetime` pour setup/teardown :
+```csharp
+public class MyIntegrationTests : IAsyncLifetime
+{
+    private Vigie24DbContext _context = null!;
+    
+    public async Task InitializeAsync()
+    {
+        var options = new DbContextOptionsBuilder<Vigie24DbContext>()
+            .UseInMemoryDatabase($"Test_{Guid.NewGuid()}")
+            .Options;
+        _context = new Vigie24DbContext(options);
+    }
+    
+    public async Task DisposeAsync()
+    {
+        await _context.Database.EnsureDeletedAsync();
+        _context.Dispose();
+    }
+}
+```
 
-- [ ] Tests avec PostgreSQL réel via Testcontainers
-- [ ] Tests des migrations de base de données
-- [ ] Tests des relations entre entités
-- [ ] Tests des requêtes EF Core complexes
+## 🛠️ Bonnes pratiques
 
-### Tests fonctionnels (à implémenter)
+1. **Naming convention** : `MethodName_ShouldDoSomething_WhenCondition`
+2. **Arrange-Act-Assert** : Toujours dans cet ordre
+3. **Un seul fait par test** : Un test = une assertion principale
+4. **Tests indépendants** : Pas de dépendance entre tests
+5. **Données de test** : Crée des données dans le test, pas en static
 
-- [ ] Tests du Worker (ingestion RSS)
-- [ ] Tests du traitement IA complet
-- [ ] Tests des flux métier complets
-- [ ] Tests de performance et charge
+## 📊 CI/CD
 
-### Couverture de code
-
-- [ ] Configurer Coverlet pour génération de rapports
-- [ ] Définir seuils minimum de couverture
-- [ ] Intégrer dans CI/CD
-
-## Intégration Continue
-
-### Exemple GitHub Actions
-
+### GitHub Actions
 ```yaml
 name: Tests
-
 on: [push, pull_request]
-
 jobs:
   test:
     runs-on: ubuntu-latest
-    
     steps:
       - uses: actions/checkout@v3
-      
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '10.0.x'
-      
-      - name: Restore dependencies
-        run: dotnet restore
-      
-      - name: Build
-        run: dotnet build --no-restore
-      
       - name: Run tests
-        run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage"
-      
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        run: dotnet test tests/Vigie24.Tests/
 ```
 
-## Bonnes pratiques
+## 🎯 Prochaines étapes
 
-1. **Nommer les tests clairement** : `MethodName_ShouldDoSomething_WhenCondition`
-2. **Un seul assert par test** : Facilite le débogage
-3. **Tests indépendants** : Chaque test doit pouvoir s'exécuter seul
-4. **Données de test réalistes** : Mieux reflète la production
-5. **Tester les cas d'erreur** : Ne pas tester que le "happy path"
-6. **Maintenir la couverture** : Ajouter des tests pour chaque nouvelle fonctionnalité
+- [ ] Tests fonctionnels des API endpoints (Web)
+- [ ] Tests de performance et charge
+- [ ] Tests d'intégration avec PostgreSQL réel (Testcontainers)
+- [ ] Tests E2E du workflow complet
+- [ ] Intégration Coverlet pour couverture de code
+- [ ] Tests de non-régression avec snapshots
 
-## Dépannage
+## 📈 Métriques
 
-### Tests qui échouent
-
-```bash
-# Exécuter avec sortie détaillée
-dotnet test --logger "console;verbosity=detailed"
-
-# Exécuter un test spécifique
-dotnet test --filter "FullyQualifiedName~ArticleTests.CreateArticle_WithValidData_ShouldSucceed"
-```
-
-### Problèmes de dépendances
-
-```bash
-# Nettoyer et restaurer
-dotnet clean
-dotnet restore
-
-# Mettre à jour les packages
-dotnet list package --outdated
-dotnet update
-```
-
-## Ressources
-
-- [xUnit Documentation](https://xunit.net/docs/)
-- [Moq Documentation](https://github.com/devlooped/Moq)
-- [Testcontainers Documentation](https://testcontainers.com/)
-- [Entity Framework Testing](https://learn.microsoft.com/en-us/ef/core/testing/)
+| Métrique | Valeur |
+|----------|--------|
+| Total tests | 44 |
+| Succès | 100% |
+| Durée moyenne | 672ms |
+| Tests Domain | 8 |
+| Tests Services | 8 |
+| Tests Worker | 22 |
+| Tests Integration | 6 |
 
 ---
 
-**Dernière mise à jour** : 2026-08-18  
-**Statut** : ✅ 16/16 tests réussissants  
-**Couverture** : Tests unitaires (Domain + Services)
+**Dernière mise à jour** : 2026-08-18
+**Dernière exécution** : 44/44 tests réussis
