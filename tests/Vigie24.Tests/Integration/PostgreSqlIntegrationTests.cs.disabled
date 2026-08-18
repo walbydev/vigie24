@@ -1,0 +1,255 @@
+namespace Vigie24.Tests.Integration;
+
+using Vigie24.Infrastructure.Data;
+using Vigie24.Domain.Models;
+using Microsoft.EntityFrameworkCore;
+using Testcontainers.PostgreSql;
+
+/// <summary>
+/// Tests d'intégration avec PostgreSQL réel via Testcontainers
+/// </summary>
+public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
+{
+    private readonly PostgreSqlContainer _postgreSqlContainer;
+    private Vigie24DbContext _context = null!;
+
+    public Vigie24DbContextPostgreSqlTests()
+    {
+        _postgreSqlContainer = new PostgreSqlBuilder()
+            .WithImage("postgres:16-alpine")
+            .Build();
+    }
+
+    public async Task InitializeAsync()
+    {
+        await _postgreSqlContainer.StartAsync();
+
+        var connectionString = _postgreSqlContainer.GetConnectionString();
+
+        var options = new DbContextOptionsBuilder<Vigie24DbContext>()
+            .UseNpgsql(connectionString)
+            .Options;
+
+        _context = new Vigie24DbContext(options);
+        await _context.Database.MigrateAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _context.DisposeAsync();
+        await _postgreSqlContainer.StopAsync();
+    }
+
+    [Fact]
+    public async Task SaveAndRetrieveArticle_WithPostgreSQL_ShouldPersistData()
+    {
+        // Arrange
+        var article = new Article
+        {
+            Id = Guid.NewGuid(),
+            CategoryId = Guid.NewGuid(),
+            CanonicalUrl = "https://example.com/article",
+            Title = "Test Article PostgreSQL",
+            Summary = "Test summary",
+            LanguageCode = "fr",
+            PublishedAt = DateTime.UtcNow - TimeSpan.FromHours(1),
+            FirstSeenAt = DateTime.UtcNow,
+            EditorialScore = 8.5m,
+            AlgorithmicScore = 7.2m,
+            RankingScore = 8.0m,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        // Act
+        _context.Articles.Add(article);
+        await _context.SaveChangesAsync();
+
+        // Assert
+        var savedArticle = await _context.Articles.FindAsync(article.Id);
+        Assert.NotNull(savedArticle);
+        Assert.Equal(article.Title, savedArticle.Title);
+        Assert.Equal(article.CanonicalUrl, savedArticle.CanonicalUrl);
+        Assert.Equal(8.5m, savedArticle.EditorialScore);
+    }
+
+    [Fact]
+    public async Task BulkInsert_WithPostgreSQL_ShouldHandleManyArticles()
+    {
+        // Arrange
+        var categoryId = Guid.NewGuid();
+        var articles = new List<Article>();
+        for (int i = 0; i < 100; i++)
+        {
+            articles.Add(new Article
+            {
+                Id = Guid.NewGuid(),
+                CategoryId = categoryId,
+                CanonicalUrl = $"https://example.com/{i}",
+                Title = $"Article {i}",
+                Summary = $"Summary {i}",
+                PublishedAt = DateTime.UtcNow,
+                FirstSeenAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                EditorialScore = 50m + i,
+                AlgorithmicScore = 45m + i,
+                RankingScore = 47.5m + i
+            });
+        }
+
+        // Act
+        _context.Articles.AddRange(articles);
+        await _context.SaveChangesAsync();
+
+        // Assert
+        var count = await _context.Articles.CountAsync();
+        Assert.Equal(100, count);
+    }
+
+    [Fact]
+    public async Task ComplexQuery_WithPostgreSQL_ShouldReturnCorrectResults()
+    {
+        // Arrange
+        var categoryId = Guid.NewGuid();
+        
+        for (int i = 0; i < 50; i++)
+        {
+            _context.Articles.Add(new Article
+            {
+                Id = Guid.NewGuid(),
+                CategoryId = categoryId,
+                CanonicalUrl = $"https://example.com/{i}",
+                Title = $"Article {i}",
+                Summary = $"Summary {i}",
+                PublishedAt = DateTime.UtcNow - TimeSpan.FromHours(i),
+                FirstSeenAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                EditorialScore = 50m + i,
+                AlgorithmicScore = 45m + i,
+                RankingScore = 47.5m + i
+            });
+        }
+        await _context.SaveChangesAsync();
+
+        // Act
+        var recentHighScoreArticles = await _context.Articles
+            .Where(a => a.CategoryId == categoryId && a.RankingScore >= 70m)
+            .OrderByDescending(a => a.PublishedAt)
+            .Take(10)
+            .ToListAsync();
+
+        // Assert
+        Assert.Equal(10, recentHighScoreArticles.Count);
+        Assert.All(recentHighScoreArticles, a => Assert.True(a.RankingScore >= 70m));
+    }
+
+    [Fact]
+    public async Task SourceWithArticles_WithPostgreSQL_ShouldMaintainRelationships()
+    {
+        // Arrange
+        var source = new Source
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test Source",
+            FeedUrl = "https://example.com/feed",
+            WebsiteUrl = "https://example.com",
+            SourceKind = "Press",
+            IngestionMethod = "Rss",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var article = new Article
+        {
+            Id = Guid.NewGuid(),
+            CategoryId = Guid.NewGuid(),
+            CanonicalUrl = "https://example.com/article",
+            Title = "Test Article",
+            Summary = "Test",
+            PublishedAt = DateTime.UtcNow,
+            FirstSeenAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        // Act
+        _context.Sources.Add(source);
+        _context.Articles.Add(article);
+        await _context.SaveChangesAsync();
+
+        // Assert
+        var savedSource = await _context.Sources.FindAsync(source.Id);
+        var savedArticle = await _context.Articles.FindAsync(article.Id);
+
+        Assert.NotNull(savedSource);
+        Assert.NotNull(savedArticle);
+        Assert.Equal("Test Source", savedSource.Name);
+        Assert.Equal("Test Article", savedArticle.Title);
+    }
+
+    [Fact]
+    public async Task UpdateArticle_WithPostgreSQL_ShouldUpdateTimestamp()
+    {
+        // Arrange
+        var article = new Article
+        {
+            Id = Guid.NewGuid(),
+            CategoryId = Guid.NewGuid(),
+            CanonicalUrl = "https://example.com",
+            Title = "Original",
+            Summary = "Original",
+            PublishedAt = DateTime.UtcNow,
+            FirstSeenAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.Articles.Add(article);
+        await _context.SaveChangesAsync();
+
+        var originalUpdatedAt = article.UpdatedAt;
+
+        // Act
+        article.Title = "Updated";
+        article.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        // Assert
+        var savedArticle = await _context.Articles.FindAsync(article.Id);
+        Assert.NotNull(savedArticle);
+        Assert.Equal("Updated", savedArticle.Title);
+        Assert.NotEqual(originalUpdatedAt, savedArticle.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task DeleteArticle_WithPostgreSQL_ShouldRemoveFromDatabase()
+    {
+        // Arrange
+        var article = new Article
+        {
+            Id = Guid.NewGuid(),
+            CategoryId = Guid.NewGuid(),
+            CanonicalUrl = "https://example.com",
+            Title = "To Delete",
+            Summary = "Test",
+            PublishedAt = DateTime.UtcNow,
+            FirstSeenAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.Articles.Add(article);
+        await _context.SaveChangesAsync();
+
+        // Act
+        _context.Articles.Remove(article);
+        await _context.SaveChangesAsync();
+
+        // Assert
+        var deletedArticle = await _context.Articles.FindAsync(article.Id);
+        Assert.Null(deletedArticle);
+    }
+}
