@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-Vigie24.Worker-5F8A3C2E-9B4D-4E1A-8F6C-3D2B1A9E7C5F</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vigie24.Domain\Vigie24.Domain.csproj" />
+    <ProjectReference Include="..\Vigie24.Services\Vigie24.Services.csproj" />
+    <ProjectReference Include="..\Vigie24.Infrastructure\Vigie24.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

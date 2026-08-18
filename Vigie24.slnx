@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Vigie24.Domain/Vigie24.Domain.csproj" />
+    <Project Path="src/Vigie24.Infrastructure/Vigie24.Infrastructure.csproj" />
+    <Project Path="src/Vigie24.Services/Vigie24.Services.csproj" />
+    <Project Path="src/Vigie24.Web/Vigie24.Web.csproj" />
+    <Project Path="src/Vigie24.Worker/Vigie24.Worker.csproj" />
+  </Folder>
+</Solution>

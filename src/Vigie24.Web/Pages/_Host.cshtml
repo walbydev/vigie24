@@ -1,0 +1,31 @@
+@page "/"
+@namespace Vigie24.Web.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vigie24 - Surveillance RSS</title>
+    <base href="~/" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link href="css/site.css" rel="stylesheet" />
+    <link href="Vigie24.Web.styles.css" rel="stylesheet" />
+</head>
+<body>
+    <component type="typeof(App)" render-mode="ServerPrerendered" />
+
+    <div id="blazor-error-ui">
+        <environment include="Staging,Production">
+            Une erreur s'est produite. Cette page ne sera pas actualisée jusqu'à ce que vous ayez redémarré l'application.
+        </environment>
+        <environment include="Development">
+            Une erreur s'est produite. Actualisez cette page pour voir les détails.
+        </environment>
+        <a href="" class="reload">Actualiser</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_framework/blazor.server.js"></script>
+</body>
+</html>

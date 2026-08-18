@@ -1,0 +1,34 @@
+using Microsoft.EntityFrameworkCore;
+using Vigie24.Infrastructure.Data;
+using Vigie24.Services;
+using Vigie24.Services.Interfaces;
+using Vigie24.Worker;
+
+var builder = Host.CreateApplicationBuilder(args);
+
+// Configuration
+var aiSettings = builder.Configuration.GetSection("AiService").Get<AiServiceSettings>() 
+    ?? new AiServiceSettings { Provider = "infomaniak" };
+
+// Database
+builder.Services.AddDbContext<Vigie24DbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Database")));
+
+// HTTP Client
+builder.Services.AddHttpClient();
+
+// AI Service - Factory pattern pour basculer entre Infomaniak et DeepSeek
+var serviceProvider = builder.Services.BuildServiceProvider();
+var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+var aiService = AiServiceFactory.Create(aiSettings, loggerFactory);
+builder.Services.AddSingleton<IAiService>(aiService);
+
+// Worker Service
+builder.Services.AddHostedService<Vigie24Worker>();
+
+// Logging
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
+var host = builder.Build();
+host.Run();

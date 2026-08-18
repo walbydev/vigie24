@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: vigie24-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: vigie24
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - vigie24-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Worker Service - RSS Polling & AI Processing
+  vigie24-worker:
+    build:
+      context: .
+      dockerfile: src/Vigie24.Worker/Dockerfile
+    container_name: vigie24-worker
+    env_file:
+      - .env
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - AiService__Provider=${AI_PROVIDER:-infomaniak}
+      - AiService__ApiUrl=${INFOMANIAK_API_URL:-https://api.infomaniak.com}
+      - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
+      - AiService__DeepSeekApiKey=${DEEPSEEK_API_KEY:-}
+      - AiService__Model=${AI_MODEL:-llama-3.1-70b}
+      - AiService__DeepSeekModel=${DEEPSEEK_MODEL:-deepseek-chat}
+      - AiService__TimeoutSeconds=${AI_TIMEOUT_SECONDS:-30}
+      - AiService__Temperature=${AI_TEMPERATURE:-0.3}
+      - AiService__MaxTokens=${AI_MAX_TOKENS:-1024}
+      - ConnectionStrings__Database=Host=postgres;Database=vigie24;Username=postgres;Password=postgres
+      - FeedReader__PollingIntervalMinutes=${FEED_POLLING_INTERVAL_MINUTES:-15}
+      - FeedReader__MaxConcurrentRequests=${FEED_MAX_CONCURRENT_REQUESTS:-5}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vigie24-network
+    restart: unless-stopped
+
+  # Web Application - Blazor Frontend
+  vigie24-web:
+    build:
+      context: .
+      dockerfile: src/Vigie24.Web/Dockerfile
+    container_name: vigie24-web
+    env_file:
+      - .env
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Database=Host=postgres;Database=vigie24;Username=postgres;Password=postgres
+      - AiService__Provider=${AI_PROVIDER:-infomaniak}
+      - AiService__ApiUrl=${INFOMANIAK_API_URL:-https://api.infomaniak.com}
+      - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
+      - AiService__DeepSeekApiKey=${DEEPSEEK_API_KEY:-}
+    ports:
+      - "5000:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vigie24-worker:
+        condition: service_started
+    networks:
+      - vigie24-network
+    restart: unless-stopped
+
+networks:
+  vigie24-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

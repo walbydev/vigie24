@@ -1,0 +1,24 @@
+@page "/"
+@using Vigie24.Services.Interfaces
+@inject IAiService AiService
+@inject HttpClient Http
+
+<PageTitle>Accueil - Vigie24</PageTitle>
+
+<h1>Bienvenue sur Vigie24</h1>
+
+<p>Système de surveillance RSS et analyse IA</p>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Statut du système</h5>
+                <p class="card-text">
+                    <strong>Fournisseur IA :</strong> @AiService.GetType().Name<br />
+                    <strong>Statut :</strong> <span class="text-success">Opérationnel</span>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
