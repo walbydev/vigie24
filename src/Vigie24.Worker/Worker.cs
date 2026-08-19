@@ -281,7 +281,37 @@ public class Vigie24Worker : BackgroundService
         // Ensure all DateTime.Kind are UTC to avoid Npgsql errors when saving timestamptz
         NormalizeArticleDates(article);
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+        {
+            // Log DateTime kinds to help diagnose Npgsql ArgumentException
+            _logger.LogError(dbEx, "DbUpdateException saving article. Dumping DateTime kinds for diagnosis...");
+            _logger.LogError("Article.PublishedAt: {Kind}", article.PublishedAt.Kind);
+            _logger.LogError("Article.FirstSeenAt: {Kind}", article.FirstSeenAt.Kind);
+            _logger.LogError("Article.CreatedAt: {Kind}", article.CreatedAt.Kind);
+            _logger.LogError("Article.UpdatedAt: {Kind}", article.UpdatedAt.Kind);
+
+            foreach (var src in article.Sources)
+            {
+                _logger.LogError("Source {SourceId} CreatedAt: {Kind}", src.SourceId, src.CreatedAt.Kind);
+                _logger.LogError("Source {SourceId} SourcePublishedAt: {Value}", src.SourceId, src.SourcePublishedAt?.ToString() ?? "null");
+            }
+
+            foreach (var a in article.Authors)
+            {
+                _logger.LogError("Author {AuthorId} CreatedAt: {Kind}", a.AuthorId, a.CreatedAt.Kind);
+            }
+
+            foreach (var t in article.Tags)
+            {
+                _logger.LogError("Tag {TagId} CreatedAt: {Kind}", t.TagId, t.CreatedAt.Kind);
+            }
+
+            throw;
+        }
 
         _logger.LogInformation("Article saved: {Title} (Score: {Score})", 
             article.Title, article.RankingScore);
