@@ -1,0 +1,31 @@
+{
+  "dotnet": {
+    "defaultSolution": "Vigie24.slnx"
+  },
+  "omnisharp": {
+    "enableMsBuildLoadProjectsOnDemand": true,
+    "enableEditorConfigSupport": true
+  },
+  "files": {
+    "exclude": {
+      "**/bin": true,
+      "**/obj": true
+    }
+  },
+  "search": {
+    "exclude": {
+      "**/bin": true,
+      "**/obj": true,
+      "**/.git": true
+    }
+  },
+  "terminal": {
+    "integrated": {
+      "env": {
+        "linux": {
+          "ASPNETCORE_ENVIRONMENT": "Development"
+        }
+      }
+    }
+  }
+}

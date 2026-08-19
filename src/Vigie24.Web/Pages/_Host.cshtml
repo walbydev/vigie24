@@ -8,12 +8,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vigie24 - Surveillance RSS</title>
     <base href="~/" />
-    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
-    <link href="css/site.css" rel="stylesheet" />
-    <link href="Vigie24.Web.styles.css" rel="stylesheet" />
+    <!-- CSS files removed - using browser default styles -->
+    <style>
+        /* Minimal inline styles for basic layout */
+        .page { display: flex; flex-direction: column; }
+        main { flex: 1; padding: 20px; }
+        .row { display: flex; flex-wrap: wrap; margin: 0 -15px; }
+        .col-md-6 { flex: 0 0 50%; max-width: 50%; padding: 0 15px; }
+        .card { border: 1px solid #ccc; border-radius: 4px; margin-bottom: 20px; }
+        .card-body { padding: 15px; }
+        .alert { padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .alert-danger { background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .text-success { color: #28a745; }
+        .text-warning { color: #ffc107; }
+        h1 { color: #333; }
+        .card-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 10px; }
+    </style>
 </head>
 <body>
-    <component type="typeof(App)" render-mode="ServerPrerendered" />
+    <component type="typeof(App)" render-mode="Server" />
 
     <div id="blazor-error-ui">
         <environment include="Staging,Production">

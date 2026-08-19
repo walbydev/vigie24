@@ -72,6 +72,16 @@ CREATE TABLE articles (
     "UpdatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "CategoryId" UUID REFERENCES categories("Id") ON DELETE SET NULL,
     "RankingScore" DECIMAL(5,2) NOT NULL DEFAULT 0,
+    "AlgorithmicScore" DECIMAL(5,2) NOT NULL DEFAULT 0,
+    "EditorialScore" DECIMAL(5,2) NOT NULL DEFAULT 0,
+    "CrossSourceCount" INTEGER NOT NULL DEFAULT 0,
+    "FirstSeenAt" TIMESTAMP,
+    "ImageUrl" TEXT,
+    "ImageAltText" TEXT,
+    "IsPublished" BOOLEAN NOT NULL DEFAULT false,
+    "LanguageCode" VARCHAR(10),
+    "VoteAverage" DECIMAL(3,2) NOT NULL DEFAULT 0,
+    "VoteCount" INTEGER NOT NULL DEFAULT 0,
     "IsProcessed" BOOLEAN NOT NULL DEFAULT false
 );
 

@@ -1,0 +1,74 @@
+version: '3.8'
+
+# Override configuration for debugging
+services:
+  vigie24-web:
+    build:
+      context: .
+      dockerfile: src/Vigie24.Web/Dockerfile.Debug
+    container_name: vigie24-web-debug
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_EnableDiagnostics=1
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__Database=Host=postgres;Database=vigie24;Username=postgres;Password=postgres
+      - AiService__Provider=infomaniak
+      - AiService__ApiUrl=https://api.infomaniak.com
+      - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
+    ports:
+      - "5000:8080"
+      - "55555:8000"  # Debug port
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vigie24-worker:
+        condition: service_started
+    networks:
+      - vigie24-network
+    command: ["dotnet", "Vigie24.Web.dll", "--urls", "http://+:8080"]
+
+  vigie24-worker:
+    build:
+      context: .
+      dockerfile: src/Vigie24.Worker/Dockerfile.Debug
+    container_name: vigie24-worker-debug
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_EnableDiagnostics=1
+      - ConnectionStrings__Database=Host=postgres;Database=vigie24;Username=postgres;Password=postgres
+      - AiService__Provider=infomaniak
+      - AiService__ApiUrl=https://api.infomaniak.com
+      - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
+      - FeedReader__PollingIntervalMinutes=60  # 60 min pour éviter le rate limiting
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vigie24-network
+    ports:
+      - "55556:8000"  # Debug port
+    command: ["dotnet", "Vigie24.Worker.dll"]
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: vigie24-db-debug
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: vigie24
+    ports:
+      - "5432:5432"
+    networks:
+      - vigie24-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  vigie24-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

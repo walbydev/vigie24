@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.ServiceModel.Syndication;
 using Microsoft.EntityFrameworkCore;
 using Vigie24.Domain.Models;
 using Vigie24.Services.Interfaces;
@@ -117,18 +118,39 @@ public class Vigie24Worker : BackgroundService
     {
         try
         {
-            var feed = await _httpClient.GetFromJsonAsync<Feed>(feedUrl, cancellationToken);
-            if (feed == null || feed.Items == null)
-                return new List<ArticleFeedItem>();
+            // Use SyndicationFeed to parse RSS/Atom XML feeds
+            // Add User-Agent to avoid being blocked by some sites
+            var request = new HttpRequestMessage(HttpMethod.Get, feedUrl);
+            request.Headers.Add("User-Agent", "Vigie24-RSS-Monitor/1.0 (Philippe Walby; philippe@walby.dev)");
+            request.Headers.Add("Accept", "application/rss+xml, application/xml, text/xml, */*");
+            
+            var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            response.EnsureSuccessStatusCode();
 
-            return feed.Items.Select(item => new ArticleFeedItem
+            using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            var settings = new System.Xml.XmlReaderSettings
             {
-                Title = item.Title ?? "Untitled",
-                Content = item.Description ?? item.Content ?? "",
-                Url = item.Link ?? "",
-                PublishedAt = item.PublishedAt ?? DateTime.UtcNow,
-                Author = item.Author ?? ""
-            }).ToList();
+                DtdProcessing = System.Xml.DtdProcessing.Parse,
+                IgnoreWhitespace = true,
+                IgnoreComments = true
+            };
+            using var reader = System.Xml.XmlReader.Create(stream, settings);
+            var feed = SyndicationFeed.Load(reader);
+
+            var items = new List<ArticleFeedItem>();
+            foreach (var item in feed.Items)
+            {
+                items.Add(new ArticleFeedItem
+                {
+                    Title = item.Title?.Text ?? "Untitled",
+                    Content = item.Summary?.Text ?? (item.Content != null ? item.Content.ToString() : ""), 
+                    Url = item.Links.FirstOrDefault()?.Uri.ToString() ?? "",
+                    PublishedAt = item.PublishDate.DateTime,
+                    Author = item.Authors.FirstOrDefault()?.Name ?? ""
+                });
+            }
+
+            return items;
         }
         catch (Exception ex)
         {

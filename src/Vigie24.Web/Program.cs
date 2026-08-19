@@ -17,10 +17,32 @@ builder.Services.AddDbContext<Vigie24DbContext>(options =>
 builder.Services.AddHttpClient();
 
 // AI Service - Factory pattern pour basculer entre Infomaniak et DeepSeek
-var aiSettings = builder.Configuration.GetSection("AiService").Get<AiServiceSettings>() 
-    ?? new AiServiceSettings { Provider = "infomaniak" };
-var aiService = AiServiceFactory.Create(aiSettings, builder.Services.BuildServiceProvider().GetRequiredService<ILoggerFactory>());
-builder.Services.AddSingleton<IAiService>(aiService);
+// Register as factory to avoid initialization issues at startup
+builder.Services.AddSingleton<AiServiceSettings>(sp => {
+    var settings = builder.Configuration.GetSection("AiService").Get<AiServiceSettings>() 
+        ?? new AiServiceSettings { Provider = "infomaniak" };
+    var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<Program>();
+    logger.LogInformation("AI Service configured: Provider={Provider}, ApiUrl={ApiUrl}", 
+        settings.Provider, settings.ApiUrl);
+    return settings;
+});
+
+builder.Services.AddSingleton<IAiService>(sp => {
+    var settings = sp.GetRequiredService<AiServiceSettings>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = loggerFactory.CreateLogger<Program>();
+    
+    try {
+        logger.LogInformation("Creating AI service with provider: {Provider}", settings.Provider);
+        var service = AiServiceFactory.Create(settings, loggerFactory);
+        logger.LogInformation("AI service created successfully: {ServiceType}", service.GetType().Name);
+        return service;
+    } catch (Exception ex) {
+        // Fallback to a mock service if creation fails
+        logger.LogError(ex, "Failed to create AI service, using Mock fallback");
+        return new MockAiService(settings, loggerFactory);
+    }
+});
 
 var app = builder.Build();
 

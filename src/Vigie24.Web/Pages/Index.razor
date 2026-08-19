@@ -1,7 +1,7 @@
 @page "/"
 @using Vigie24.Services.Interfaces
 @inject IAiService AiService
-@inject HttpClient Http
+@inject ILogger<Index> Logger
 
 <PageTitle>Accueil - Vigie24</PageTitle>
 
@@ -9,16 +9,35 @@
 
 <p>Système de surveillance RSS et analyse IA</p>
 
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Statut du système</h5>
-                <p class="card-text">
-                    <strong>Fournisseur IA :</strong> @AiService.GetType().Name<br />
-                    <strong>Statut :</strong> <span class="text-success">Opérationnel</span>
-                </p>
+@if (AiService == null)
+{
+    <div class="alert alert-danger mt-4" role="alert">
+        <strong>⚠️ Erreur critique :</strong> Le service IA n'est pas configuré.
+        <br />Veuillez vérifier les logs serveur pour plus de détails.
+    </div>
+}
+else
+{
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Statut du système</h5>
+                    <p class="card-text">
+                        <strong>Fournisseur IA :</strong> @AiService.ProviderName<br />
+                        <strong>Type de service :</strong> @AiService.GetType().Name<br />
+                        <strong>Statut :</strong> <span class="text-success">Opérationnel</span>
+                    </p>
+                </div>
             </div>
         </div>
     </div>
-</div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("Index page initialized - AI Service type: {ServiceType}", 
+            AiService?.GetType().Name ?? "null");
+    }
+}

@@ -28,6 +28,7 @@ public class Vigie24DbContext : DbContext
         // Configure Article
         modelBuilder.Entity<Article>(entity =>
         {
+            entity.ToTable("articles");
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.CanonicalUrl).IsUnique();
             entity.HasIndex(e => e.PublishedAt);
@@ -57,6 +58,7 @@ public class Vigie24DbContext : DbContext
         // Configure ArticleSource (junction table)
         modelBuilder.Entity<ArticleSource>(entity =>
         {
+            entity.ToTable("article_sources");
             entity.HasKey(es => new { es.ArticleId, es.SourceId });
             
             entity.Property(e => e.SourceArticleUrl).IsRequired();
@@ -71,6 +73,7 @@ public class Vigie24DbContext : DbContext
         // Configure ArticleAuthor (junction table)
         modelBuilder.Entity<ArticleAuthor>(entity =>
         {
+            entity.ToTable("article_authors");
             entity.HasKey(ea => new { ea.ArticleId, ea.AuthorId });
             
             entity.HasOne(ea => ea.Article)
@@ -87,6 +90,7 @@ public class Vigie24DbContext : DbContext
         // Configure ArticleTag (junction table)
         modelBuilder.Entity<ArticleTag>(entity =>
         {
+            entity.ToTable("article_tags");
             entity.HasKey(et => new { et.ArticleId, et.TagId });
             
             entity.HasOne(et => et.Article)
@@ -103,6 +107,7 @@ public class Vigie24DbContext : DbContext
         // Configure Category
         modelBuilder.Entity<Category>(entity =>
         {
+            entity.ToTable("categories");
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Slug).IsUnique();
             
@@ -117,6 +122,7 @@ public class Vigie24DbContext : DbContext
         // Configure Author
         modelBuilder.Entity<Author>(entity =>
         {
+            entity.ToTable("authors");
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Name).IsUnique();
             
@@ -126,6 +132,7 @@ public class Vigie24DbContext : DbContext
         // Configure Tag
         modelBuilder.Entity<Tag>(entity =>
         {
+            entity.ToTable("tags");
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Slug).IsUnique();
             
@@ -135,6 +142,7 @@ public class Vigie24DbContext : DbContext
         // Configure User
         modelBuilder.Entity<User>(entity =>
         {
+            entity.ToTable("users");
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Email).IsUnique();
             
@@ -146,6 +154,7 @@ public class Vigie24DbContext : DbContext
         // Configure ArticleVote
         modelBuilder.Entity<ArticleVote>(entity =>
         {
+            entity.ToTable("article_votes");
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => new { e.UserId, e.ArticleId }).IsUnique();
             
