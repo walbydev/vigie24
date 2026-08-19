@@ -9,7 +9,7 @@ public class AiServiceSettings
     public string Provider { get; set; } = "infomaniak";
     
     /// <summary>URL de l'API IA</summary>
-    public string ApiUrl { get; set; } = string.Empty;
+    public string ApiUrl { get; set; } = "https://api.infomaniak.com";
     
     /// <summary>Clé API</summary>
     public string ApiKey { get; set; } = string.Empty;

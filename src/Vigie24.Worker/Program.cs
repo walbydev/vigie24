@@ -11,8 +11,15 @@ var aiSettings = builder.Configuration.GetSection("AiService").Get<AiServiceSett
     ?? new AiServiceSettings { Provider = "infomaniak" };
 
 // Database
+var connectionString = builder.Configuration.GetConnectionString("Database");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    // Fallback local dev connection string (matches project README / .env recommendations)
+    connectionString = "Host=localhost;Database=vigie24;Username=postgres;Password=postgres";
+}
+
 builder.Services.AddDbContext<Vigie24DbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Database")));
+    options.UseNpgsql(connectionString));
 
 // HTTP Client
 builder.Services.AddHttpClient();
