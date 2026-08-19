@@ -313,7 +313,9 @@ public class Vigie24Worker : BackgroundService
                 _logger.LogError("Tag {TagId} CreatedAt: {Kind}", t.TagId, t.CreatedAt.Kind);
             }
 
-            throw;
+            // Skip this article on DB errors to avoid blocking the worker loop
+            _logger.LogWarning("Skipping article due to DB error: {Title}", article.Title);
+            return;
         }
 
         _logger.LogInformation("Article saved: {Title} (Score: {Score})", 
