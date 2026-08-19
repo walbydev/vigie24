@@ -11,7 +11,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - DOTNET_EnableDiagnostics=1
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__Database=Host=postgres;Database=vigie24;Username=postgres;Password=postgres
+      - ConnectionStrings__Database=Host=vigie24-db-debug;Database=vigie24;Username=postgres;Password=postgres
       - AiService__Provider=infomaniak
       - AiService__ApiUrl=https://api.infomaniak.com
       - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
@@ -35,7 +35,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - DOTNET_EnableDiagnostics=1
-      - ConnectionStrings__Database=Host=postgres;Database=vigie24;Username=postgres;Password=postgres
+      - ConnectionStrings__Database=Host=vigie24-db-debug;Database=vigie24;Username=postgres;Password=postgres
       - AiService__Provider=infomaniak
       - AiService__ApiUrl=https://api.infomaniak.com
       - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
