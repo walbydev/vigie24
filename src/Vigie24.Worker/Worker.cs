@@ -145,7 +145,7 @@ public class Vigie24Worker : BackgroundService
                     Title = item.Title?.Text ?? "Untitled",
                     Content = item.Summary?.Text ?? (item.Content != null ? item.Content.ToString() : ""), 
                     Url = item.Links.FirstOrDefault()?.Uri.ToString() ?? "",
-                    PublishedAt = item.PublishDate.DateTime,
+                    PublishedAt = item.PublishDate.UtcDateTime,
                     Author = item.Authors.FirstOrDefault()?.Name ?? ""
                 });
             }
@@ -277,6 +277,10 @@ public class Vigie24Worker : BackgroundService
         }
 
         dbContext.Articles.Add(article);
+
+        // Ensure all DateTime.Kind are UTC to avoid Npgsql errors when saving timestamptz
+        NormalizeArticleDates(article);
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Article saved: {Title} (Score: {Score})", 
@@ -356,6 +360,37 @@ public class Vigie24Worker : BackgroundService
         }
 
         return author;
+    }
+
+    private void NormalizeArticleDates(Article article)
+    {
+        // Helper to ensure DateTime.Kind is UTC for all date properties we set
+        DateTime ToUtc(DateTime dt) => dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+
+        article.PublishedAt = ToUtc(article.PublishedAt);
+        article.FirstSeenAt = ToUtc(article.FirstSeenAt);
+        article.CreatedAt = ToUtc(article.CreatedAt);
+        article.UpdatedAt = ToUtc(article.UpdatedAt);
+
+        foreach (var src in article.Sources)
+        {
+            if (src.SourcePublishedAt.HasValue)
+            {
+                var v = src.SourcePublishedAt.Value;
+                src.SourcePublishedAt = DateTime.SpecifyKind(v, DateTimeKind.Utc);
+            }
+            src.CreatedAt = ToUtc(src.CreatedAt);
+        }
+
+        foreach (var a in article.Authors)
+        {
+            a.CreatedAt = ToUtc(a.CreatedAt);
+        }
+
+        foreach (var t in article.Tags)
+        {
+            t.CreatedAt = ToUtc(t.CreatedAt);
+        }
     }
 
     private decimal CalculateAlgorithmicScore(Article article, int recentArticlesCount)
