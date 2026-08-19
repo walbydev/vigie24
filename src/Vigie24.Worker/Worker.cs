@@ -283,6 +283,9 @@ public class Vigie24Worker : BackgroundService
 
         try
         {
+            // Normalize any DateTime values in tracked entities to UTC to avoid Npgsql mixing kinds
+            NormalizeTrackedDateTimes(dbContext);
+
             await dbContext.SaveChangesAsync(cancellationToken);
         }
         catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
@@ -420,6 +423,30 @@ public class Vigie24Worker : BackgroundService
         foreach (var t in article.Tags)
         {
             t.CreatedAt = ToUtc(t.CreatedAt);
+        }
+    }
+
+    private void NormalizeTrackedDateTimes(Vigie24DbContext dbContext)
+    {
+        foreach (var entry in dbContext.ChangeTracker.Entries())
+        {
+            foreach (var prop in entry.Properties)
+            {
+                if (prop.Metadata.ClrType == typeof(DateTime))
+                {
+                    if (prop.CurrentValue is DateTime dt)
+                    {
+                        prop.CurrentValue = dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+                    }
+                }
+                else if (prop.Metadata.ClrType == typeof(DateTime?))
+                {
+                    if (prop.CurrentValue is DateTime ndt)
+                    {
+                        prop.CurrentValue = ndt.Kind == DateTimeKind.Utc ? ndt : DateTime.SpecifyKind(ndt, DateTimeKind.Utc);
+                    }
+                }
+            }
         }
     }
 
