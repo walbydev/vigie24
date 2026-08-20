@@ -111,3 +111,8 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# .env fichiers locaux avec secrets (templates: .env.*.example)
+.env.development
+.env.production
+.env.mock
