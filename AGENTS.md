@@ -32,8 +32,12 @@ dotnet sln add src/Vigie24.Web/Vigie24.Web.csproj
 dotnet sln add src/Vigie24.Worker/Vigie24.Worker.csproj
 ```
 
-### 2. Variables d'Environnement
-Fichier `.env` à la racine contient les clés API. Pour le développement local :
+### 2. Configuration : appsettings vs .env (regle d'or)
+
+- **`appsettings.json` + `appsettings.{Env}.json`** -> TOUTE la configuration non-sensible (scores, timeouts, modeles, URLs, polling, user-agent). Versionnee dans git.
+- **`.env.development` / `.env.mock` / `.env.production`** -> **secrets uniquement** (cles API, mot de passe DB) + variables de substitution utilisees par docker-compose (`AI_PROVIDER`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`). Jamais commites (`.gitignore`).
+- **Templates** : `.env.development.example` / `.env.production.example` (placeholders) sont versionnes.
+- **User Secrets** : recommande pour le dev local sans Docker :
 
 **Option A: User Secrets (recommandé)**
 ```bash
@@ -144,8 +148,8 @@ dotnet test tests/Vigie24.Tests
 - Les erreurs de feed sont catchées et loguées, ne crashent pas le worker
 
 ## Fichiers de Configuration Clés
-- `.env` → Clés API (ne pas commiter)
-- `appsettings.json` → Configuration de base
+- `.env.*` -> Secrets uniquement (cles API, DB_PASSWORD) - jamais commites ; templates `.env.*.example`
+- `appsettings.json` -> Configuration de base (scores, timeouts, modeles, URLs)
 - `appsettings.Development.json` → Override pour dev (polling 5 min)
 - `docker-compose.yml` → Orchestration locale
 - `src/*/Properties/launchSettings.json` → Profils Rider/VS
