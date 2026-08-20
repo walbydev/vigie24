@@ -1,4 +1,5 @@
 version: '3.8'
+name: vigie24-mock
 services:
   postgres:
     image: postgres:16-alpine
@@ -65,3 +66,4 @@ networks:
 
 volumes:
   postgres_mock_data:
+    name: vigie24_postgres_mock_data

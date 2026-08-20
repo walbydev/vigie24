@@ -1,4 +1,5 @@
 version: '3.8'
+name: vigie24-prod
 services:
   postgres:
     image: postgres:16-alpine
@@ -64,3 +65,4 @@ networks:
 
 volumes:
   postgres_prod_data:
+    name: vigie24_prod_data

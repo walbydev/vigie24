@@ -1,4 +1,5 @@
 version: '3.8'
+name: vigie24-legacy
 
 services:
   # PostgreSQL Database
@@ -83,3 +84,4 @@ networks:
 
 volumes:
   postgres_data:
+    name: vigie24_postgres_data
