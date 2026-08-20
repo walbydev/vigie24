@@ -27,6 +27,9 @@ WORKDIR /app
 # Copy published files
 COPY --from=build /app/publish .
 
+# Copy root-level appsettings (config is versioned in appsettings.*.json)
+COPY appsettings*.json ./
+
 # Set environment
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV DOTNET_EnableDiagnostics=0

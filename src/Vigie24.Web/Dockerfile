@@ -27,6 +27,9 @@ WORKDIR /app
 # Copy published files
 COPY --from=build /app/publish .
 
+# Copy root-level appsettings (config is versioned in appsettings.*.json)
+COPY appsettings*.json ./
+
 # Copy Razor files manually (they are not included by default in publish)
 COPY src/Vigie24.Web/Pages/ ./Pages/
 COPY src/Vigie24.Web/Shared/ ./Shared/

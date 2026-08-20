@@ -27,6 +27,7 @@ services:
     env_file: .env.mock
     environment:
       - ASPNETCORE_ENVIRONMENT=Mock
+      - DOTNET_ENVIRONMENT=Mock
       - AiService__Provider=mock
       - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_mock};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres_mock_password}
     depends_on:
@@ -44,6 +45,7 @@ services:
     env_file: .env.mock
     environment:
       - ASPNETCORE_ENVIRONMENT=Mock
+      - DOTNET_ENVIRONMENT=Mock
       - AiService__Provider=mock
       - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_mock};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres_mock_password}
     ports:
