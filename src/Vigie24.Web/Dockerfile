@@ -6,6 +6,7 @@ COPY src/Vigie24.Domain/Vigie24.Domain.csproj ./src/Vigie24.Domain/
 COPY src/Vigie24.Services/Vigie24.Services.csproj ./src/Vigie24.Services/
 COPY src/Vigie24.Infrastructure/Vigie24.Infrastructure.csproj ./src/Vigie24.Infrastructure/
 COPY src/Vigie24.Web/Vigie24.Web.csproj ./src/Vigie24.Web/
+COPY Directory.Packages.props ./
 
 # Restore dependencies
 RUN dotnet restore src/Vigie24.Web/Vigie24.Web.csproj

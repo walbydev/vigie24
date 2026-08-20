@@ -1,0 +1,65 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vigie24-db-mock
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres_mock_password}
+      POSTGRES_DB: ${DB_NAME:-vigie24_mock}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_mock_data:/var/lib/postgresql/data
+    networks:
+      - vigie24-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  vigie24-worker:
+    build:
+      context: .
+      dockerfile: src/Vigie24.Worker/Dockerfile
+    container_name: vigie24-worker-mock
+    env_file: .env.mock
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Mock
+      - AiService__Provider=mock
+      - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_mock};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres_mock_password}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vigie24-network
+    restart: unless-stopped
+
+  vigie24-web:
+    build:
+      context: .
+      dockerfile: src/Vigie24.Web/Dockerfile
+    container_name: vigie24-web-mock
+    env_file: .env.mock
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Mock
+      - AiService__Provider=mock
+      - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_mock};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres_mock_password}
+    ports:
+      - "5001:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vigie24-worker:
+        condition: service_started
+    networks:
+      - vigie24-network
+    restart: unless-stopped
+
+networks:
+  vigie24-network:
+    driver: bridge
+
+volumes:
+  postgres_mock_data:

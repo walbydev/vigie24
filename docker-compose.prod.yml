@@ -1,0 +1,66 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vigie24-db-prod
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres_prod}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-vigie24_prod}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - vigie24-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  vigie24-worker:
+    build:
+      context: .
+      dockerfile: src/Vigie24.Worker/Dockerfile
+      target: final
+    container_name: vigie24-worker-prod
+    env_file: .env.production.local
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - AiService__Provider=${AI_PROVIDER:-infomaniak}
+      - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_prod};Username=${DB_USER:-postgres_prod};Password=${DB_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vigie24-network
+    restart: unless-stopped
+
+  vigie24-web:
+    build:
+      context: .
+      dockerfile: src/Vigie24.Web/Dockerfile
+      target: final
+    container_name: vigie24-web-prod
+    env_file: .env.production.local
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - AiService__Provider=${AI_PROVIDER:-infomaniak}
+      - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_prod};Username=${DB_USER:-postgres_prod};Password=${DB_PASSWORD}
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vigie24-worker:
+        condition: service_started
+    networks:
+      - vigie24-network
+    restart: unless-stopped
+
+networks:
+  vigie24-network:
+    driver: bridge
+
+volumes:
+  postgres_prod_data:
