@@ -38,4 +38,14 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 var host = builder.Build();
+
+// Auto-migration au demarrage (si configure)
+if (builder.Configuration.GetValue<bool>("Database:MigrateOnStartup", true))
+{
+    using var scope = host.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<Vigie24DbContext>();
+    await dbContext.Database.MigrateAsync();
+    Console.WriteLine("Base de donnees migree avec succes");
+}
+
 host.Run();
