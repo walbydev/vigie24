@@ -15,6 +15,13 @@ public static class AiServiceFactory
     /// </summary>
     public static IAiService Create(AiServiceSettings settings, ILoggerFactory loggerFactory)
     {
+        // If no API key is configured, use a local mock service for development to avoid external calls
+        if (string.IsNullOrWhiteSpace(settings.ApiKey))
+        {
+            // Use existing MockAiService implementation that accepts settings + loggerFactory
+            return new MockAiService(settings, loggerFactory);
+        }
+
         var provider = settings.Provider.ToLowerInvariant();
 
         return provider switch

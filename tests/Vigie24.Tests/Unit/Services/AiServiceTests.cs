@@ -70,15 +70,15 @@ public class AiServiceFactoryTests
     }
 
     [Fact]
-    public void CreateService_WithEmptyProvider_ShouldThrowException()
+    public void CreateService_WithUnsupportedProvider_ShouldThrowException()
     {
         // Arrange
         var settings = new AiServiceSettings
         {
-            Provider = "",
+            Provider = "unsupported",
             Model = "",
             ApiUrl = "",
-            ApiKey = ""
+            ApiKey = "fake-key-for-test"
         };
         var loggerFactory = new LoggerFactory();
 

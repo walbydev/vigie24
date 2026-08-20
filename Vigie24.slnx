@@ -6,4 +6,7 @@
     <Project Path="src/Vigie24.Web/Vigie24.Web.csproj" />
     <Project Path="src/Vigie24.Worker/Vigie24.Worker.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Vigie24.Tests/Vigie24.Tests.csproj" />
+  </Folder>
 </Solution>

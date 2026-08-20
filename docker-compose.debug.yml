@@ -1,4 +1,3 @@
-version: '3.8'
 
 # Override configuration for debugging
 services:
@@ -14,7 +13,7 @@ services:
       - ConnectionStrings__Database=Host=vigie24-db-debug;Database=vigie24;Username=postgres;Password=postgres
       - AiService__Provider=infomaniak
       - AiService__ApiUrl=https://api.infomaniak.com
-      - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
+      # - AiService__ApiKey= (empty = use MockAiService for dev)
     ports:
       - "5000:8080"
       - "55555:8000"  # Debug port
@@ -38,8 +37,10 @@ services:
       - ConnectionStrings__Database=Host=vigie24-db-debug;Database=vigie24;Username=postgres;Password=postgres
       - AiService__Provider=infomaniak
       - AiService__ApiUrl=https://api.infomaniak.com
-      - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
+      # - AiService__ApiKey= (empty = use MockAiService for dev)
       - FeedReader__PollingIntervalMinutes=60  # 60 min pour éviter le rate limiting
+      - FeedReader__HttpTimeoutSeconds=30  # Timeout plus long pour les flux lents
+      - FeedReader__ExcludeDomains=youtube.com,youtu.be  # Exclure YouTube en dev
     depends_on:
       postgres:
         condition: service_healthy

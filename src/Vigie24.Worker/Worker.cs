@@ -118,6 +118,21 @@ public class Vigie24Worker : BackgroundService
     {
         try
         {
+            // Check if this domain should be excluded (e.g., YouTube in dev)
+            var excludeDomains = _configuration.GetSection("FeedReader:ExcludeDomains").Value;
+            if (!string.IsNullOrEmpty(excludeDomains))
+            {
+                var excluded = excludeDomains.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var domain in excluded)
+                {
+                    if (feedUrl.Contains(domain, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogInformation("Skipping excluded domain: {Domain} from {FeedUrl}", domain, feedUrl);
+                        return new List<ArticleFeedItem>();
+                    }
+                }
+            }
+            
             // Use SyndicationFeed to parse RSS/Atom XML feeds
             // Add User-Agent to avoid being blocked by some sites
             var request = new HttpRequestMessage(HttpMethod.Get, feedUrl);
@@ -142,7 +157,7 @@ public class Vigie24Worker : BackgroundService
             {
                 items.Add(new ArticleFeedItem
                 {
-                    Title = item.Title?.Text ?? "Untitled",
+                    Title = item.Title?.Text ?? "Untitled"!,
                     Content = item.Summary?.Text ?? (item.Content != null ? item.Content.ToString() : ""), 
                     Url = item.Links.FirstOrDefault()?.Uri.ToString() ?? "",
                     PublishedAt = item.PublishDate.UtcDateTime,
@@ -283,7 +298,8 @@ public class Vigie24Worker : BackgroundService
 
         try
         {
-            // Normalize any DateTime values in tracked entities to UTC to avoid Npgsql mixing kinds
+            // Normalize ALL tracked DateTime values immediately before saving
+            // This catches any DateTime added by EF Core during Add() or navigation property traversal
             NormalizeTrackedDateTimes(dbContext);
 
             await dbContext.SaveChangesAsync(cancellationToken);
@@ -407,24 +423,27 @@ public class Vigie24Worker : BackgroundService
         article.CreatedAt = ToUtc(article.CreatedAt);
         article.UpdatedAt = ToUtc(article.UpdatedAt);
 
-        foreach (var src in article.Sources)
+        // Normalize ArticleSource entities (junction table)
+        foreach (var articleSrc in article.Sources)
         {
-            if (src.SourcePublishedAt.HasValue)
+            if (articleSrc.SourcePublishedAt.HasValue)
             {
-                var v = src.SourcePublishedAt.Value;
-                src.SourcePublishedAt = DateTime.SpecifyKind(v, DateTimeKind.Utc);
+                var v = articleSrc.SourcePublishedAt.Value;
+                articleSrc.SourcePublishedAt = DateTime.SpecifyKind(v, DateTimeKind.Utc);
             }
-            src.CreatedAt = ToUtc(src.CreatedAt);
+            articleSrc.CreatedAt = ToUtc(articleSrc.CreatedAt);
         }
 
-        foreach (var a in article.Authors)
+        // Normalize ArticleAuthor entities (junction table)
+        foreach (var articleAuth in article.Authors)
         {
-            a.CreatedAt = ToUtc(a.CreatedAt);
+            articleAuth.CreatedAt = ToUtc(articleAuth.CreatedAt);
         }
 
-        foreach (var t in article.Tags)
+        // Normalize ArticleTag entities (junction table)
+        foreach (var articleTag in article.Tags)
         {
-            t.CreatedAt = ToUtc(t.CreatedAt);
+            articleTag.CreatedAt = ToUtc(articleTag.CreatedAt);
         }
     }
 

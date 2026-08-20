@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Vigie24.Domain.Models;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Vigie24.Infrastructure.Data;
 
@@ -24,6 +25,32 @@ public class Vigie24DbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Configure ALL DateTime properties to use UTC
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTime))
+                {
+                    property.SetValueConverter(
+                        new ValueConverter<DateTime, DateTime>(
+                            dt => dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc),
+                            dt => dt
+                        )
+                    );
+                }
+                else if (property.ClrType == typeof(DateTime?))
+                {
+                    property.SetValueConverter(
+                        new ValueConverter<DateTime?, DateTime?>(
+                            dt => dt.HasValue ? (dt.Value.Kind == DateTimeKind.Utc ? dt.Value : DateTime.SpecifyKind(dt.Value, DateTimeKind.Utc)) : null,
+                            dt => dt
+                        )
+                    );
+                }
+            }
+        }
 
         // Configure Article
         modelBuilder.Entity<Article>(entity =>
@@ -170,5 +197,17 @@ public class Vigie24DbContext : DbContext
                 .HasForeignKey(e => e.ArticleId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        // Configure ALL DateTime properties to use 'timestamp' (without time zone) to match PostgreSQL schema
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTime) || property.ClrType == typeof(DateTime?))
+                {
+                    property.SetColumnType("timestamp with time zone");
+                }
+            }
+        }
     }
 }

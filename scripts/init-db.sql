@@ -89,6 +89,12 @@ CREATE TABLE articles (
 CREATE TABLE article_sources (
     "ArticleId" UUID NOT NULL REFERENCES articles("Id") ON DELETE CASCADE,
     "SourceId" UUID NOT NULL REFERENCES sources("Id") ON DELETE CASCADE,
+    "SourceArticleUrl" TEXT NOT NULL,
+    "SourceTitle" TEXT,
+    "SourcePublishedAt" TIMESTAMP WITHOUT TIME ZONE,
+    "SourceAuthorText" TEXT,
+    "IsPrimary" BOOLEAN NOT NULL DEFAULT false,
+    "CreatedAt" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY ("ArticleId", "SourceId")
 );
 
@@ -96,6 +102,7 @@ CREATE TABLE article_sources (
 CREATE TABLE article_authors (
     "ArticleId" UUID NOT NULL REFERENCES articles("Id") ON DELETE CASCADE,
     "AuthorId" UUID NOT NULL REFERENCES authors("Id") ON DELETE CASCADE,
+    "CreatedAt" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY ("ArticleId", "AuthorId")
 );
 
@@ -103,6 +110,7 @@ CREATE TABLE article_authors (
 CREATE TABLE article_tags (
     "ArticleId" UUID NOT NULL REFERENCES articles("Id") ON DELETE CASCADE,
     "TagId" UUID NOT NULL REFERENCES tags("Id") ON DELETE CASCADE,
+    "CreatedAt" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY ("ArticleId", "TagId")
 );
 
