@@ -1,6 +1,9 @@
 @page "/"
 @using Vigie24.Services.Interfaces
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
 @inject IAiService AiService
+@inject Vigie24DbContext DbContext
 @inject ILogger<Index> Logger
 
 <PageTitle>Accueil - Vigie24</PageTitle>
@@ -26,18 +29,82 @@ else
                     <p class="card-text">
                         <strong>Fournisseur IA :</strong> @AiService.ProviderName<br />
                         <strong>Type de service :</strong> @AiService.GetType().Name<br />
-                        <strong>Statut :</strong> <span class="text-success">Opérationnel</span>
+                        <strong>Statut :</strong> <span class="text-success">Opérationnel</span><br />
+                        <strong>Articles en base :</strong> @_totalArticles
                     </p>
                 </div>
             </div>
         </div>
     </div>
+
+    <h2 class="mt-4">Derniers articles</h2>
+
+    @if (_articles == null)
+    {
+        <p><em>Chargement...</em></p>
+    }
+    else if (!_articles.Any())
+    {
+        <div class="alert alert-warning" role="alert">
+            Aucun article pour le moment. Le worker va en générer dans quelques minutes.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var article in _articles)
+            {
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        @if (!string.IsNullOrEmpty(article.ImageUrl))
+                        {
+                            <img src="@article.ImageUrl" class="card-img-top" alt="@article.ImageAltText" style="height:180px;object-fit:cover;" />
+                        }
+                        <div class="card-body">
+                            <h5 class="card-title">@article.Title</h5>
+                            <p class="card-text">@article.Summary</p>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    @article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ·
+                                    Score : <strong>@article.RankingScore.ToString("0.0")</strong>
+                                    @if (article.Sources.Any())
+                                    {
+                                        <text>· Source : @article.Sources.First().Source?.Name</text>
+                                    }
+                                </small>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
 }
 
 @code {
-    protected override void OnInitialized()
+    private List<Vigie24.Domain.Models.Article>? _articles;
+    private int _totalArticles;
+
+    protected override async Task OnInitializedAsync()
     {
-        Logger.LogInformation("Index page initialized - AI Service type: {ServiceType}", 
+        Logger.LogInformation("Index page initialized - AI Service type: {ServiceType}",
             AiService?.GetType().Name ?? "null");
+
+        try
+        {
+            _totalArticles = await DbContext.Articles.CountAsync();
+            _articles = await DbContext.Articles
+                .Include(a => a.Sources).ThenInclude(s => s.Source)
+                .Where(a => a.IsPublished)
+                .OrderByDescending(a => a.PublishedAt)
+                .Take(12)
+                .ToListAsync();
+            Logger.LogInformation("Loaded {Count} published articles", _articles.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load articles");
+            _articles = new List<Vigie24.Domain.Models.Article>();
+        }
     }
 }

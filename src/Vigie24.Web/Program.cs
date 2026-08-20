@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Vigie24.Infrastructure.Data;
 using Vigie24.Services;
+using Vigie24.Services.Implementations;
 using Vigie24.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,7 +41,7 @@ builder.Services.AddSingleton<IAiService>(sp => {
     } catch (Exception ex) {
         // Fallback to a mock service if creation fails
         logger.LogError(ex, "Failed to create AI service, using Mock fallback");
-        return new MockAiService(settings, loggerFactory);
+        return new MockAiService(loggerFactory.CreateLogger<MockAiService>());
     }
 });
 

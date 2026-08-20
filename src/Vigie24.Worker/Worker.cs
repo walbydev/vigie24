@@ -3,6 +3,7 @@ using System.ServiceModel.Syndication;
 using Microsoft.EntityFrameworkCore;
 using Vigie24.Domain.Models;
 using Vigie24.Services.Interfaces;
+using Vigie24.Services.Implementations;
 using Vigie24.Infrastructure.Data;
 
 namespace Vigie24.Worker;
@@ -59,6 +60,13 @@ public class Vigie24Worker : BackgroundService
     {
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<Vigie24DbContext>();
+
+        // Mode mock : generer des articles fictifs au lieu de fetch de vrais feeds
+        if (_aiService is MockAiService)
+        {
+            await GenerateMockArticlesAsync(dbContext, cancellationToken);
+            return;
+        }
 
         // Récupérer les sources actives
         var activeSources = await dbContext.Sources
@@ -194,6 +202,87 @@ public class Vigie24Worker : BackgroundService
         // Implémentation Reddit via API
         _logger.LogInformation("Reddit feed fetching not yet implemented for {SourceName}", source.Name);
         return new List<ArticleFeedItem>();
+    }
+
+    /// <summary>
+    /// Mode mock : genere des articles fictifs (Bogus) sans fetch de vrais feeds.
+    /// Cree une source + categorie factices si absentes, puis 8-15 articles.
+    /// </summary>
+    private async Task GenerateMockArticlesAsync(Vigie24DbContext dbContext, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Mock mode: generating fictional articles with Bogus...");
+
+        // Source factice (creee si absente)
+        var mockSource = await dbContext.Sources
+            .FirstOrDefaultAsync(s => s.Name == "Mock Source", cancellationToken);
+        if (mockSource == null)
+        {
+            mockSource = new Source
+            {
+                Name = "Mock Source",
+                CountryCode = "CH",
+                LanguageCode = "fr",
+                SourceKind = "News",
+                IngestionMethod = "Rss",
+                WebsiteUrl = "https://mock.vigie24.local",
+                FeedUrl = "https://mock.vigie24.local/feed.xml",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            dbContext.Sources.Add(mockSource);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("Mock source created");
+        }
+
+        // Categories standard (creees si absentes - requises par GetOrCreateCategoryAsync)
+        var defaultCategories = new[]
+        {
+            ("ia", 1), ("developpement", 2), ("science", 3),
+            ("cybersecurite", 4), ("hardware", 5)
+        };
+        foreach (var (slug, order) in defaultCategories)
+        {
+            var cat = await dbContext.Categories
+                .FirstOrDefaultAsync(c => c.Slug == slug, cancellationToken);
+            if (cat == null)
+            {
+                dbContext.Categories.Add(new Category
+                {
+                    Slug = slug,
+                    DisplayOrder = order,
+                    IsActive = true
+                });
+            }
+        }
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var faker = new Bogus.Faker("fr");
+        var count = faker.Random.Int(8, 15);
+        var generated = 0;
+
+        for (int i = 0; i < count; i++)
+        {
+            var url = $"https://mock.vigie24.local/articles/{Guid.NewGuid():N}";
+            var exists = await dbContext.Articles
+                .AnyAsync(a => a.CanonicalUrl == url, cancellationToken);
+            if (exists) continue;
+
+            var title = faker.Lorem.Sentence(faker.Random.Int(4, 12)).TrimEnd('.');
+            var item = new ArticleFeedItem
+            {
+                Title = title,
+                Content = faker.Lorem.Paragraphs(faker.Random.Int(2, 5)),
+                Url = url,
+                PublishedAt = DateTime.UtcNow.AddHours(-faker.Random.Int(1, 72)),
+                Author = faker.Name.FullName()
+            };
+
+            await ProcessFeedItemAsync(item, mockSource, dbContext, cancellationToken);
+            generated++;
+        }
+
+        _logger.LogInformation("Mock generation done: {Generated} new articles", generated);
     }
 
     private async Task ProcessFeedItemAsync(

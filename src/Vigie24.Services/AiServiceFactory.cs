@@ -18,8 +18,8 @@ public static class AiServiceFactory
         // If no API key is configured, use a local mock service for development to avoid external calls
         if (string.IsNullOrWhiteSpace(settings.ApiKey))
         {
-            // Use existing MockAiService implementation that accepts settings + loggerFactory
-            return new MockAiService(settings, loggerFactory);
+            // Use the Bogus-based MockAiService implementation
+            return new MockAiService(loggerFactory.CreateLogger<MockAiService>());
         }
 
         var provider = settings.Provider.ToLowerInvariant();
