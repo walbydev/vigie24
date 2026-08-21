@@ -18,6 +18,8 @@ public class DeepSeekAiService : IAiService
 
     public string ProviderName => "DeepSeek";
 
+    public string ModelName => _settings.Model;
+
     public DeepSeekAiService(
         HttpClient httpClient,
         AiServiceSettings settings,
@@ -27,7 +29,9 @@ public class DeepSeekAiService : IAiService
         _settings = settings;
         _logger = logger;
         
-        _httpClient.BaseAddress = new Uri(settings.ApiUrl);
+        // IMPORTANT: BaseAddress doit se terminer par "/" pour que les requêtes relatives
+        // ("chat/completions") se combinent en préservant le chemin complet de l'URL.
+        _httpClient.BaseAddress = new Uri(settings.ApiUrl.TrimEnd('/') + "/");
         _httpClient.DefaultRequestHeaders.Authorization = 
             new AuthenticationHeaderValue("Bearer", settings.ApiKey);
     }
@@ -74,7 +78,7 @@ IMPORTANT: Ne retourne QUE le JSON, sans texte supplémentaire.";
         var jsonRequest = JsonSerializer.Serialize(request);
         var httpContent = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
         
-        var response = await _httpClient.PostAsync("/chat/completions", httpContent, cancellationToken);
+        var response = await _httpClient.PostAsync("chat/completions", httpContent, cancellationToken);
         
         if (!response.IsSuccessStatusCode)
         {
@@ -141,7 +145,7 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
         var jsonRequest = JsonSerializer.Serialize(request);
         var httpContent = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
         
-        var response = await _httpClient.PostAsync("/chat/completions", httpContent, cancellationToken);
+        var response = await _httpClient.PostAsync("chat/completions", httpContent, cancellationToken);
         
         if (!response.IsSuccessStatusCode)
         {
@@ -176,7 +180,7 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
             var jsonRequest = JsonSerializer.Serialize(request);
             var httpContent = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
             
-            var response = await _httpClient.PostAsync("/chat/completions", httpContent, cancellationToken);
+            var response = await _httpClient.PostAsync("chat/completions", httpContent, cancellationToken);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)

@@ -1,26 +1,35 @@
+using System.Text.Json.Serialization;
+
 namespace Vigie24.Services.Interfaces;
 
 /// <summary>
 /// Résultat du traitement d'un article par l'IA
+/// Les [JsonPropertyName] matchent le format JSON renvoyé par les modèles
+/// (snake_case), System.Text.Json étant sensible à la casse par défaut.
 /// </summary>
 public class AiProcessingResult
 {
     /// <summary>Résumé de l'article en français</summary>
+    [JsonPropertyName("summary")]
     public string Summary { get; set; } = string.Empty;
     
     /// <summary>Score éditorial (0-100)</summary>
+    [JsonPropertyName("editorial_score")]
     public decimal EditorialScore { get; set; }
     
     /// <summary>Liste des thèmes/catégories détectés</summary>
+    [JsonPropertyName("themes")]
     public List<string> DetectedThemes { get; set; } = new();
     
     /// <summary>Indique si cet article est un doublon d'un article existant</summary>
+    [JsonPropertyName("is_duplicate")]
     public bool IsDuplicate { get; set; }
     
     /// <summary>ID de l'article doublon (si applicable)</summary>
     public Guid? DuplicateOf { get; set; }
     
     /// <summary>Liste des mots-clés extraits</summary>
+    [JsonPropertyName("keywords")]
     public List<string> Keywords { get; set; } = new();
 }
 
@@ -34,6 +43,11 @@ public interface IAiService
     /// Nom du fournisseur IA (pour logging et monitoring)
     /// </summary>
     string ProviderName { get; }
+    
+    /// <summary>
+    /// Modèle LLM utilisé (nom + version, ex: "Qwen/Qwen3.5-122B-A10B-FP8")
+    /// </summary>
+    string ModelName { get; }
     
     /// <summary>
     /// Traite un article : génère un résumé, attribue un score, détecte les thèmes

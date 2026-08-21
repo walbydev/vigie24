@@ -27,8 +27,8 @@ else
                 <div class="card-body">
                     <h5 class="card-title">Statut du système</h5>
                     <p class="card-text">
-                        <strong>Fournisseur IA :</strong> @AiService.ProviderName<br />
-                        <strong>Type de service :</strong> @AiService.GetType().Name<br />
+                        <strong>Fournisseur IA :</strong> @AiService.ProviderName (@AiService.GetType().Name)<br />
+                        <strong>Modèle LLM :</strong> @AiService.ModelName<br />
                         <strong>Statut :</strong> <span class="text-success">Opérationnel</span><br />
                         <strong>Articles en base :</strong> @_totalArticles
                     </p>
@@ -61,18 +61,33 @@ else
                             <img src="@article.ImageUrl" class="card-img-top" alt="@article.ImageAltText" style="height:180px;object-fit:cover;" />
                         }
                         <div class="card-body">
-                            <h5 class="card-title">@article.Title</h5>
+                            <h5 class="card-title"><a href="@article.CanonicalUrl" target="_blank" rel="noopener">@article.Title</a></h5>
                             <p class="card-text">@article.Summary</p>
+                            @if (article.Authors.Any())
+                            {
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        ✍️ Par @string.Join(", ", article.Authors.OrderBy(a => a.AuthorOrder).Select(a => a.Author?.Name))
+                                    </small>
+                                </p>
+                            }
                             <p class="card-text">
                                 <small class="text-muted">
                                     @article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ·
                                     Score : <strong>@article.RankingScore.ToString("0.0")</strong>
-                                    @if (article.Sources.Any())
-                                    {
-                                        <text>· Source : @article.Sources.First().Source?.Name</text>
-                                    }
                                 </small>
                             </p>
+                            @if (article.Sources.Any())
+                            {
+                                <p class="card-text">
+                                    @foreach (var source in article.Sources)
+                                    {
+                                        <a href="@source.SourceArticleUrl" target="_blank" rel="noopener" class="badge bg-secondary text-decoration-none me-1">
+                                            @source.Source?.Name
+                                        </a>
+                                    }
+                                </p>
+                            }
                         </div>
                     </div>
                 </div>
@@ -95,6 +110,7 @@ else
             _totalArticles = await DbContext.Articles.CountAsync();
             _articles = await DbContext.Articles
                 .Include(a => a.Sources).ThenInclude(s => s.Source)
+                .Include(a => a.Authors).ThenInclude(a => a.Author)
                 .Where(a => a.IsPublished)
                 .OrderByDescending(a => a.PublishedAt)
                 .Take(12)

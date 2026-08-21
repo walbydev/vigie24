@@ -106,6 +106,9 @@ public class Vigie24Worker : BackgroundService
                 "Reddit" => await FetchRedditFeedAsync(source, cancellationToken),
                 _ => await FetchRssFeedAsync(source.FeedUrl!, cancellationToken)
             };
+        // Délai entre items (FeedReader:ItemDelayMilliseconds) pour respecter les rate-limits IA
+        var itemDelayMs = _configuration.GetValue<int>("FeedReader:ItemDelayMilliseconds", 0);
+
         foreach (var item in feedItems)
         {
             try
@@ -115,6 +118,11 @@ public class Vigie24Worker : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing item: {ItemTitle}", item.Title);
+            }
+
+            if (itemDelayMs > 0)
+            {
+                await Task.Delay(itemDelayMs, cancellationToken);
             }
         }
 
@@ -302,9 +310,11 @@ public class Vigie24Worker : BackgroundService
         }
 
         // Vérifier les doublons avec les articles récents
+        // Plafonné via FeedReader:MaxDuplicateCheckArticles pour limiter les appels IA (rate-limit)
+        var maxDuplicateCheckArticles = _configuration.GetValue<int>("FeedReader:MaxDuplicateCheckArticles", 10);
         var recentArticles = await dbContext.Articles
             .Where(a => a.PublishedAt > DateTime.UtcNow.AddDays(-7))
-            .Take(50)
+            .Take(maxDuplicateCheckArticles)
             .ToListAsync(cancellationToken);
 
         foreach (var recent in recentArticles)
@@ -362,9 +372,12 @@ public class Vigie24Worker : BackgroundService
         }
 
         // Ajouter la source
+        // NB: la source vient d'une requête AsNoTracking() — passer par la navigation
+        // ferait tenter à EF Core un INSERT dupliqué (violation sources_pkey).
+        // On n'utilise donc que la clé étrangère.
         article.Sources.Add(new ArticleSource
         {
-            Source = source,
+            SourceId = source.Id,
             SourceArticleUrl = item.Url,
             IsPrimary = true
         });

@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Vigie24.Services.Interfaces;
 
@@ -18,6 +19,8 @@ public class InfomaniakAiService : IAiService
 
     public string ProviderName => "Infomaniak";
 
+    public string ModelName => _settings.Model;
+
     public InfomaniakAiService(
         HttpClient httpClient,
         AiServiceSettings settings,
@@ -27,9 +30,42 @@ public class InfomaniakAiService : IAiService
         _settings = settings;
         _logger = logger;
         
-        _httpClient.BaseAddress = new Uri(settings.ApiUrl);
+        // IMPORTANT: BaseAddress doit se terminer par "/" pour que les requêtes relatives
+        // ("chat/completions") se combinent en préservant le chemin complet de l'URL.
+        _httpClient.BaseAddress = new Uri(settings.ApiUrl.TrimEnd('/') + "/");
         _httpClient.DefaultRequestHeaders.Authorization = 
             new AuthenticationHeaderValue("Bearer", settings.ApiKey);
+    }
+
+    /// <summary>
+    /// POST /chat/completions avec retry sur rate-limit (429) :
+    /// 3 tentatives max, backoff exponentiel (5s puis 10s).
+    /// </summary>
+    private async Task<HttpResponseMessage> PostChatCompletionsAsync(
+        string jsonRequest,
+        CancellationToken cancellationToken)
+    {
+        const int maxAttempts = 3;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            var httpContent = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync("chat/completions", httpContent, cancellationToken);
+
+            if ((int)response.StatusCode == 429 && attempt < maxAttempts)
+            {
+                var delay = TimeSpan.FromSeconds(5 * attempt);
+                _logger.LogWarning("Infomaniak API rate limited (429) — retry {Attempt}/{Max} dans {Delay}s",
+                    attempt, maxAttempts, delay.TotalSeconds);
+                await Task.Delay(delay, cancellationToken);
+                response.Dispose();
+                continue;
+            }
+
+            return response;
+        }
+
+        throw new InvalidOperationException("Unreachable code path");
     }
 
     public async Task<AiProcessingResult> ProcessArticleAsync(
@@ -74,7 +110,7 @@ IMPORTANT: Ne retourne QUE le JSON, sans texte supplémentaire.";
         var jsonRequest = JsonSerializer.Serialize(request);
         var httpContent = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
         
-        var response = await _httpClient.PostAsync("/chat/completions", httpContent, cancellationToken);
+        var response = await PostChatCompletionsAsync(jsonRequest, cancellationToken);
         
         if (!response.IsSuccessStatusCode)
         {
@@ -85,13 +121,17 @@ IMPORTANT: Ne retourne QUE le JSON, sans texte supplémentaire.";
 
         var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
         var apiResponse = JsonSerializer.Deserialize<InfomaniakApiResponse>(responseContent);
-        
-        if (apiResponse?.Choices?.FirstOrDefault()?.Message?.Content is not string contentJson)
+
+        var contentJson = ExtractJsonFromMessage(apiResponse?.Choices?.FirstOrDefault()?.Message);
+        if (contentJson is null)
         {
+            var dbgMsg = apiResponse?.Choices?.FirstOrDefault()?.Message;
+            _logger.LogError("Invalid response format. RawContent=[{RawContent}] RawReasoning=[{RawReasoning}] FullResponse=[{Full}]",
+                Truncate(dbgMsg?.Content ?? "(null)", 500),
+                Truncate(dbgMsg?.Reasoning ?? "(null)", 500),
+                Truncate(responseContent, 2500));
             throw new InvalidOperationException("Invalid response format from Infomaniak API");
         }
-
-        contentJson = CleanJson(contentJson);
         
         var result = JsonSerializer.Deserialize<AiProcessingResult>(contentJson) 
             ?? new AiProcessingResult();
@@ -141,7 +181,7 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
         var jsonRequest = JsonSerializer.Serialize(request);
         var httpContent = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
         
-        var response = await _httpClient.PostAsync("/chat/completions", httpContent, cancellationToken);
+        var response = await PostChatCompletionsAsync(jsonRequest, cancellationToken);
         
         if (!response.IsSuccessStatusCode)
         {
@@ -152,9 +192,9 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
         var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
         var apiResponse = JsonSerializer.Deserialize<InfomaniakApiResponse>(responseContent);
         
-        if (apiResponse?.Choices?.FirstOrDefault()?.Message?.Content is string contentJson)
+        var contentJson = ExtractJsonFromMessage(apiResponse?.Choices?.FirstOrDefault()?.Message);
+        if (contentJson is not null)
         {
-            contentJson = CleanJson(contentJson);
             var duplicateCheck = JsonSerializer.Deserialize<DuplicateCheckResult>(contentJson);
             return duplicateCheck?.IsDuplicate ?? false;
         }
@@ -176,7 +216,7 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
             var jsonRequest = JsonSerializer.Serialize(request);
             var httpContent = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
             
-            var response = await _httpClient.PostAsync("/chat/completions", httpContent, cancellationToken);
+            var response = await PostChatCompletionsAsync(jsonRequest, cancellationToken);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -207,24 +247,58 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
         return json.Trim();
     }
 
+    /// <summary>
+    /// Extrait le JSON de la réponse du modèle.
+    /// Les modèles de raisonnement (Qwen3.x) mettent le raisonnement dans
+    /// <c>reasoning</c> et le JSON final dans <c>content</c> — mais si la
+    /// génération est tronquée (max_tokens atteint), content peut être vide :
+    /// on retombe alors sur le JSON présent à la fin du raisonnement.
+    /// </summary>
+    private static string? ExtractJsonFromMessage(Message? message)
+    {
+        var text = message?.Content;
+        if (string.IsNullOrWhiteSpace(text))
+            text = message?.Reasoning;
+
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+
+        // Prendre le premier '{' jusqu'au dernier '}' (le JSON est souvent précédé/suivi de texte)
+        var firstBrace = text.IndexOf('{');
+        var lastBrace = text.LastIndexOf('}');
+        if (firstBrace >= 0 && lastBrace > firstBrace)
+            text = text[firstBrace..(lastBrace + 1)];
+
+        return CleanJson(text);
+    }
+
     private class InfomaniakApiResponse
     {
+        [JsonPropertyName("choices")]
         public List<Choice>? Choices { get; set; }
     }
 
     private class Choice
     {
+        [JsonPropertyName("message")]
         public Message? Message { get; set; }
     }
 
     private class Message
     {
+        [JsonPropertyName("content")]
         public string? Content { get; set; }
+
+        /// <summary>Raisonnement du modèle (modèles de raisonnement type Qwen3)</summary>
+        [JsonPropertyName("reasoning")]
+        public string? Reasoning { get; set; }
     }
 
     private class DuplicateCheckResult
     {
+        [JsonPropertyName("is_duplicate")]
         public bool IsDuplicate { get; set; }
+
         public decimal Confidence { get; set; }
     }
 }

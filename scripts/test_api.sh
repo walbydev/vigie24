@@ -1,17 +1,23 @@
 #!/bin/bash
-cd /home/philippe/RiderProjects/OpenSource/vigie24
+# Test rapide de l'API Infomaniak AI (alias de test_infomaniak.sh)
+# La cle est lue depuis .env et JAMAIS affichee
+cd "$(dirname "$0")/.." || exit 1
 
-# Extraire la clé API
 INFOMANIAK_API_KEY=$(grep "^INFOMANIAK_API_KEY=" .env | cut -d= -f2)
+BASE_URL=$(grep "^INFOMANIAK_API_URL=" .env | cut -d= -f2)
+MODEL=$(grep "^AI_MODEL=" .env | cut -d= -f2)
 
-echo "=== Test connexion API Infomaniak ==="
-echo "Longueur clé: ${#INFOMANIAK_API_KEY}"
-echo "Début clé: ${INFOMANIAK_API_KEY:0:15}..."
-echo ""
+[ -n "$INFOMANIAK_API_KEY" ] || { echo "ERREUR: INFOMANIAK_API_KEY manquante dans .env"; exit 1; }
+[ -n "$BASE_URL" ] || { echo "ERREUR: INFOMANIAK_API_URL manquante dans .env"; exit 1; }
 
-# Tester l'API
-curl -s -X POST https://api.infomaniak.com/1.0/chat/completions \
+echo "=== Test API Infomaniak ($BASE_URL/chat/completions) ==="
+echo "Longueur cle: ${#INFOMANIAK_API_KEY} (jamais affichee)"
+echo "Modele: $MODEL"
+echo
+
+curl -s -X POST "$BASE_URL/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $INFOMANIAK_API_KEY" \
-  -d '{"model":"Qwen/Qwen3.5-122B-A10B-FP8","messages":[{"role":"user","content":"Hello"}],"max_tokens":10}' \
-  | jq '.' 2>/dev/null || echo "(Pas de jq, affichage brut)"
+  -d "{\"model\": \"$MODEL\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello\"}], \"max_tokens\": 10}" \
+  | head -c 500
+echo

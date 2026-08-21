@@ -38,6 +38,8 @@ public class MockAiService : IAiService
 
     public string ProviderName => "Mock";
 
+    public string ModelName => "Bogus (simulation locale)";
+
     public Task<AiProcessingResult> ProcessArticleAsync(string title, string content, string sourceUrl, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Mock processing article: {Title}", title);
