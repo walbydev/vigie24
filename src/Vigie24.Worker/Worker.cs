@@ -1,5 +1,7 @@
 using System.Net.Http.Json;
 using System.ServiceModel.Syndication;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.EntityFrameworkCore;
 using Vigie24.Domain;
@@ -347,6 +349,15 @@ public class Vigie24Worker : BackgroundService
             item.Url,
             cancellationToken);
 
+        // Illustration : image du flux RSS (media:content/enclosure), sinon scraping de la page article
+        var imageUrl = item.ImageUrl;
+        if (string.IsNullOrWhiteSpace(imageUrl) &&
+            _configuration.GetValue<bool>("FeedReader:ScrapeArticleImages", true) &&
+            !string.IsNullOrWhiteSpace(item.Url))
+        {
+            imageUrl = await ScrapeArticleImageAsync(item.Url, cancellationToken);
+        }
+
         // Créer l'article
         var article = new Article
         {
@@ -356,8 +367,8 @@ public class Vigie24Worker : BackgroundService
             EditorialScore = aiResult.EditorialScore,
             LanguageCode = "fr",
             PublishedAt = item.PublishedAt,
-            ImageUrl = string.IsNullOrWhiteSpace(item.ImageUrl) ? null : item.ImageUrl,
-            ImageAltText = string.IsNullOrWhiteSpace(item.ImageUrl) ? null : item.Title,
+            ImageUrl = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl,
+            ImageAltText = string.IsNullOrWhiteSpace(imageUrl) ? null : item.Title,
             CategoryId = await GetOrCreateCategoryAsync(dbContext, aiResult, cancellationToken),
             IsPublished = aiResult.EditorialScore >= 60 // Seuil de publication
         };
@@ -670,6 +681,87 @@ public class Vigie24Worker : BackgroundService
             l.RelationshipType == "enclosure" &&
             l.MediaType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) == true);
         return enclosure?.Uri.ToString();
+    }
+
+    private static readonly Regex OgImageRegex = new(
+        @"<meta[^>]+(?:property|name)=[""'](?:og:image|twitter:image)[^>]+content=[""'](?<url>[^""']+)",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex ArticleImageRegex = new(
+        @"<(?:img|link)[^>]+(?:src|href)=[""'](?<url>[^""']+\.(?:jpe?g|png|webp|gif)(?:\?[^""']*)?)[""']",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>
+    /// Scrape l'URL d'illustration d'une page article (og:image / twitter:image, sinon première image).
+    /// Seule l'URL est récupérée — l'image elle-même n'est pas téléchargée.
+    /// </summary>
+    private async Task<string?> ScrapeArticleImageAsync(string articleUrl, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Scraping article image from: {Url}", articleUrl);
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(12));
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, articleUrl);
+            request.Headers.Add("User-Agent", "Vigie24-RSS-Monitor/1.0 (Philippe Walby; philippe@walby.dev)");
+            request.Headers.Add("Accept", "text/html,application/xhtml+xml");
+
+            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var mediaType = response.Content.Headers.ContentType?.MediaType ?? "";
+            if (!mediaType.Contains("html", StringComparison.OrdinalIgnoreCase)) return null;
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
+            using var reader = new StreamReader(stream, Encoding.UTF8, true, 8192);
+            var sb = new StringBuilder();
+            var buffer = new char[65536];
+            while (sb.Length < 524288)
+            {
+                var n = await reader.ReadAsync(buffer, 0, buffer.Length);
+                if (n <= 0) break;
+                sb.Append(buffer, 0, n);
+            }
+
+            var imageUrl = ExtractImageUrlFromHtml(sb.ToString(), articleUrl);
+            if (imageUrl != null)
+                _logger.LogInformation("Article image found: {ImageUrl}", imageUrl);
+            return imageUrl;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Image scraping failed for {Url}", articleUrl);
+            return null;
+        }
+    }
+
+    private static string? ExtractImageUrlFromHtml(string html, string baseUrl)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return null;
+
+        var match = OgImageRegex.Match(html);
+        var url = match.Success ? match.Groups["url"].Value : null;
+
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            match = ArticleImageRegex.Match(html);
+            url = match.Success ? match.Groups["url"].Value : null;
+        }
+
+        if (string.IsNullOrWhiteSpace(url)) return null;
+
+        url = System.Net.WebUtility.HtmlDecode(url).Trim();
+        if (url.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return null;
+
+        if (Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri))
+        {
+            if (Uri.TryCreate(url, UriKind.Absolute, out _)) return url;
+            if (Uri.TryCreate(baseUri, url, out var resolved)) return resolved.ToString();
+        }
+
+        return url;
     }
 
     /// <summary>Seed idempotent de la taxonomie de catégories (parents + sous-catégories)</summary>

@@ -38,9 +38,32 @@
         <h5 class="card-title"><a href="@Article.CanonicalUrl" target="_blank" rel="noopener">@Article.Title</a></h5>
         <p class="card-text">@Article.Summary</p>
 
-        @if (Article.Authors.Any())
+        @if (Article.Authors.Any() || _primarySource?.Source != null)
         {
-            <p class="authors">✍️ @string.Join(", ", Article.Authors.OrderBy(a => a.AuthorOrder).Select(a => a.Author?.Name))</p>
+            <p class="authors">
+                @if (Article.Authors.Any())
+                {
+                    var authors = Article.Authors.OrderBy(a => a.AuthorOrder).Select(a => a.Author).Where(a => a != null).ToList();
+                    <span>✍️ </span>
+                    @for (var i = 0; i < authors.Count; i++)
+                    {
+                        if (i > 0) { <text>, </text> }
+                        if (!string.IsNullOrWhiteSpace(authors[i]!.ProfileUrl))
+                        {
+                            <a href="@authors[i]!.ProfileUrl" target="_blank" rel="noopener">@authors[i]!.Name</a>
+                        }
+                        else
+                        {
+                            @authors[i]!.Name
+                        }
+                    }
+                }
+                @if (_primarySource?.Source != null)
+                {
+                    <span> · via </span>
+                    <a href="@_sourceLink" target="_blank" rel="noopener">@_primarySource.Source.Name</a>
+                }
+            </p>
         }
 
         <p class="meta">
@@ -65,6 +88,8 @@
     private string _color1 = "#4f46e5";
     private string _color2 = "#9333ea";
     private string _initial = "?";
+    private ArticleSource? _primarySource;
+    private string _sourceLink = "";
     private static readonly (string Prefix, string C1, string C2)[] _palettes =
     {
         ("ia", "#4f46e5", "#9333ea"), ("developpement", "#0891b2", "#2563eb"),
@@ -82,6 +107,12 @@
         _color1 = palette.C1;
         _color2 = palette.C2;
         _initial = Article.Title.Length > 0 ? Article.Title[..1].ToUpperInvariant() : "?";
+
+        // Source principale : lien vers le site de la source (sinon l'URL de l'article)
+        _primarySource = Article.Sources.FirstOrDefault(s => s.IsPrimary) ?? Article.Sources.FirstOrDefault();
+        _sourceLink = !string.IsNullOrWhiteSpace(_primarySource?.Source?.WebsiteUrl)
+            ? _primarySource.Source.WebsiteUrl
+            : (_primarySource?.SourceArticleUrl ?? "");
 
         // Hint « calcul précis » : mêmes formules que le Worker (Vigie24.Domain.ArticleScoring)
         var rec = ArticleScoring.CalculateRecencyScore(Article.PublishedAt);
