@@ -21,6 +21,13 @@ public class AiProcessingResult
     [JsonPropertyName("themes")]
     public List<string> DetectedThemes { get; set; } = new();
     
+    /// <summary>
+    /// Hiérarchie de catégories détectée : [catégorie parente, sous-catégorie].
+    /// Ex: ["IA", "Modèles LLM"]
+    /// </summary>
+    [JsonPropertyName("categories")]
+    public List<string> DetectedCategories { get; set; } = new();
+    
     /// <summary>Indique si cet article est un doublon d'un article existant</summary>
     [JsonPropertyName("is_duplicate")]
     public bool IsDuplicate { get; set; }

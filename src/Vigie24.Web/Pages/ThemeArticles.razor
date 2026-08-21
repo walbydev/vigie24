@@ -1,0 +1,91 @@
+@page "/themes/{Slug}"
+@using Vigie24.Domain
+@using Vigie24.Domain.Models
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
+
+<PageTitle>@_title - Vigie24</PageTitle>
+
+@if (_tag == null)
+{
+    <div class="alert alert-warning" role="alert">Thématique introuvable.</div>
+}
+else
+{
+    <div class="breadcrumb">
+        <a href="/themes">Thématiques</a>
+        <text> › <strong>@_title</strong></text>
+    </div>
+
+    <div class="page-head">
+        <h1>@_title</h1>
+        <span class="muted">@_articles.Count article(s)</span>
+    </div>
+
+    <TimelineFilter Articles="@_articles" Range="@_range" RangeChanged="@OnRangeChanged" />
+
+    @if (!_articles.Any())
+    {
+        <div class="alert alert-warning" role="alert">Aucun article publié avec cette thématique.</div>
+    }
+    else
+    {
+        var visible = FilteredArticles(_articles).ToList();
+        @if (!visible.Any())
+        {
+            <div class="alert alert-warning" role="alert">Aucun article sur ce créneau.</div>
+        }
+        else
+        {
+            <div class="article-grid">
+                @foreach (var article in visible)
+                {
+                    <ArticleCard Article="@article" />
+                }
+            </div>
+        }
+    }
+}
+
+@code {
+    [Parameter]
+    public string Slug { get; set; } = "";
+
+    private Tag? _tag;
+    private List<Article> _articles = new();
+    private (DateTime? From, DateTime? To)? _range;
+    private string _title = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tag = await DbContext.Tags.FirstOrDefaultAsync(t => t.Slug == Slug);
+        if (_tag == null) return;
+
+        _title = VigieTaxonomy.DisplayName(_tag.Slug);
+
+        _articles = await DbContext.Articles
+            .Include(a => a.Category).ThenInclude(c => c!.ParentCategory)
+            .Include(a => a.Authors).ThenInclude(a => a.Author)
+            .Include(a => a.Sources).ThenInclude(s => s.Source)
+            .Include(a => a.Tags).ThenInclude(t => t.Tag)
+            .Where(a => a.IsPublished && a.Tags.Any(t => t.TagId == _tag.Id))
+            .OrderByDescending(a => a.PublishedAt)
+            .ToListAsync();
+    }
+
+    private IEnumerable<Article> FilteredArticles(IEnumerable<Article> articles)
+    {
+        if (_range is null) return articles;
+        var (from, to) = _range.Value;
+        return articles.Where(a =>
+            (!from.HasValue || a.PublishedAt >= from.Value) &&
+            (!to.HasValue || a.PublishedAt < to.Value));
+    }
+
+    private Task OnRangeChanged((DateTime? From, DateTime? To)? range)
+    {
+        _range = range;
+        return Task.CompletedTask;
+    }
+}

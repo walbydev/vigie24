@@ -30,6 +30,15 @@ public class MockAiService : IAiService
         "essentiel", "inattendu", "prometteur", "controverse", "reveleur"
     };
 
+    private static readonly (string Parent, string Sub)[] MockCategories =
+    {
+        ("IA", "Modèles LLM"), ("IA", "Agents IA"), ("IA", "Outils & Applications"),
+        ("Développement", "Web"), ("Développement", "Backend"), ("Développement", "DevOps & Cloud"),
+        ("Cybersécurité", "Vulnérabilités"), ("Cybersécurité", "Menaces & Acteurs"),
+        ("Science", "Recherche"), ("Science", "Espace"),
+        ("Hardware", "Composants"), ("Hardware", "Électronique")
+    };
+
     public MockAiService(ILogger<MockAiService> logger)
     {
         _logger = logger;
@@ -56,11 +65,14 @@ public class MockAiService : IAiService
                 detectedThemes.Add(theme);
         }
 
+        var category = MockCategories[_random.Next(0, MockCategories.Length)];
+
         var result = new AiProcessingResult
         {
             Summary = summary,
             EditorialScore = editorialScore,
             DetectedThemes = detectedThemes,
+            DetectedCategories = new List<string> { category.Parent, category.Sub },
             IsDuplicate = false
         };
 

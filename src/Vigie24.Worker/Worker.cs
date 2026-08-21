@@ -1,6 +1,8 @@
 using System.Net.Http.Json;
 using System.ServiceModel.Syndication;
+using System.Xml.Linq;
 using Microsoft.EntityFrameworkCore;
+using Vigie24.Domain;
 using Vigie24.Domain.Models;
 using Vigie24.Services.Interfaces;
 using Vigie24.Services.Implementations;
@@ -177,7 +179,8 @@ public class Vigie24Worker : BackgroundService
                     Content = item.Summary?.Text ?? (item.Content != null ? item.Content.ToString() : ""), 
                     Url = item.Links.FirstOrDefault()?.Uri.ToString() ?? "",
                     PublishedAt = item.PublishDate.UtcDateTime,
-                    Author = item.Authors.FirstOrDefault()?.Name ?? ""
+                    Author = item.Authors.FirstOrDefault()?.Name ?? "",
+                    ImageUrl = ExtractFeedImage(item)
                 });
             }
 
@@ -283,7 +286,8 @@ public class Vigie24Worker : BackgroundService
                 Content = faker.Lorem.Paragraphs(faker.Random.Int(2, 5)),
                 Url = url,
                 PublishedAt = DateTime.UtcNow.AddHours(-faker.Random.Int(1, 72)),
-                Author = faker.Name.FullName()
+                Author = faker.Name.FullName(),
+                ImageUrl = faker.Image.PicsumUrl()
             };
 
             await ProcessFeedItemAsync(item, mockSource, dbContext, cancellationToken);
@@ -352,13 +356,15 @@ public class Vigie24Worker : BackgroundService
             EditorialScore = aiResult.EditorialScore,
             LanguageCode = "fr",
             PublishedAt = item.PublishedAt,
+            ImageUrl = string.IsNullOrWhiteSpace(item.ImageUrl) ? null : item.ImageUrl,
+            ImageAltText = string.IsNullOrWhiteSpace(item.ImageUrl) ? null : item.Title,
             CategoryId = await GetOrCreateCategoryAsync(dbContext, aiResult, cancellationToken),
             IsPublished = aiResult.EditorialScore >= 60 // Seuil de publication
         };
 
-        // Calculer le score algorithmique
-        article.AlgorithmicScore = CalculateAlgorithmicScore(article, recentArticles.Count);
-        article.RankingScore = article.EditorialScore * 0.6m + article.AlgorithmicScore * 0.4m;
+        // Calculer le score algorithmique (formules partagées dans Vigie24.Domain.ArticleScoring)
+        article.AlgorithmicScore = ArticleScoring.CalculateAlgorithmicScore(article, recentArticles.Count);
+        article.RankingScore = ArticleScoring.CalculateRanking(article.EditorialScore, article.AlgorithmicScore);
 
         // Ajouter les tags
         foreach (var theme in aiResult.DetectedThemes)
@@ -440,41 +446,81 @@ public class Vigie24Worker : BackgroundService
             article.Title, article.RankingScore);
     }
 
+    /// <summary>
+    /// Mapping hiérarchique : l'IA renvoie [parent, sous-catégorie] (ex: ["IA", "Modèles LLM"]).
+    /// Retourne l'Id de la sous-catégorie, sinon du parent.
+    /// Fallback : ancien mapping par thème principal.
+    /// </summary>
     private async Task<Guid> GetOrCreateCategoryAsync(
         Vigie24DbContext dbContext,
         AiProcessingResult aiResult,
         CancellationToken cancellationToken)
     {
-        // Logique de mapping des thèmes IA vers catégories
-        var primaryTheme = aiResult.DetectedThemes.FirstOrDefault()?.ToLower() ?? "";
-        
-        Guid? categoryId = primaryTheme switch
-        {
-            var t when t.Contains("ai") || t.Contains("llm") || t.Contains("machine learning") => 
-                await GetCategoryIdBySlug(dbContext, "ia", cancellationToken),
-            var t when t.Contains("code") || t.Contains("dev") || t.Contains("programming") => 
-                await GetCategoryIdBySlug(dbContext, "developpement", cancellationToken),
-            var t when t.Contains("science") || t.Contains("research") => 
-                await GetCategoryIdBySlug(dbContext, "science", cancellationToken),
-            var t when t.Contains("security") || t.Contains("cyber") => 
-                await GetCategoryIdBySlug(dbContext, "cybersecurite", cancellationToken),
-            var t when t.Contains("hardware") || t.Contains("chip") || t.Contains("gpu") => 
-                await GetCategoryIdBySlug(dbContext, "hardware", cancellationToken),
-            _ => await GetCategoryIdBySlug(dbContext, "ia", cancellationToken)
-        };
+        var cats = aiResult.DetectedCategories
+            .Select(c => c?.Trim() ?? "")
+            .Where(c => c.Length > 0)
+            .ToList();
 
-        return categoryId ?? await GetCategoryIdBySlug(dbContext, "ia", cancellationToken) ?? Guid.Empty;
+        if (cats.Count > 0)
+        {
+            var parent = await GetOrCreateCategoryBySlugAsync(
+                dbContext, VigieTaxonomy.Slugify(cats[0]), null, cancellationToken);
+            if (parent == null) return Guid.Empty;
+
+            if (cats.Count > 1)
+            {
+                var sub = await GetOrCreateCategoryBySlugAsync(
+                    dbContext, VigieTaxonomy.Slugify(cats[1]), parent.Id, cancellationToken);
+                return sub?.Id ?? parent.Id;
+            }
+
+            return parent.Id;
+        }
+
+        // Fallback : mapping par thème principal (ancien comportement)
+        var primaryTheme = aiResult.DetectedThemes.FirstOrDefault()?.ToLower() ?? "";
+        var slug = primaryTheme switch
+        {
+            var t when t.Contains("ai") || t.Contains("llm") || t.Contains("machine learning") => "ia",
+            var t when t.Contains("code") || t.Contains("dev") || t.Contains("programming") => "developpement",
+            var t when t.Contains("science") || t.Contains("research") => "science",
+            var t when t.Contains("security") || t.Contains("cyber") => "cybersecurite",
+            var t when t.Contains("hardware") || t.Contains("chip") || t.Contains("gpu") => "hardware",
+            _ => "ia"
+        };
+        var cat = await GetOrCreateCategoryBySlugAsync(dbContext, slug, null, cancellationToken);
+        return cat?.Id ?? Guid.Empty;
     }
 
-    private async Task<Guid?> GetCategoryIdBySlug(
+    /// <summary>Get-or-create une catégorie par slug (avec rattachement au parent si sous-catégorie)</summary>
+    private async Task<Category?> GetOrCreateCategoryBySlugAsync(
         Vigie24DbContext dbContext,
         string slug,
+        Guid? parentId,
         CancellationToken cancellationToken)
     {
+        slug = slug.ToLowerInvariant();
         var category = await dbContext.Categories
             .FirstOrDefaultAsync(c => c.Slug == slug, cancellationToken);
-        
-        return category?.Id;
+
+        if (category == null)
+        {
+            category = new Category
+            {
+                Slug = slug,
+                ParentCategoryId = parentId,
+                IsActive = true
+            };
+            dbContext.Categories.Add(category);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        else if (parentId != null && category.ParentCategoryId != parentId)
+        {
+            category.ParentCategoryId = parentId;
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return category;
     }
 
     private async Task<Domain.Models.Tag> GetOrCreateTagAsync(
@@ -574,37 +620,97 @@ public class Vigie24Worker : BackgroundService
     }
 
     private decimal CalculateAlgorithmicScore(Article article, int recentArticlesCount)
-    {
-        // Score algorithmique basé sur :
-        // - Récence (plus récent = meilleur score)
-        // - Popularité potentielle (basé sur le contenu)
-        // - Diversité des sources
-        
-        var recencyScore = CalculateRecencyScore(article.PublishedAt);
-        var contentScore = CalculateContentScore(article.Summary);
-        
-        return (recencyScore + contentScore) / 2;
-    }
+        => ArticleScoring.CalculateAlgorithmicScore(article, recentArticlesCount);
 
     private decimal CalculateRecencyScore(DateTime publishedAt)
-    {
-        var hoursOld = (decimal)(DateTime.UtcNow - publishedAt).TotalHours;
-        if (hoursOld <= 1) return 100;
-        if (hoursOld <= 6) return 80;
-        if (hoursOld <= 24) return 60;
-        if (hoursOld <= 48) return 40;
-        return Math.Max(0, 40 - (hoursOld - 48) / 24 * 10);
-    }
+        => ArticleScoring.CalculateRecencyScore(publishedAt);
 
     private decimal CalculateContentScore(string summary)
+        => ArticleScoring.CalculateContentScore(summary);
+
+    /// <summary>
+    /// Extraction d'une illustration depuis le flux RSS :
+    /// media:content / media:thumbnail (y compris dans media:group), puis <enclosure> image.
+    /// </summary>
+    private static string? ExtractFeedImage(SyndicationItem item)
     {
-        // Score basé sur la longueur et la densité d'information
-        var wordCount = summary.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
-        
-        if (wordCount >= 50) return 90;
-        if (wordCount >= 30) return 70;
-        if (wordCount >= 15) return 50;
-        return 30;
+        const string mediaNs = "http://search.yahoo.com/mrss/";
+        var media = XNamespace.Get(mediaNs);
+
+        foreach (var ext in item.ElementExtensions)
+        {
+            if (ext.OuterName is not ("content" or "thumbnail" or "image" or "group"))
+                continue;
+
+            try
+            {
+                using var reader = ext.GetReader();
+                var el = XElement.Load(reader);
+
+                if (el.Name == media + "content" || el.Name == media + "thumbnail" || el.Name == media + "image")
+                {
+                    var url = (string?)el.Attribute("url");
+                    if (!string.IsNullOrEmpty(url)) return url;
+                }
+                else if (el.Name == media + "group")
+                {
+                    var child = el.Elements(media + "content").FirstOrDefault()
+                                ?? el.Elements(media + "thumbnail").FirstOrDefault();
+                    var url = (string?)child?.Attribute("url");
+                    if (!string.IsNullOrEmpty(url)) return url;
+                }
+            }
+            catch
+            {
+                // extension illisible : on passe à la suivante
+            }
+        }
+
+        var enclosure = item.Links.FirstOrDefault(l =>
+            l.RelationshipType == "enclosure" &&
+            l.MediaType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) == true);
+        return enclosure?.Uri.ToString();
+    }
+
+    /// <summary>Seed idempotent de la taxonomie de catégories (parents + sous-catégories)</summary>
+    public static async Task EnsureTaxonomyAsync(
+        Vigie24DbContext dbContext,
+        CancellationToken cancellationToken = default)
+    {
+        var order = 1;
+        foreach (var parent in VigieTaxonomy.Categories.Where(c => c.ParentSlug is null))
+        {
+            var parentCat = await dbContext.Categories
+                .FirstOrDefaultAsync(c => c.Slug == parent.Slug, cancellationToken);
+            if (parentCat == null)
+            {
+                parentCat = new Category { Slug = parent.Slug, DisplayOrder = order, IsActive = true };
+                dbContext.Categories.Add(parentCat);
+            }
+
+            foreach (var sub in VigieTaxonomy.Categories.Where(c => c.ParentSlug == parent.Slug))
+            {
+                var subCat = await dbContext.Categories
+                    .FirstOrDefaultAsync(c => c.Slug == sub.Slug, cancellationToken);
+                if (subCat == null)
+                {
+                    dbContext.Categories.Add(new Category
+                    {
+                        Slug = sub.Slug,
+                        ParentCategoryId = parentCat.Id,
+                        IsActive = true
+                    });
+                }
+                else if (subCat.ParentCategoryId != parentCat.Id)
+                {
+                    subCat.ParentCategoryId = parentCat.Id;
+                }
+            }
+
+            order++;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
 
@@ -631,4 +737,5 @@ public class ArticleFeedItem
     public string Url { get; set; } = string.Empty;
     public DateTime PublishedAt { get; set; }
     public string Author { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
 }

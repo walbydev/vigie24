@@ -1,0 +1,102 @@
+@using Vigie24.Domain
+@using Vigie24.Domain.Models
+
+@* Carte article : illustration, catégories + thèmes, auteurs, score avec hint de calcul précis *@
+<div class="article-card">
+    @if (!string.IsNullOrEmpty(Article.ImageUrl))
+    {
+        <a href="@Article.CanonicalUrl" target="_blank" rel="noopener" class="card-img-link">
+            <img src="@Article.ImageUrl" class="card-img" alt="@Article.ImageAltText" loading="lazy" />
+        </a>
+    }
+    else
+    {
+        <a href="@Article.CanonicalUrl" target="_blank" rel="noopener" class="card-img-link">
+            <div class="card-img card-img-placeholder" style="background: linear-gradient(135deg, @_color1, @_color2);">
+                @_initial
+            </div>
+        </a>
+    }
+
+    <div class="card-body">
+        <div class="chips">
+            @if (Article.Category != null)
+            {
+                @if (Article.Category.ParentCategory != null)
+                {
+                    <a class="chip chip-cat" href="/categories/@Article.Category.ParentCategory.Slug">@VigieTaxonomy.DisplayName(Article.Category.ParentCategory.Slug)</a>
+                    <span class="chip-sep">›</span>
+                }
+                <a class="chip chip-cat" href="/categories/@Article.Category.Slug">@VigieTaxonomy.DisplayName(Article.Category.Slug)</a>
+            }
+            @foreach (var t in Article.Tags.Take(4))
+            {
+                <a class="chip chip-tag" href="/themes/@t.Tag.Slug">@VigieTaxonomy.DisplayName(t.Tag.Slug)</a>
+            }
+        </div>
+
+        <h5 class="card-title"><a href="@Article.CanonicalUrl" target="_blank" rel="noopener">@Article.Title</a></h5>
+        <p class="card-text">@Article.Summary</p>
+
+        @if (Article.Authors.Any())
+        {
+            <p class="authors">✍️ @string.Join(", ", Article.Authors.OrderBy(a => a.AuthorOrder).Select(a => a.Author?.Name))</p>
+        }
+
+        <p class="meta">
+            <span>@Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+            <span class="score-hint">
+                <span class="score" @onclick="ToggleHint" title="Calcul du score">Score : <strong>@Article.RankingScore.ToString("0.0")</strong> ⓘ</span>
+                @if (_showHint)
+                {
+                    <span class="hint-popup">@_hint</span>
+                }
+            </span>
+        </p>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Article Article { get; set; } = null!;
+
+    private bool _showHint;
+    private string _hint = "";
+    private string _color1 = "#4f46e5";
+    private string _color2 = "#9333ea";
+    private string _initial = "?";
+    private static readonly (string Prefix, string C1, string C2)[] _palettes =
+    {
+        ("ia", "#4f46e5", "#9333ea"), ("developpement", "#0891b2", "#2563eb"),
+        ("cyber", "#dc2626", "#7c3aed"), ("science", "#059669", "#0d9488"),
+        ("hardware", "#d97706", "#dc2626"), ("", "#475569", "#64748b")
+    };
+
+    protected override void OnParametersSet()
+    {
+        // Illustration de secours : dégradé coloré selon la catégorie + initiale du titre
+        var catSlug = Article.Category?.Slug ?? "";
+        var palette = _palettes.FirstOrDefault(p => catSlug.StartsWith(p.Prefix));
+        if (palette.Prefix.Length == 0)
+            palette = _palettes[^1];
+        _color1 = palette.C1;
+        _color2 = palette.C2;
+        _initial = Article.Title.Length > 0 ? Article.Title[..1].ToUpperInvariant() : "?";
+
+        // Hint « calcul précis » : mêmes formules que le Worker (Vigie24.Domain.ArticleScoring)
+        var rec = ArticleScoring.CalculateRecencyScore(Article.PublishedAt);
+        var con = ArticleScoring.CalculateContentScore(Article.Summary);
+        var algo = Article.AlgorithmicScore;
+        var ed = Article.EditorialScore;
+        var rank = Article.RankingScore;
+        _hint =
+            $"Score de classement\n" +
+            $"= Éditorial {ed:0.0} × 0,6 + Algorithmique {algo:0.0} × 0,4\n" +
+            $"= {rank:0.0}\n\n" +
+            $"Algorithmique\n" +
+            $"= (Récence {rec:0.0} + Contenu {con:0.0}) / 2\n" +
+            $"= {algo:0.0}";
+    }
+
+    private void ToggleHint() => _showHint = !_showHint;
+}

@@ -1,0 +1,115 @@
+@using Vigie24.Domain.Models
+
+@* Timeline adaptative : j, j-1..j-5, semaines, mois, années, plus ancien + dates précises.
+   Seuls les créneaux contenant des articles sont affichés (avec compteur). *@
+@if (_buckets.Any())
+{
+    <div class="timeline">
+        @foreach (var b in _buckets)
+        {
+            <button class="tl-pill @(IsActive(b) ? "active" : "")" @onclick="() => Select(b)">
+                @b.Label <span class="count">@b.Count</span>
+            </button>
+        }
+
+        <span class="tl-custom">
+            <input type="date" @bind="FromDate" />
+            <span>→</span>
+            <input type="date" @bind="ToDate" />
+            <button class="tl-pill" @onclick="ApplyCustom">Filtrer dates</button>
+            @if (Range is not null)
+            {
+                <button class="tl-pill" @onclick="Reset">✕ Réinitialiser</button>
+            }
+        </span>
+    </div>
+}
+
+@code {
+    /// <summary>Articles du contexte courant (permet de compter les articles par créneau)</summary>
+    [Parameter]
+    public IReadOnlyList<Article> Articles { get; set; } = Array.Empty<Article>();
+
+    /// <summary>Sélection courante : (From, To) en UTC, null = aucun filtre</summary>
+    [Parameter]
+    public (DateTime? From, DateTime? To)? Range { get; set; }
+
+    [Parameter]
+    public EventCallback<(DateTime? From, DateTime? To)?> RangeChanged { get; set; }
+
+    private DateTime? FromDate { get; set; }
+    private DateTime? ToDate { get; set; }
+
+    private List<Bucket> _buckets = new();
+
+    public record Bucket(string Label, DateTime? From, DateTime? To, int Count);
+
+    protected override void OnParametersSet() => ComputeBuckets();
+
+    private void ComputeBuckets()
+    {
+        var dates = Articles.Select(a => a.PublishedAt).ToList();
+        var today = DateTime.UtcNow.Date;
+        var buckets = new List<Bucket>();
+
+        // Créneaux individuels : j, j-1 … j-5
+        for (var i = 0; i <= 5; i++)
+        {
+            var day = today.AddDays(-i);
+            AddBucket(buckets, dates, i == 0 ? "j (aujourd'hui)" : $"j-{i}", day, day.AddDays(1));
+        }
+
+        // Semaines (du lundi au dimanche)
+        var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        for (var i = 0; i <= 2; i++)
+        {
+            var from = monday.AddDays(-7 * i);
+            AddBucket(buckets, dates, i == 0 ? "cette semaine" : $"s-{i}", from, from.AddDays(7));
+        }
+
+        // Mois
+        var monthStart = new DateTime(today.Year, today.Month, 1);
+        for (var i = 0; i <= 2; i++)
+        {
+            var from = monthStart.AddMonths(-i);
+            AddBucket(buckets, dates, i == 0 ? "ce mois" : $"mois-{i}", from, from.AddMonths(1));
+        }
+
+        // Années
+        var yearStart = new DateTime(today.Year, 1, 1);
+        for (var i = 0; i <= 2; i++)
+        {
+            var from = yearStart.AddYears(-i);
+            AddBucket(buckets, dates, i == 0 ? "cette année" : $"année-{i}", from, from.AddYears(1));
+        }
+
+        // Plus ancien (avant année-2)
+        var oldest = yearStart.AddYears(-2);
+        var oldCount = dates.Count(d => d < oldest);
+        if (oldCount > 0)
+            buckets.Add(new Bucket("plus ancien", null, oldest, oldCount));
+
+        _buckets = buckets.OrderByDescending(b => b.From ?? DateTime.MinValue).ToList();
+    }
+
+    private static void AddBucket(List<Bucket> buckets, List<DateTime> dates, string label, DateTime from, DateTime to)
+    {
+        var count = dates.Count(d => d >= from && d < to);
+        if (count > 0)
+            buckets.Add(new Bucket(label, from, to, count));
+    }
+
+    private bool IsActive(Bucket b) =>
+        Range is not null && Range.Value.From == b.From && Range.Value.To == b.To;
+
+    private async Task Select(Bucket b) => await RangeChanged.InvokeAsync((b.From, b.To));
+
+    private async Task ApplyCustom()
+    {
+        var from = FromDate?.Date;
+        var to = ToDate?.Date.AddDays(1);
+        await RangeChanged.InvokeAsync((from, to));
+    }
+
+    private async Task Reset() => await RangeChanged.InvokeAsync(null);
+}

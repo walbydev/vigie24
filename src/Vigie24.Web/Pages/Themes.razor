@@ -1,0 +1,46 @@
+@page "/themes"
+@using Vigie24.Domain
+@using Vigie24.Domain.Models
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
+
+<PageTitle>Thématiques - Vigie24</PageTitle>
+
+<h1>Thématiques</h1>
+<p class="muted">Les thèmes détectés par l'IA sur les articles publiés.</p>
+
+@if (!_themes.Any())
+{
+    <div class="alert alert-warning" role="alert">Aucune thématique pour le moment.</div>
+}
+else
+{
+    <div class="chips" style="gap:10px;">
+        @foreach (var theme in _themes)
+        {
+            <a class="chip chip-tag" style="font-size:0.9rem;padding:6px 14px;" href="/themes/@theme.Slug">
+                @VigieTaxonomy.DisplayName(theme.Slug) <span class="count-badge">@theme.Count</span>
+            </a>
+        }
+    </div>
+}
+
+@code {
+    private List<(string Slug, int Count)> _themes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var pairs = await DbContext.Articles.AsNoTracking()
+            .Where(a => a.IsPublished)
+            .SelectMany(a => a.Tags.Select(t => t.Tag!.Slug))
+            .ToListAsync();
+
+        _themes = pairs
+            .GroupBy(s => s)
+            .Select(g => (g.Key, g.Count()))
+            .OrderByDescending(x => x.Item2)
+            .ThenBy(x => x.Item1)
+            .ToList();
+    }
+}

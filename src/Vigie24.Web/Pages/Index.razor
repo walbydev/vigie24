@@ -1,4 +1,6 @@
 @page "/"
+@using Vigie24.Domain
+@using Vigie24.Domain.Models
 @using Vigie24.Services.Interfaces
 @using Vigie24.Infrastructure.Data
 @using Microsoft.EntityFrameworkCore
@@ -8,119 +10,89 @@
 
 <PageTitle>Accueil - Vigie24</PageTitle>
 
-<h1>Bienvenue sur Vigie24</h1>
-
-<p>Système de surveillance RSS et analyse IA</p>
+<h1>Vigie24</h1>
+<p class="muted">Surveillance RSS et analyse IA</p>
 
 @if (AiService == null)
 {
-    <div class="alert alert-danger mt-4" role="alert">
+    <div class="alert alert-danger" role="alert">
         <strong>⚠️ Erreur critique :</strong> Le service IA n'est pas configuré.
-        <br />Veuillez vérifier les logs serveur pour plus de détails.
     </div>
 }
 else
 {
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Statut du système</h5>
-                    <p class="card-text">
-                        <strong>Fournisseur IA :</strong> @AiService.ProviderName (@AiService.GetType().Name)<br />
-                        <strong>Modèle LLM :</strong> @AiService.ModelName<br />
-                        <strong>Statut :</strong> <span class="text-success">Opérationnel</span><br />
-                        <strong>Articles en base :</strong> @_totalArticles
-                    </p>
-                </div>
-            </div>
-        </div>
+    <div class="status-card">
+        <strong>Fournisseur IA :</strong> @AiService.ProviderName (@AiService.GetType().Name)<br />
+        <strong>Modèle LLM :</strong> @AiService.ModelName<br />
+        <strong>Statut :</strong> <span class="text-success">Opérationnel</span> · <strong>Articles en base :</strong> @_totalArticles
     </div>
+}
 
-    <h2 class="mt-4">Derniers articles</h2>
+<div class="page-head">
+    <h2>Derniers articles</h2>
+    <div class="chips">
+        <a class="chip chip-cat" href="/categories">🗂 Catégories</a>
+        <a class="chip chip-tag" href="/themes">🏷 Thématiques</a>
+    </div>
+</div>
 
-    @if (_articles == null)
+<TimelineFilter Articles="@_articles" Range="@_range" RangeChanged="@OnRangeChanged" />
+
+@if (!_articles.Any())
+{
+    <div class="alert alert-warning" role="alert">
+        Aucun article pour le moment. Le worker va en générer dans quelques minutes.
+    </div>
+}
+else
+{
+    var visible = FilteredArticles(_articles).ToList();
+    @if (!visible.Any())
     {
-        <p><em>Chargement...</em></p>
-    }
-    else if (!_articles.Any())
-    {
-        <div class="alert alert-warning" role="alert">
-            Aucun article pour le moment. Le worker va en générer dans quelques minutes.
-        </div>
+        <div class="alert alert-warning" role="alert">Aucun article sur ce créneau. Choisissez un autre intervalle.</div>
     }
     else
     {
-        <div class="row">
-            @foreach (var article in _articles)
+        <div class="article-grid">
+            @foreach (var article in visible)
             {
-                <div class="col-md-6 mb-3">
-                    <div class="card">
-                        @if (!string.IsNullOrEmpty(article.ImageUrl))
-                        {
-                            <img src="@article.ImageUrl" class="card-img-top" alt="@article.ImageAltText" style="height:180px;object-fit:cover;" />
-                        }
-                        <div class="card-body">
-                            <h5 class="card-title"><a href="@article.CanonicalUrl" target="_blank" rel="noopener">@article.Title</a></h5>
-                            <p class="card-text">@article.Summary</p>
-                            @if (article.Authors.Any())
-                            {
-                                <p class="card-text">
-                                    <small class="text-muted">
-                                        ✍️ Par @string.Join(", ", article.Authors.OrderBy(a => a.AuthorOrder).Select(a => a.Author?.Name))
-                                    </small>
-                                </p>
-                            }
-                            <p class="card-text">
-                                <small class="text-muted">
-                                    @article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ·
-                                    Score : <strong>@article.RankingScore.ToString("0.0")</strong>
-                                </small>
-                            </p>
-                            @if (article.Sources.Any())
-                            {
-                                <p class="card-text">
-                                    @foreach (var source in article.Sources)
-                                    {
-                                        <a href="@source.SourceArticleUrl" target="_blank" rel="noopener" class="badge bg-secondary text-decoration-none me-1">
-                                            @source.Source?.Name
-                                        </a>
-                                    }
-                                </p>
-                            }
-                        </div>
-                    </div>
-                </div>
+                <ArticleCard Article="@article" />
             }
         </div>
     }
 }
 
 @code {
-    private List<Vigie24.Domain.Models.Article>? _articles;
+    private List<Article> _articles = new();
     private int _totalArticles;
+    private (DateTime? From, DateTime? To)? _range;
 
     protected override async Task OnInitializedAsync()
     {
-        Logger.LogInformation("Index page initialized - AI Service type: {ServiceType}",
-            AiService?.GetType().Name ?? "null");
+        _totalArticles = await DbContext.Articles.CountAsync();
+        _articles = await DbContext.Articles
+            .Include(a => a.Category).ThenInclude(c => c!.ParentCategory)
+            .Include(a => a.Authors).ThenInclude(a => a.Author)
+            .Include(a => a.Sources).ThenInclude(s => s.Source)
+            .Include(a => a.Tags).ThenInclude(t => t.Tag)
+            .Where(a => a.IsPublished)
+            .OrderByDescending(a => a.PublishedAt)
+            .ToListAsync();
+        Logger.LogInformation("Index : {Count} articles publiés chargés", _articles.Count);
+    }
 
-        try
-        {
-            _totalArticles = await DbContext.Articles.CountAsync();
-            _articles = await DbContext.Articles
-                .Include(a => a.Sources).ThenInclude(s => s.Source)
-                .Include(a => a.Authors).ThenInclude(a => a.Author)
-                .Where(a => a.IsPublished)
-                .OrderByDescending(a => a.PublishedAt)
-                .Take(12)
-                .ToListAsync();
-            Logger.LogInformation("Loaded {Count} published articles", _articles.Count);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to load articles");
-            _articles = new List<Vigie24.Domain.Models.Article>();
-        }
+    private IEnumerable<Article> FilteredArticles(IEnumerable<Article> articles)
+    {
+        if (_range is null) return articles;
+        var (from, to) = _range.Value;
+        return articles.Where(a =>
+            (!from.HasValue || a.PublishedAt >= from.Value) &&
+            (!to.HasValue || a.PublishedAt < to.Value));
+    }
+
+    private Task OnRangeChanged((DateTime? From, DateTime? To)? range)
+    {
+        _range = range;
+        return Task.CompletedTask;
     }
 }

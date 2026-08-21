@@ -46,6 +46,10 @@ if (builder.Configuration.GetValue<bool>("Database:MigrateOnStartup", true))
     var dbContext = scope.ServiceProvider.GetRequiredService<Vigie24DbContext>();
     await dbContext.Database.MigrateAsync();
     Console.WriteLine("Base de donnees migree avec succes");
+
+    // Seed de la taxonomie de categories (parents + sous-categories)
+    await Vigie24Worker.EnsureTaxonomyAsync(dbContext);
+    Console.WriteLine("Taxonomie de categories seedee");
 }
 
 host.Run();

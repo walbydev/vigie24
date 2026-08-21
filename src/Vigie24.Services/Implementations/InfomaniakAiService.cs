@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using Vigie24.Domain;
 using Vigie24.Services.Interfaces;
 
 namespace Vigie24.Services.Implementations;
@@ -88,10 +89,13 @@ Fournis ta réponse au format JSON suivant (sans markdown, juste le JSON brut):
 {{
   ""summary"": ""Résumé concis en français (2-3 phrases)"",
   ""editorial_score"": 0-100 (note de pertinence éditoriale),
+  ""categories"": [""catégorie parente"", ""sous-catégorie""],
   ""themes"": [""liste"", ""de"", ""themes""],
   ""keywords"": [""liste"", ""de"", ""mots-clés""],
   ""is_duplicate"": false
 }}
+
+Catégories disponibles (choisis UNE paire [parent, sous-catégorie] dans cette liste, ou la plus proche si l'article ne correspond pas exactement) : {VigieTaxonomy.PromptList()}
 
 IMPORTANT: Ne retourne QUE le JSON, sans texte supplémentaire.";
 
