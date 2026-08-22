@@ -25,7 +25,9 @@ public static class RssFeedBuilder
         string channelDescription,
         IEnumerable<RssItem> items)
     {
-        var sw = new StringWriter();
+        // MemoryStream (et non StringWriter) pour que la déclaration XML soit en UTF-8,
+        // cohérente avec le charset servi par HTTP (un parseur strict rejetterait sinon).
+        var ms = new MemoryStream();
         var settings = new XmlWriterSettings
         {
             Indent = true,
@@ -33,7 +35,7 @@ public static class RssFeedBuilder
             OmitXmlDeclaration = false,
         };
 
-        using (var xml = XmlWriter.Create(sw, settings))
+        using (var xml = XmlWriter.Create(ms, settings))
         {
             xml.WriteStartDocument();
             xml.WriteStartElement("rss");
@@ -69,6 +71,6 @@ public static class RssFeedBuilder
             xml.WriteEndDocument();
         }
 
-        return sw.ToString();
+        return new UTF8Encoding(false).GetString(ms.ToArray());
     }
 }

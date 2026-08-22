@@ -65,4 +65,13 @@ public class RssFeedBuilderTests
         Assert.Equal("Sat, 22 Aug 2026 10:30:00 GMT",
                      doc.Root!.Element("channel")!.Element("item")!.Element("pubDate")!.Value);
     }
+
+    [Fact]
+    public void Build_Declaration_DeclaresUtf8()
+    {
+        var xml = RssFeedBuilder.Build("Vigie24", "https://vigie24.info", "Veille", Array.Empty<RssItem>());
+
+        // La déclaration doit être utf-8, cohérente avec le charset servi par HTTP.
+        Assert.StartsWith("<?xml version=\"1.0\" encoding=\"utf-8\"?>", xml);
+    }
 }
