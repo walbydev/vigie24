@@ -41,7 +41,7 @@ PROD_DIR ?= vigie24
 .PHONY: help run debug stop down logs ps check-env \
         dev-run dev-debug mock-run mock-debug \
         staging-pub staging-ps staging-logs staging-down staging-status \
-        prod-deploy prod-ps prod-logs prod-down prod-status prod-backup
+        prod-pub prod-ps prod-logs prod-down prod-status prod-backup
 
 help:
 	@echo "Vigie24 — cibles disponibles :"
@@ -114,12 +114,10 @@ ps: check-env
 staging-pub:
 	@echo "🚀 Publication de la solution vers le staging ($(STAGING_HOST))..."
 	@ssh $(STAGING_HOST) "mkdir -p $(STAGING_DIR)"
-	@rsync -az --delete \
-		--exclude='.git/' --exclude='bin/' --exclude='obj/' \
-		--exclude='.idea/' --exclude='.vscode/' --exclude='.junie/' \
+	@tar czf - --exclude='.git' --exclude='bin' --exclude='obj' \
+		--exclude='.idea' --exclude='.vscode' --exclude='.junie' \
 		--exclude='*.bak' --exclude='*.local' --exclude='*.md~' \
-		--exclude='.env*' \
-		./ $(STAGING_HOST):$(STAGING_DIR)/
+		--exclude='.env*' . | ssh $(STAGING_HOST) "tar xzf - -C $(STAGING_DIR)"
 	@echo "🐳 Construction des images et démarrage des conteneurs sur le staging..."
 	@ssh $(STAGING_HOST) "cd $(STAGING_DIR) && docker compose --env-file .env.staging -f docker-compose.staging.yml up -d --build"
 	@echo ""
@@ -138,15 +136,13 @@ staging-down:
 	@ssh $(STAGING_HOST) "cd $(STAGING_DIR) && docker compose --env-file .env.staging -f docker-compose.staging.yml down"
 
 # --- Production (VPS) : déploiement complet (code + images + conteneurs) ---
-prod-deploy:
+prod-pub:
 	@echo "🚀 Publication de la solution vers la production ($(PROD_HOST))..."
 	@ssh $(PROD_HOST) "mkdir -p $(PROD_DIR)"
-	@rsync -az --delete \
-		--exclude='.git/' --exclude='bin/' --exclude='obj/' \
-		--exclude='.idea/' --exclude='.vscode/' --exclude='.junie/' \
+	@tar czf - --exclude='.git' --exclude='bin' --exclude='obj' \
+		--exclude='.idea' --exclude='.vscode' --exclude='.junie' \
 		--exclude='*.bak' --exclude='*.local' --exclude='*.md~' \
-		--exclude='.env*' \
-		./ $(PROD_HOST):$(PROD_DIR)/
+		--exclude='.env*' . | ssh $(PROD_HOST) "tar xzf - -C $(PROD_DIR)"
 	@echo "🐳 Construction des images et démarrage des conteneurs sur le VPS..."
 	@ssh $(PROD_HOST) "cd $(PROD_DIR) && docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build"
 	@echo ""

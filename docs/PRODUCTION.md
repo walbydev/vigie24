@@ -127,7 +127,7 @@ Une fois les étapes 1 à 6 faites, envoyez-moi :
 À réception, je :
 - configure l'alias SSH `vigie24-prod` en local,
 - crée le `.env.production` (clés IA, mot de passe base, domaine),
-- lance `make prod-deploy` (transfert du code + build des images + démarrage),
+- lance `make prod-pub` (transfert du code + build des images + démarrage),
 - vérifie le site (HTTP/HTTPS, WebSockets, worker) et vous donne les accès.
 
 ---
@@ -137,7 +137,7 @@ Une fois les étapes 1 à 6 faites, envoyez-moi :
 Depuis votre PC (dossier du projet) :
 
 ```bash
-make prod-deploy      # déployer une nouvelle version (code + images)
+make prod-pub            # déployer une nouvelle version (code + images)
 make prod-status      # état des conteneurs
 make prod-logs        # suivre les logs
 make prod-backup      # sauvegarde PostgreSQL (dump daté dans backups/)

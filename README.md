@@ -300,7 +300,7 @@ Interface protégée avec CRUD simple pour :
 ```
 vigie24/
 ├── docs/
-│   ├── PRODUCTION.md             # Déploiement production (VPS, Caddy, make prod-deploy)
+│   ├── PRODUCTION.md             # Déploiement production (VPS, Caddy, make prod-pub)
 │   ├── DEVELOPMENT.md            # Guide de développement
 │   ├── DEBUGGING.md              # Guide de débogage
 │   ├── ENVIRONMENTS.md           # Les 4 environnements (dev, mock, staging, prod)
