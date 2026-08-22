@@ -5,9 +5,16 @@
     <a class="skip-link" href="#main-content">Aller au contenu</a>
     <nav class="topnav" aria-label="Navigation principale">
         <a class="brand" href="/">Vigie<span>24</span></a>
-        <NavLink class="nav" href="/" Match="NavLinkMatch.All">Accueil</NavLink>
-        <NavLink class="nav" href="/categories">Catégories</NavLink>
-        <NavLink class="nav" href="/themes">Thématiques</NavLink>
+        <button class="nav-toggle" @onclick="ToggleMenu"
+                aria-expanded="@_menuOpen" aria-controls="nav-links"
+                aria-label="@(_menuOpen ? "Fermer le menu" : "Ouvrir le menu")">
+            <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+        </button>
+        <div class="nav-links @(_menuOpen ? "open" : "")" id="nav-links" @onclick="CloseMenu">
+            <NavLink class="nav" href="/" Match="NavLinkMatch.All">Accueil</NavLink>
+            <NavLink class="nav" href="/categories">Catégories</NavLink>
+            <NavLink class="nav" href="/themes">Thématiques</NavLink>
+        </div>
         <div class="topnav-right">
             <FontSizeSwitcher />
             <ThemeSwitcher />
@@ -18,4 +25,34 @@
             @Body
         </div>
     </main>
+    <footer class="site-footer" role="contentinfo">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <strong>Vigie<span>24</span></strong>
+                <p>Surveillance RSS et analyse IA — veille technologique francophone (France, Suisse, Belgique, Québec, Luxembourg).</p>
+            </div>
+            <div class="footer-col">
+                <h3>Navigation</h3>
+                <a href="/">Accueil</a>
+                <a href="/categories">Catégories</a>
+                <a href="/themes">Thématiques</a>
+            </div>
+            <div class="footer-col">
+                <h3>Projet</h3>
+                <a href="/license">Licence MIT</a>
+                <span class="footer-legal">© @DateTime.UtcNow.Year Philippe Walby</span>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            Vigie24 — logiciel libre sous licence MIT · données issues de flux RSS publics
+        </div>
+    </footer>
 </div>
+
+@code {
+    private bool _menuOpen;
+
+    private void ToggleMenu() => _menuOpen = !_menuOpen;
+
+    private void CloseMenu() => _menuOpen = false;
+}
