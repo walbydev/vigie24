@@ -11,6 +11,7 @@ scripts/
 ├── add-all-sources.sql     # Ajout de 246+ sources complètes
 ├── add-all-sources.sh      # Wrapper shell pour add-all-sources.sql
 ├── add-sources-intl.sql    # Ajout de sources internationales (BE, CA, LU)
+├── add-sources-yt-reddit.sql # Ajout de chaînes YouTube + subreddits Reddit
 ├── check_types.sql         # Vérification des types de colonnes
 ├── reconcile-taxonomy.sql  # Réconciliation catégories/tags (idempotent)
 ├── reset-database.sql      # Réinitialisation complète (SQL)
