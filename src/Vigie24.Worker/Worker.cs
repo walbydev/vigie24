@@ -18,6 +18,14 @@ public class Vigie24Worker : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly IAiService _aiService;
     private readonly IConfiguration _configuration;
+
+    /// <summary>
+    /// User-Agent HTTP utilisé pour les flux et le scraping (FeedReader:UserAgent).
+    /// Certains sites (Reddit notamment) bloquent les User-Agent robots explicites ;
+    /// la valeur par défaut est donc un User-Agent navigateur réaliste.
+    /// </summary>
+    private string UserAgent => _configuration.GetValue<string>("FeedReader:UserAgent")
+        ?? "Vigie24-RSS-Monitor/1.0 (Walby Developments; philippe@walby.dev)";
     private readonly HttpClient _httpClient;
 
     public Vigie24Worker(
@@ -155,8 +163,10 @@ public class Vigie24Worker : BackgroundService
             
             // Use SyndicationFeed to parse RSS/Atom XML feeds
             // Add User-Agent to avoid being blocked by some sites
+            // (configurable via FeedReader:UserAgent — certains sites comme Reddit
+            //  bloquent les User-Agent robots explicites).
             var request = new HttpRequestMessage(HttpMethod.Get, feedUrl);
-            request.Headers.Add("User-Agent", "Vigie24-RSS-Monitor/1.0 (Walby Developments; philippe@walby.dev)");
+            request.Headers.Add("User-Agent", UserAgent);
             request.Headers.Add("Accept", "application/rss+xml, application/xml, text/xml, */*");
 
             // Retry léger sur rate-limit (429) et erreurs 5xx : certains flux
@@ -729,7 +739,7 @@ public class Vigie24Worker : BackgroundService
             cts.CancelAfter(TimeSpan.FromSeconds(12));
 
             using var request = new HttpRequestMessage(HttpMethod.Get, articleUrl);
-            request.Headers.Add("User-Agent", "Vigie24-RSS-Monitor/1.0 (Walby Developments; philippe@walby.dev)");
+            request.Headers.Add("User-Agent", UserAgent);
             request.Headers.Add("Accept", "text/html,application/xhtml+xml");
 
             using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token);
