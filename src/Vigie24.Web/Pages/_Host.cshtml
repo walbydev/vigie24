@@ -161,7 +161,11 @@
 
         /* ===== Accessibilité générale ===== */
         * { box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
+        html { scroll-behavior: smooth; font-size: 100%; }
+        html[data-font="50"] { font-size: 50%; }
+        html[data-font="75"] { font-size: 75%; }
+        html[data-font="125"] { font-size: 125%; }
+        html[data-font="150"] { font-size: 150%; }
         body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
         :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
         a { color: var(--accent); }
@@ -186,12 +190,13 @@
         .topnav a.nav { color: var(--nav-ink); text-decoration: none; padding: 14px 14px; border-bottom: 3px solid transparent; }
         .topnav a.nav:hover { color: var(--nav-ink-hover); }
         .topnav a.nav.active { color: var(--nav-ink-hover); border-bottom-color: var(--brand-accent); }
-        .theme-switcher { margin-left: auto; display: flex; align-items: center; }
-        .theme-switcher select {
+        .topnav-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+        .theme-switcher { display: flex; align-items: center; }
+        .theme-switcher select, .font-switcher select {
             background: var(--nav-bg); color: var(--nav-ink-hover); border: 1px solid var(--nav-ink);
             border-radius: 8px; padding: 7px 10px; font-size: 0.85rem; cursor: pointer;
         }
-        .theme-switcher select:hover { border-color: var(--brand-accent); }
+        .theme-switcher select:hover, .font-switcher select:hover { border-color: var(--brand-accent); }
 
         /* ===== Alertes / statut ===== */
         .alert { padding: 12px 16px; margin: 16px 0; border-radius: 6px; border: 1px solid transparent; }
@@ -348,12 +353,24 @@
                 stored = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
             }
             document.documentElement.setAttribute('data-theme', stored);
+
+            var font = null;
+            try { font = localStorage.getItem('vigie24-font'); } catch (e) {}
+            if (!font) font = '100';
+            document.documentElement.setAttribute('data-font', font);
         })();
         window.vigie24Theme = {
             get: function () { return document.documentElement.getAttribute('data-theme') || 'light'; },
             set: function (t) {
                 document.documentElement.setAttribute('data-theme', t);
                 try { localStorage.setItem('vigie24-theme', t); } catch (e) {}
+            }
+        };
+        window.vigie24Font = {
+            get: function () { return document.documentElement.getAttribute('data-font') || '100'; },
+            set: function (f) {
+                document.documentElement.setAttribute('data-font', f);
+                try { localStorage.setItem('vigie24-font', f); } catch (e) {}
             }
         };
     </script>

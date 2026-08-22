@@ -1,4 +1,4 @@
-@* Timeline adaptative : j, j-1..j-5, semaines, mois, années, plus ancien + dates précises.
+@* Timeline simplifiée : aujourd'hui, cette semaine, ce mois, cette année + dates précises.
    Seuls les créneaux contenant des articles sont affichés (avec compteur).
    Entrée : les dates des articles déjà filtrés (catégorie / thème / recherche), sans pagination. *@
 @if (_buckets.Any())
@@ -51,42 +51,18 @@
         var today = DateTime.UtcNow.Date;
         var buckets = new List<Bucket>();
 
-        // Créneaux individuels : j, j-1 … j-5
-        for (var i = 0; i <= 5; i++)
-        {
-            var day = today.AddDays(-i);
-            AddBucket(buckets, dates, i == 0 ? "j (aujourd'hui)" : $"j-{i}", day, day.AddDays(1));
-        }
+        // Créneaux réduits : aujourd'hui, cette semaine, ce mois, cette année
+        // (l'intervalle précis reste disponible via le sélecteur de dates).
+        AddBucket(buckets, dates, "aujourd'hui", today, today.AddDays(1));
 
-        // Semaines (du lundi au dimanche)
         var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
-        for (var i = 0; i <= 2; i++)
-        {
-            var from = monday.AddDays(-7 * i);
-            AddBucket(buckets, dates, i == 0 ? "cette semaine" : $"s-{i}", from, from.AddDays(7));
-        }
+        AddBucket(buckets, dates, "cette semaine", monday, monday.AddDays(7));
 
-        // Mois
         var monthStart = new DateTime(today.Year, today.Month, 1);
-        for (var i = 0; i <= 2; i++)
-        {
-            var from = monthStart.AddMonths(-i);
-            AddBucket(buckets, dates, i == 0 ? "ce mois" : $"mois-{i}", from, from.AddMonths(1));
-        }
+        AddBucket(buckets, dates, "ce mois", monthStart, monthStart.AddMonths(1));
 
-        // Années
         var yearStart = new DateTime(today.Year, 1, 1);
-        for (var i = 0; i <= 2; i++)
-        {
-            var from = yearStart.AddYears(-i);
-            AddBucket(buckets, dates, i == 0 ? "cette année" : $"année-{i}", from, from.AddYears(1));
-        }
-
-        // Plus ancien (avant année-2)
-        var oldest = yearStart.AddYears(-2);
-        var oldCount = dates.Count(d => d < oldest);
-        if (oldCount > 0)
-            buckets.Add(new Bucket("plus ancien", null, oldest, oldCount));
+        AddBucket(buckets, dates, "cette année", yearStart, yearStart.AddYears(1));
 
         _buckets = buckets.OrderByDescending(b => b.From ?? DateTime.MinValue).ToList();
     }
