@@ -104,10 +104,10 @@ public class Vigie24Worker : BackgroundService
 
         feedItems = source.IngestionMethod switch
             {
-                "Rss" => await FetchRssFeedAsync(source.FeedUrl!, cancellationToken),
+                // Les flux YouTube (feeds/videos.xml) et Reddit (.rss) sont de l'Atom/RSS
+                // standard : on les ingère comme n'importe quel flux (les cas dédiés
+                // "Youtube"/"Reddit" sont tolérés et traités comme du RSS).
                 "Api" => await FetchApiFeedAsync(source, cancellationToken),
-                "Youtube" => await FetchYoutubeFeedAsync(source, cancellationToken),
-                "Reddit" => await FetchRedditFeedAsync(source, cancellationToken),
                 _ => await FetchRssFeedAsync(source.FeedUrl!, cancellationToken)
             };
         // Délai entre items (FeedReader:ItemDelayMilliseconds) pour respecter les rate-limits IA
@@ -210,16 +210,14 @@ public class Vigie24Worker : BackgroundService
 
     private async Task<List<ArticleFeedItem>> FetchYoutubeFeedAsync(Source source, CancellationToken cancellationToken)
     {
-        // Implémentation YouTube via API
-        _logger.LogInformation("YouTube feed fetching not yet implemented for {SourceName}", source.Name);
-        return new List<ArticleFeedItem>();
+        // Les flux YouTube (feeds/videos.xml) sont de l'Atom standard : gérés via FetchRssFeedAsync.
+        return await FetchRssFeedAsync(source.FeedUrl!, cancellationToken);
     }
 
     private async Task<List<ArticleFeedItem>> FetchRedditFeedAsync(Source source, CancellationToken cancellationToken)
     {
-        // Implémentation Reddit via API
-        _logger.LogInformation("Reddit feed fetching not yet implemented for {SourceName}", source.Name);
-        return new List<ArticleFeedItem>();
+        // Les flux Reddit (.rss) sont de l'Atom standard : gérés via FetchRssFeedAsync.
+        return await FetchRssFeedAsync(source.FeedUrl!, cancellationToken);
     }
 
     /// <summary>
