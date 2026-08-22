@@ -41,7 +41,8 @@ PROD_DIR ?= vigie24
 .PHONY: help run debug stop down logs ps check-env \
         dev-run dev-debug mock-run mock-debug \
         staging-pub staging-ps staging-logs staging-down staging-status \
-        prod-pub prod-ps prod-logs prod-down prod-status prod-backup
+        prod-pub prod-ps prod-logs prod-down prod-status prod-backup prod-sync \
+        staging-worker-pause staging-worker-resume
 
 help:
 	@echo "Vigie24 — cibles disponibles :"
@@ -164,3 +165,16 @@ prod-backup:
 	@mkdir -p backups
 	@ssh $(PROD_HOST) "cd $(PROD_DIR) && docker compose --env-file .env.production -f docker-compose.prod.yml exec -T postgres pg_dump -U postgres_prod -d vigie24_prod" > backups/vigie24-prod-$$(date +%Y%m%d-%H%M%S).sql
 	@echo "✅ Sauvegarde PostgreSQL effectuée dans backups/"
+
+# Synchronise les articles du staging vers la production (idempotent, sans doublon)
+prod-sync:
+	@python3 scripts/sync-articles-to-prod.py
+
+# --- Staging : pause/reprise du worker (économie de tokens IA) ---
+staging-worker-pause:
+	@ssh $(STAGING_HOST) "cd $(STAGING_DIR) && docker compose --env-file .env.staging -f docker-compose.staging.yml stop vigie24-worker"
+	@echo "⏸️ Worker staging arrêté — aucun token IA dépensé. Reprise : make staging-worker-resume"
+
+staging-worker-resume:
+	@ssh $(STAGING_HOST) "cd $(STAGING_DIR) && docker compose --env-file .env.staging -f docker-compose.staging.yml start vigie24-worker"
+	@echo "▶️ Worker staging relancé."

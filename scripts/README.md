@@ -15,6 +15,7 @@ scripts/
 ├── reconcile-taxonomy.sql  # Réconciliation catégories/tags (idempotent)
 ├── reset-database.sql      # Réinitialisation complète (SQL)
 ├── reset-db.sh             # Wrapper shell pour reset-database.sql
+├── sync-articles-to-prod.py # Sync staging → production (idempotent, sans doublon)
 ├── test-api.sh             # Test de l'API Infomaniak
 ├── test-infomaniak.sh      # Test spécifique Infomaniak
 └── README.md               # Ce fichier
@@ -174,6 +175,24 @@ Test plus complet incluant un appel réel au modèle IA.
 **Prérequis :**
 - Variables d'environnement `INFOMANIAK_API_KEY` définies dans `.env`
 - Modèle spécifié (ex: `Qwen/Qwen3.5-122B-A10B-FP8`)
+
+---
+
+### `sync-articles-to-prod.py` - Synchronisation staging → production
+
+Importe en production **uniquement les articles absents** (déduplication sur la
+contrainte unique `CanonicalUrl` — aucun doublon possible). Les catégories sont
+mappées par slug, les tags manquants sont créés, les liens `article_tags`
+reproduits. Idempotent : peut être relancé sans risque.
+
+**Usage :**
+```bash
+make prod-sync                                # synchronisation réelle
+python3 scripts/sync-articles-to-prod.py --dry-run   # aperçu sans rien écrire
+```
+
+**Prérequis :** alias SSH `vigie24-staging` et `vigie24-prod` configurés.
+Aucun secret en clair (tout passe par SSH).
 
 ---
 
