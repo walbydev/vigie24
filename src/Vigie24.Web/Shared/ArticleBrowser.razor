@@ -1,0 +1,207 @@
+@using Vigie24.Domain.Models
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
+@inject ILogger<ArticleBrowser> Logger
+
+@* Navigation d'articles : recherche plein-texte, tri, plage de dates, pagination.
+   Les requêtes sont exécutées en base (EF Core) — aucune liste complète en mémoire. *@
+
+<div class="browser-toolbar">
+    <input type="search" class="search-input"
+           placeholder="🔍 Rechercher : titre, résumé, source, thème…"
+           value="@SearchText" @oninput="OnSearchInput" />
+    <select @bind="SortField" @bind:after="OnFilterChanged">
+        <option value="date">Tri : plus récents</option>
+        <option value="dateAsc">Tri : plus anciens</option>
+        <option value="score">Tri : score de classement</option>
+        <option value="rating">Tri : note moyenne</option>
+        <option value="clicks">Tri : clics</option>
+    </select>
+    <select @bind="PageSize" @bind:after="OnFilterChanged">
+        <option value="20">20 / page</option>
+        <option value="50">50 / page</option>
+        <option value="100">100 / page</option>
+    </select>
+    <span class="result-count">
+        @if (_totalCount == 0)
+        {
+            <text>0 article</text>
+        }
+        else
+        {
+            var first = (_page - 1) * PageSize + 1;
+            var last = Math.Min(_page * PageSize, _totalCount);
+            <text>@first–@last sur @_totalCount</text>
+        }
+    </span>
+</div>
+
+<TimelineFilter Dates="@_dates" Range="@_range" RangeChanged="@OnRangeChanged" />
+
+@if (!_articles.Any())
+{
+    <div class="alert alert-warning" role="alert">Aucun article ne correspond à ces critères. Modifiez la recherche ou les filtres.</div>
+}
+else
+{
+    <div class="article-grid">
+        @foreach (var article in _articles)
+        {
+            <ArticleCard Article="@article" />
+        }
+    </div>
+
+    <div class="pagination">
+        <button disabled="@(_page <= 1)" @onclick="() => GoToPageAsync(_page - 1)">‹ Précédent</button>
+        <span class="page-info">Page <span class="page-current">@_page</span> / @_totalPages</span>
+        <button disabled="@(_page >= _totalPages)" @onclick="() => GoToPageAsync(_page + 1)">Suivant ›</button>
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// Fabrique la requête de base (avec Includes) filtrée par catégorie / thème.
+    /// Appelée à chaque chargement — la recherche, le tri, la plage et la pagination sont appliqués par-dessus.
+    /// </summary>
+    [Parameter]
+    public Func<IQueryable<Article>> Source { get; set; } = null!;
+
+    private List<Article> _articles = new();
+    private List<DateTime> _dates = new();
+    private int _totalCount;
+    private int _totalPages = 1;
+    private int _page = 1;
+    private string SearchText = "";
+    private string SortField = "date";
+    private int PageSize = 20;
+    private (DateTime? From, DateTime? To)? _range;
+
+    private CancellationTokenSource? _searchCts;
+    private int _loadVersion;
+    private Func<IQueryable<Article>>? _lastSource;
+
+    protected override void OnParametersSet()
+    {
+        // Recharge quand la source (catégorie / thème) change ; ignore les re-rendus sans changement.
+        if (!ReferenceEquals(Source, _lastSource))
+        {
+            _lastSource = Source;
+            _page = 1;
+            _ = LoadAsync();
+        }
+    }
+
+    private IQueryable<Article> BaseQuery() => Source();
+
+    private IQueryable<Article> ApplyFilters(IQueryable<Article> q)
+    {
+        var search = SearchText?.Trim();
+        if (!string.IsNullOrEmpty(search))
+        {
+            var pattern = $"%{search}%";
+            q = q.Where(a => EF.Functions.ILike(a.Title, pattern)
+                || EF.Functions.ILike(a.Summary, pattern)
+                || a.Tags.Any(t => EF.Functions.ILike(t.Tag.Slug, pattern))
+                || a.Sources.Any(s => EF.Functions.ILike(s.Source.Name, pattern)));
+        }
+
+        if (_range is { } range)
+        {
+            if (range.From.HasValue) q = q.Where(a => a.PublishedAt >= range.From.Value);
+            if (range.To.HasValue) q = q.Where(a => a.PublishedAt < range.To.Value);
+        }
+
+        return q;
+    }
+
+    private static IQueryable<Article> ApplySort(IQueryable<Article> q, string sortField) => sortField switch
+    {
+        "dateAsc" => q.OrderBy(a => a.PublishedAt).ThenBy(a => a.Id),
+        "score" => q.OrderByDescending(a => a.RankingScore).ThenByDescending(a => a.PublishedAt).ThenBy(a => a.Id),
+        "rating" => q.OrderByDescending(a => a.VoteAverage).ThenByDescending(a => a.PublishedAt).ThenBy(a => a.Id),
+        "clicks" => q.OrderByDescending(a => a.ClickCount).ThenByDescending(a => a.PublishedAt).ThenBy(a => a.Id),
+        _ => q.OrderByDescending(a => a.PublishedAt).ThenBy(a => a.Id)
+    };
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        SearchText = e.Value?.ToString() ?? "";
+
+        // Debounce 400 ms pour ne pas marteler la base à chaque frappe
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        var cts = _searchCts;
+        try
+        {
+            await Task.Delay(400, cts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+        _page = 1;
+        await LoadAsync();
+    }
+
+    private async Task OnFilterChanged()
+    {
+        _page = 1;
+        await LoadAsync();
+    }
+
+    private async Task OnRangeChanged((DateTime? From, DateTime? To)? range)
+    {
+        _range = range;
+        _page = 1;
+        await LoadAsync();
+    }
+
+    private async Task GoToPageAsync(int page)
+    {
+        if (page < 1 || page > _totalPages) return;
+        _page = page;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var version = ++_loadVersion;
+        try
+        {
+            var filtered = ApplyFilters(BaseQuery());
+
+            var totalCount = await filtered.CountAsync();
+            var dates = await filtered.Select(a => a.PublishedAt).ToListAsync();
+
+            if (version != _loadVersion) return; // une requête plus récente a pris la main
+
+            _totalCount = totalCount;
+            _totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
+            if (_page > _totalPages) _page = _totalPages;
+
+            _dates = dates;
+
+            var pageQuery = ApplySort(BaseQuery(), SortField)
+                .Skip((_page - 1) * PageSize)
+                .Take(PageSize)
+                .Include(a => a.Category).ThenInclude(c => c!.ParentCategory)
+                .Include(a => a.Authors).ThenInclude(a => a.Author)
+                .Include(a => a.Sources).ThenInclude(s => s.Source)
+                .Include(a => a.Tags).ThenInclude(t => t.Tag);
+
+            var articles = await pageQuery.ToListAsync();
+            if (version != _loadVersion) return;
+
+            _articles = articles;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Échec du chargement des articles du navigateur");
+            if (version != _loadVersion) return;
+            _articles = new();
+            _totalCount = 0;
+            _totalPages = 1;
+        }
+    }
+}

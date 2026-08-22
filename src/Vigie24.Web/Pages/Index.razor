@@ -36,63 +36,22 @@ else
     </div>
 </div>
 
-<TimelineFilter Articles="@_articles" Range="@_range" RangeChanged="@OnRangeChanged" />
-
-@if (!_articles.Any())
-{
-    <div class="alert alert-warning" role="alert">
-        Aucun article pour le moment. Le worker va en générer dans quelques minutes.
-    </div>
-}
-else
-{
-    var visible = FilteredArticles(_articles).ToList();
-    @if (!visible.Any())
-    {
-        <div class="alert alert-warning" role="alert">Aucun article sur ce créneau. Choisissez un autre intervalle.</div>
-    }
-    else
-    {
-        <div class="article-grid">
-            @foreach (var article in visible)
-            {
-                <ArticleCard Article="@article" />
-            }
-        </div>
-    }
-}
+<ArticleBrowser Source="@BuildQuery" />
 
 @code {
-    private List<Article> _articles = new();
     private int _totalArticles;
-    private (DateTime? From, DateTime? To)? _range;
 
     protected override async Task OnInitializedAsync()
     {
         _totalArticles = await DbContext.Articles.CountAsync();
-        _articles = await DbContext.Articles
-            .Include(a => a.Category).ThenInclude(c => c!.ParentCategory)
-            .Include(a => a.Authors).ThenInclude(a => a.Author)
-            .Include(a => a.Sources).ThenInclude(s => s.Source)
-            .Include(a => a.Tags).ThenInclude(t => t.Tag)
-            .Where(a => a.IsPublished)
-            .OrderByDescending(a => a.PublishedAt)
-            .ToListAsync();
-        Logger.LogInformation("Index : {Count} articles publiés chargés", _articles.Count);
+        Logger.LogInformation("Index : {Count} articles en base", _totalArticles);
     }
 
-    private IEnumerable<Article> FilteredArticles(IEnumerable<Article> articles)
-    {
-        if (_range is null) return articles;
-        var (from, to) = _range.Value;
-        return articles.Where(a =>
-            (!from.HasValue || a.PublishedAt >= from.Value) &&
-            (!to.HasValue || a.PublishedAt < to.Value));
-    }
-
-    private Task OnRangeChanged((DateTime? From, DateTime? To)? range)
-    {
-        _range = range;
-        return Task.CompletedTask;
-    }
+    /// <summary>Requête de base : articles publiés avec leurs relations (recherche/tri/pagination gérés par ArticleBrowser)</summary>
+    private IQueryable<Article> BuildQuery() => DbContext.Articles
+        .Include(a => a.Category).ThenInclude(c => c!.ParentCategory)
+        .Include(a => a.Authors).ThenInclude(a => a.Author)
+        .Include(a => a.Sources).ThenInclude(s => s.Source)
+        .Include(a => a.Tags).ThenInclude(t => t.Tag)
+        .Where(a => a.IsPublished);
 }

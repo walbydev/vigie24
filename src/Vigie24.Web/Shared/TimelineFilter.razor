@@ -1,7 +1,6 @@
-@using Vigie24.Domain.Models
-
 @* Timeline adaptative : j, j-1..j-5, semaines, mois, années, plus ancien + dates précises.
-   Seuls les créneaux contenant des articles sont affichés (avec compteur). *@
+   Seuls les créneaux contenant des articles sont affichés (avec compteur).
+   Entrée : les dates des articles déjà filtrés (catégorie / thème / recherche), sans pagination. *@
 @if (_buckets.Any())
 {
     <div class="timeline">
@@ -26,9 +25,9 @@
 }
 
 @code {
-    /// <summary>Articles du contexte courant (permet de compter les articles par créneau)</summary>
+    /// <summary>Dates de publication des articles du contexte courant (permet de compter les créneaux)</summary>
     [Parameter]
-    public IReadOnlyList<Article> Articles { get; set; } = Array.Empty<Article>();
+    public IReadOnlyList<DateTime> Dates { get; set; } = Array.Empty<DateTime>();
 
     /// <summary>Sélection courante : (From, To) en UTC, null = aucun filtre</summary>
     [Parameter]
@@ -48,7 +47,7 @@
 
     private void ComputeBuckets()
     {
-        var dates = Articles.Select(a => a.PublishedAt).ToList();
+        var dates = Dates.ToList();
         var today = DateTime.UtcNow.Date;
         var buckets = new List<Bucket>();
 

@@ -5,12 +5,17 @@ using Vigie24.Infrastructure.Data;
 using Vigie24.Services;
 using Vigie24.Services.Implementations;
 using Vigie24.Services.Interfaces;
+using Vigie24.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddHttpContextAccessor();
+
+// Engagement des lecteurs (votes 0-5, clics) — accès DB direct dans le circuit
+builder.Services.AddScoped<IEngagementService, EngagementService>();
 
 // Database
 builder.Services.AddDbContext<Vigie24DbContext>(options =>

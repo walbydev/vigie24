@@ -474,14 +474,18 @@ public class Vigie24Worker : BackgroundService
 
         if (cats.Count > 0)
         {
+            // Résolution via la taxonomie officielle d'abord (ex: "Electronique" → "hardware-electronique"),
+            // sinon slug libre (dégradé pour les catégories inconnues).
+            var parentSlug = VigieTaxonomy.ResolveSlug(cats[0]) ?? VigieTaxonomy.Slugify(cats[0]);
             var parent = await GetOrCreateCategoryBySlugAsync(
-                dbContext, VigieTaxonomy.Slugify(cats[0]), null, cancellationToken);
+                dbContext, parentSlug, null, cancellationToken);
             if (parent == null) return Guid.Empty;
 
             if (cats.Count > 1)
             {
+                var subSlug = VigieTaxonomy.ResolveSlug(cats[1]) ?? VigieTaxonomy.Slugify(cats[1]);
                 var sub = await GetOrCreateCategoryBySlugAsync(
-                    dbContext, VigieTaxonomy.Slugify(cats[1]), parent.Id, cancellationToken);
+                    dbContext, subSlug, parent.Id, cancellationToken);
                 return sub?.Id ?? parent.Id;
             }
 
@@ -490,7 +494,7 @@ public class Vigie24Worker : BackgroundService
 
         // Fallback : mapping par thème principal (ancien comportement)
         var primaryTheme = aiResult.DetectedThemes.FirstOrDefault()?.ToLower() ?? "";
-        var slug = primaryTheme switch
+        var slug = VigieTaxonomy.ResolveSlug(primaryTheme) ?? primaryTheme switch
         {
             var t when t.Contains("ai") || t.Contains("llm") || t.Contains("machine learning") => "ia",
             var t when t.Contains("code") || t.Contains("dev") || t.Contains("programming") => "developpement",
@@ -539,7 +543,8 @@ public class Vigie24Worker : BackgroundService
         string theme,
         CancellationToken cancellationToken)
     {
-        var slug = theme.ToLower().Replace(" ", "-").Replace(".", "");
+        // Slugify complet : minuscules, sans accents, tirets (ex: "Jeux Vidéo" → "jeux-video")
+        var slug = VigieTaxonomy.Slugify(theme);
         
         var tag = await dbContext.Tags
             .FirstOrDefaultAsync(t => t.Slug == slug, cancellationToken);

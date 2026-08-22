@@ -102,6 +102,43 @@
         .breadcrumb a { color: #1a5fb4; text-decoration: none; }
         .page-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
         .page-head .muted { font-size: 0.9rem; }
+
+        /* ===== Bandeau d'erreur Blazor (masqué par défaut) ===== */
+        #blazor-error-ui {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #fff3cd;
+            color: #664d03;
+            padding: 10px 16px;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            font-size: 0.9rem;
+            border-top: 1px solid #ffc107;
+        }
+        #blazor-error-ui .reload { margin-left: 12px; font-weight: 600; }
+        #blazor-error-ui .dismiss { margin-left: 10px; cursor: pointer; }
+
+        /* ===== Recherche / tri / pagination ===== */
+        .browser-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0 0; }
+        .browser-toolbar input[type=search], .browser-toolbar input.search-input {
+            flex: 1 1 260px; min-width: 200px;
+            border: 1px solid #cbd5e1; border-radius: 20px; padding: 8px 16px; font-size: 0.9rem;
+        }
+        .browser-toolbar select {
+            border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 0.9rem; background: #fff; color: #334155;
+        }
+        .pagination { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 22px 0 8px; }
+        .pagination button {
+            border: 1px solid #cbd5e1; background: #fff; color: #334155; border-radius: 8px; padding: 6px 12px; font-size: 0.85rem; cursor: pointer;
+        }
+        .pagination button:hover:not(:disabled) { border-color: #1a5fb4; color: #1a5fb4; }
+        .pagination button:disabled { opacity: 0.45; cursor: default; }
+        .pagination .page-info { font-size: 0.85rem; color: #475569; }
+        .pagination .page-current { font-weight: 700; }
+        .result-count { font-size: 0.85rem; color: #64748b; margin-left: auto; white-space: nowrap; }
     </style>
 </head>
 <body>

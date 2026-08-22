@@ -69,6 +69,19 @@ public static class VigieTaxonomy
         return string.Join(" ", words.Select(w => w.Length > 0 ? char.ToUpperInvariant(w[0]) + w[1..] : w));
     }
 
+    /// <summary>
+    /// Résout le slug officiel depuis un nom libre renvoyé par l'IA
+    /// (ex: "Electronique" → "hardware-electronique", "DevOps & Cloud" → "dev-devops-cloud").
+    /// Retourne null si aucun nom de la taxonomie ne correspond.
+    /// </summary>
+    public static string? ResolveSlug(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        var normalized = Slugify(name);
+        var def = Categories.FirstOrDefault(c => Slugify(c.Name) == normalized);
+        return def?.Slug;
+    }
+
     /// <summary>Liste "(Parent (sous-cat, ...), ...)" injectée dans le prompt IA</summary>
     public static string PromptList()
     {
