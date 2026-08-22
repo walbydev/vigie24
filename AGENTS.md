@@ -121,8 +121,8 @@ Configuration via environment variables ou appsettings :
 # Initialiser la DB
 dotnet ef database update --project src/Vigie24.Infrastructure
 
-# Seed data
-dotnet run --project scripts/seed-data
+# Seed des sources initiales (via les scripts/ — voir scripts/README.md)
+./scripts/add-all-sources.sh   # 246+ sources complètes (ou scripts/add-sources.sql pour 7 de test)
 
 # Tests
 dotnet test tests/Vigie24.Tests

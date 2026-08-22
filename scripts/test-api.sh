@@ -1,5 +1,5 @@
 #!/bin/bash
-# Test rapide de l'API Infomaniak AI (alias de test_infomaniak.sh)
+# Test rapide de l'API Infomaniak AI (alias de test-infomaniak.sh)
 # La cle est lue depuis .env et JAMAIS affichee
 cd "$(dirname "$0")/.." || exit 1
 

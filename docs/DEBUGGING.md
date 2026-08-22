@@ -235,6 +235,6 @@ docker compose -f docker-compose.debug.yml up -d postgres
 - `Dockerfile.Web.Debug` → Build en Debug avec diagnostics activés
 - `Dockerfile.Worker.Debug` → Build en Debug avec diagnostics activés
 - `docker-compose.debug.yml` → Configuration pour débogage simultané
-- `README.debug.md` → Ce guide
+- `docs/DEBUGGING.md` → Ce guide
 
 Choisissez **Option 1 (Docker Compose)** pour une expérience de débogage la plus proche de la production.

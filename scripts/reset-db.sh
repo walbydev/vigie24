@@ -12,7 +12,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-SQL_FILE="$SCRIPT_DIR/reset_database.sql"
+SQL_FILE="$SCRIPT_DIR/reset-database.sql"
 
 echo "🔄 Réinitialisation de la base de données Vigie24..."
 echo ""

@@ -300,6 +300,10 @@ Interface protégée avec CRUD simple pour :
 ```
 vigie24/
 ├── docs/
+│   ├── PRODUCTION.md             # Déploiement production (VPS, Caddy, make prod-deploy)
+│   ├── DEVELOPMENT.md            # Guide de développement
+│   ├── DEBUGGING.md              # Guide de débogage
+│   ├── ENVIRONMENTS.md           # Les 4 environnements (dev, mock, staging, prod)
 │   └── plan/
 │       ├── vigie24.md                 # Spécification principale
 │       ├── vigie24-database-schema.md # Schéma PostgreSQL complet
@@ -312,15 +316,13 @@ vigie24/
 │   ├── Vigie24.Infrastructure/        # EF Core, repositorios, ingestion
 │   └── Vigie24.Services/              # Services IA, ranking, RSS
 ├── tests/
-│   ├── Vigie24.UnitTests/
-│   └── Vigie24.IntegrationTests/
-├── scripts/
-│   ├── seed_sources.py                # Initialisation des sources
-│   └── verify_feeds.sh                # Vérification des flux RSS
-├── docker-compose.yml
-├── Dockerfile
-├── README.md
-└── ...
+│   └── Vigie24.Tests/                 # Tests unitaires + fonctionnels
+├── scripts/                           # Scripts SQL et shell utilitaires (voir scripts/README.md)
+├── docker-compose*.yml                # Orchestration (dev, mock, staging, prod)
+├── Caddyfile                          # Reverse proxy HTTPS (production)
+├── LICENSE
+├── Makefile
+└── README.md
 ```
 
 ---
@@ -348,7 +350,7 @@ docker-compose up -d
 dotnet ef database update --project src/Vigie24.Infrastructure
 
 # 4. Seed des sources initiales
-python scripts/seed_sources.py
+./scripts/add-all-sources.sh
 
 # 5. Lancer l'application de développement
 dotnet run --project src/Vigie24.Web

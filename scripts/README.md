@@ -6,16 +6,18 @@ Collection de scripts utilitaires pour la gestion de la base de données et les 
 
 ```
 scripts/
-├── init-db.sql          # Schéma initial de la DB
-├── add_sources.sql      # Ajout de sources de test (7 sources)
-├── add_all_sources.sql  # Ajout de 246+ sources complètes
-├── add-all-sources.sh   # Wrapper shell pour add_all_sources.sql
-├── check_types.sql      # Vérification des types de colonnes
-├── reset_database.sql   # Réinitialisation complète (SQL)
-├── reset-db.sh          # Wrapper shell pour reset_database.sql
-├── test_api.sh          # Test de l'API Infomaniak
-├── test_infomaniak.sh   # Test spécifique Infomaniak
-└── README.md            # Ce fichier
+├── init-db.sql             # Schéma initial de la DB (auto au 1er démarrage Docker)
+├── add-sources.sql         # Ajout de sources de test (7 sources)
+├── add-all-sources.sql     # Ajout de 246+ sources complètes
+├── add-all-sources.sh      # Wrapper shell pour add-all-sources.sql
+├── add-sources-intl.sql    # Ajout de sources internationales (BE, CA, LU)
+├── check_types.sql         # Vérification des types de colonnes
+├── reconcile-taxonomy.sql  # Réconciliation catégories/tags (idempotent)
+├── reset-database.sql      # Réinitialisation complète (SQL)
+├── reset-db.sh             # Wrapper shell pour reset-database.sql
+├── test-api.sh             # Test de l'API Infomaniak
+├── test-infomaniak.sh      # Test spécifique Infomaniak
+└── README.md               # Ce fichier
 ```
 
 ---
@@ -30,7 +32,7 @@ Définit la structure complète des tables PostgreSQL (création initiale).
 
 ---
 
-### `add_all_sources.sql` - Ajout de 246+ sources RSS
+### `add-all-sources.sql` - Ajout de 246+ sources RSS
 
 Script complet ajoutant plus de 240 sources RSS technologiques françaises et internationales.
 
@@ -54,7 +56,7 @@ Script complet ajoutant plus de 240 sources RSS technologiques françaises et in
 ./scripts/add-all-sources.sh
 
 # Ou manuellement
-cat scripts/add_all_sources.sql | docker compose exec -e PGPASSWORD=postgres postgres psql -U postgres -d vigie24
+cat scripts/add-all-sources.sql | docker compose exec -e PGPASSWORD=postgres postgres psql -U postgres -d vigie24
 ```
 
 **Répartition par type :**
@@ -65,18 +67,18 @@ cat scripts/add_all_sources.sql | docker compose exec -e PGPASSWORD=postgres pos
 
 ---
 
-### `add_sources.sql` - Ajout de sources de test
+### `add-sources.sql` - Ajout de sources de test
 
 Script léger pour ajouter rapidement 7 sources RSS de test dans la base.
 
 **Usage :**
 ```bash
-cat scripts/add_sources.sql | docker compose exec -e PGPASSWORD=postgres postgres psql -U postgres -d vigie24
+cat scripts/add-sources.sql | docker compose exec -e PGPASSWORD=postgres postgres psql -U postgres -d vigie24
 ```
 
 ---
 
-### `reset_database.sql` - Réinitialisation complète
+### `reset-database.sql` - Réinitialisation complète
 
 Supprime toutes les données et réinsère les données de référence (catégories, tags, sources).
 
@@ -86,7 +88,7 @@ Supprime toutes les données et réinsère les données de référence (catégor
 ./scripts/reset-db.sh
 
 # Ou manuellement
-cat scripts/reset_database.sql | docker compose exec -e PGPASSWORD=postgres postgres psql -U postgres -d vigie24
+cat scripts/reset-database.sql | docker compose exec -e PGPASSWORD=postgres postgres psql -U postgres -d vigie24
 ```
 
 **Données réinsérées :**
@@ -113,7 +115,7 @@ cat scripts/check_types.sql | docker compose exec -e PGPASSWORD=postgres postgre
 
 ### `add-all-sources.sh` - Wrapper d'ajout de sources
 
-Script shell qui exécute `add_all_sources.sql` avec vérifications préalables.
+Script shell qui exécute `add-all-sources.sql` avec vérifications préalables.
 
 **Usage :**
 ```bash
@@ -131,7 +133,7 @@ Script shell qui exécute `add_all_sources.sql` avec vérifications préalables.
 
 ### `reset-db.sh` - Wrapper de réinitialisation
 
-Script shell qui exécute `reset_database.sql` avec vérifications préalables.
+Script shell qui exécute `reset-database.sql` avec vérifications préalables.
 
 **Usage :**
 ```bash
@@ -146,13 +148,13 @@ Script shell qui exécute `reset_database.sql` avec vérifications préalables.
 
 ---
 
-### `test_api.sh` - Test de l'API Infomaniak
+### `test-api.sh` - Test de l'API Infomaniak
 
 Teste la connectivité et l'authentification avec l'API Infomaniak.
 
 **Usage :**
 ```bash
-./scripts/test_api.sh
+./scripts/test-api.sh
 ```
 
 **Prérequis :**
@@ -160,13 +162,13 @@ Teste la connectivité et l'authentification avec l'API Infomaniak.
 
 ---
 
-### `test_infomaniak.sh` - Test spécifique Infomaniak
+### `test-infomaniak.sh` - Test spécifique Infomaniak
 
 Test plus complet incluant un appel réel au modèle IA.
 
 **Usage :**
 ```bash
-./scripts/test_infomaniak.sh
+./scripts/test-infomaniak.sh
 ```
 
 **Prérequis :**
@@ -215,7 +217,7 @@ docker compose restart vigie24-db
 
 ## Bonnes pratiques
 
-1. **Ne jamais exécuter `reset_database.sql` en production** sans confirmation explicite
+1. **Ne jamais exécuter `reset-database.sql` en production** sans confirmation explicite
 2. **Sauvegarder les données importantes** avant toute réinitialisation
 3. **Utiliser les wrappers shell** (`add-all-sources.sh`, `reset-db.sh`) plutôt que d'exécuter le SQL directement
 4. **Tester les scripts SQL** dans un environnement de développement avant production

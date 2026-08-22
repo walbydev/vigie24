@@ -37,9 +37,9 @@ echo "========================================"
 echo ""
 
 # Vérifier que le fichier SQL existe
-if [ ! -f "$SCRIPT_DIR/add_all_sources.sql" ]; then
-    echo "❌ Erreur: Fichier SQL non trouvé"
-    echo "   Attendu: $SCRIPT_DIR/add_all_sources.sql"
+if [ ! -f "$SCRIPT_DIR/add-all-sources.sql" ]; then
+    echo "ERREUR: fichier SQL introuvable."
+    echo "   Attendu: $SCRIPT_DIR/add-all-sources.sql"
     exit 1
 fi
 
@@ -63,7 +63,7 @@ echo ""
 
 # Exécuter le script SQL
 echo "📝 Exécution du script SQL..."
-cat "$SCRIPT_DIR/add_all_sources.sql" | docker compose exec -e PGPASSWORD=postgres postgres psql -U postgres -d vigie24
+cat "$SCRIPT_DIR/add-all-sources.sql" | docker compose exec -e PGPASSWORD=postgres postgres psql -U postgres -d vigie24
 
 echo ""
 echo "========================================"
