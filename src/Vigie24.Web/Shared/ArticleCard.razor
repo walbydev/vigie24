@@ -109,6 +109,10 @@
     [Parameter]
     public Article Article { get; set; } = null!;
 
+    /// <summary>Vote du visiteur courant pour cet article (fourni en lot par ArticleBrowser — une seule requête par page)</summary>
+    [Parameter]
+    public int? MyVote { get; set; }
+
     private bool _showHint;
     private string _hint = "";
     private string _color1 = "#4f46e5";
@@ -123,7 +127,7 @@
         ("hardware", "#d97706", "#dc2626"), ("", "#475569", "#64748b")
     };
 
-    // État engagement (rafraîchi via le service — accès DB direct dans le circuit)
+    // État engagement : agrégats issus de l'entité (déjà chargée) + mon vote fourni par la page
     private EngagementState _state = new(null, 0, 0, 0, 0);
 
     protected override void OnParametersSet()
@@ -143,22 +147,8 @@
         // Pays de publication (code ISO de la source primaire → nom + drapeau)
         _countryDisplay = CountryInfo.Display(_primarySource?.Source?.CountryCode);
 
+        _state = new EngagementState(MyVote, Article.VoteAverage, Article.VoteCount, Article.ClickCount, Article.RankingScore);
         RebuildHint();
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            _state = await Engagement.GetStateAsync(Article.Id);
-            RebuildHint();
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            // L'affichage reste basé sur l'entité chargée ; l'erreur n'est plus silencieuse.
-            Logger.LogWarning(ex, "Récupération de l'engagement impossible pour {ArticleId}", Article.Id);
-        }
     }
 
     private void RebuildHint()

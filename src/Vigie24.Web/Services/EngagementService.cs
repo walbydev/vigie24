@@ -13,6 +13,7 @@ namespace Vigie24.Web.Services;
 public interface IEngagementService
 {
     Task<EngagementState> GetStateAsync(Guid articleId, CancellationToken ct = default);
+    Task<Dictionary<Guid, int>> GetMyVotesAsync(IReadOnlyList<Guid> articleIds, CancellationToken ct = default);
     Task<EngagementState> VoteAsync(Guid articleId, int value, CancellationToken ct = default);
     Task TrackClickAsync(Guid articleId, CancellationToken ct = default);
 }
@@ -57,6 +58,20 @@ public sealed class EngagementService(Vigie24DbContext db, IHttpContextAccessor 
         }
 
         return new EngagementState(myVote, article.VoteAverage, article.VoteCount, article.ClickCount, article.RankingScore);
+    }
+
+    /// <summary>
+    /// Votes du visiteur courant pour une liste d'articles (une seule requête pour toute une page).
+    /// </summary>
+    public async Task<Dictionary<Guid, int>> GetMyVotesAsync(IReadOnlyList<Guid> articleIds, CancellationToken ct = default)
+    {
+        var key = GetVoterKey();
+        if (string.IsNullOrEmpty(key) || articleIds.Count == 0)
+            return new Dictionary<Guid, int>();
+
+        return await db.ArticleVotes.AsNoTracking()
+            .Where(v => v.VoterKey == key && articleIds.Contains(v.ArticleId))
+            .ToDictionaryAsync(v => v.ArticleId, v => (int)v.VoteValue, ct);
     }
 
     public async Task<EngagementState> VoteAsync(Guid articleId, int value, CancellationToken ct = default)

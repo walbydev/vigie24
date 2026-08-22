@@ -1,7 +1,9 @@
 @using Vigie24.Domain.Models
 @using Vigie24.Infrastructure.Data
+@using Vigie24.Web.Services
 @using Microsoft.EntityFrameworkCore
 @inject Vigie24DbContext DbContext
+@inject IEngagementService Engagement
 @inject ILogger<ArticleBrowser> Logger
 
 @* Navigation d'articles : recherche plein-texte, tri, plage de dates, pagination.
@@ -48,7 +50,7 @@ else
     <div class="article-grid">
         @foreach (var article in _articles)
         {
-            <ArticleCard Article="@article" />
+            <ArticleCard Article="@article" MyVote="@(_myVotes.TryGetValue(article.Id, out var myVote) ? myVote : (int?)null)" />
         }
     </div>
 
@@ -69,6 +71,7 @@ else
 
     private List<Article> _articles = new();
     private List<DateTime> _dates = new();
+    private Dictionary<Guid, int> _myVotes = new();
     private int _totalCount;
     private int _totalPages = 1;
     private int _page = 1;
@@ -79,27 +82,27 @@ else
 
     private CancellationTokenSource? _searchCts;
     private int _loadVersion;
-    private bool _isLoading;
-    private bool _loadRequested;
+    private readonly SemaphoreSlim _loadLock = new(1, 1);
     private bool _initialized;
     private Func<IQueryable<Article>>? _lastSource;
 
     protected override async Task OnInitializedAsync()
     {
         _initialized = true;
+        _lastSource = Source; // le premier jeu de paramètres est traité ici
         await LoadAsync();
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        // Au premier rendu, OnInitializedAsync charge ; ensuite, on recharge
-        // seulement si la source (catégorie / thème) change.
+        // Recharge uniquement si la source (catégorie / thème) change réellement
+        // (le premier jeu de paramètres est couvert par OnInitializedAsync).
         if (!_initialized) return;
         if (!ReferenceEquals(Source, _lastSource))
         {
             _lastSource = Source;
             _page = 1;
-            _ = LoadAsync();
+            await LoadAsync();
         }
     }
 
@@ -177,14 +180,9 @@ else
 
     private async Task LoadAsync()
     {
-        // Un seul chargement à la fois sur le DbContext (scoped) : les demandes
-        // arrivées pendant un chargement sont rejouées à la fin.
-        if (_isLoading)
-        {
-            _loadRequested = true;
-            return;
-        }
-        _isLoading = true;
+        // Sémaphore : un seul chargement à la fois sur le DbContext (scoped),
+        // même pendant le prerender où les continuations s'exécutent sur le pool.
+        await _loadLock.WaitAsync();
         var version = ++_loadVersion;
         try
         {
@@ -212,7 +210,12 @@ else
             var articles = await pageQuery.ToListAsync();
             if (version != _loadVersion) return;
 
+            // Votes du visiteur pour la page affichée (une seule requête groupée)
+            var myVotes = await Engagement.GetMyVotesAsync(articles.Select(a => a.Id).ToList());
+            if (version != _loadVersion) return;
+
             _articles = articles;
+            _myVotes = myVotes;
         }
         catch (Exception ex)
         {
@@ -224,13 +227,8 @@ else
         }
         finally
         {
-            _isLoading = false;
+            _loadLock.Release();
             StateHasChanged();
-            if (_loadRequested)
-            {
-                _loadRequested = false;
-                _ = LoadAsync();
-            }
         }
     }
 }
