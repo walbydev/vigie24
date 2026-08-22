@@ -172,8 +172,13 @@ public class Vigie24Worker : BackgroundService
             using var reader = System.Xml.XmlReader.Create(stream, settings);
             var feed = SyndicationFeed.Load(reader);
 
+            // Limite d'articles par feed et par cycle : les flux pointent vers les
+            // articles les plus récents — 15 suffisent pour une veille. Borne le volume
+            // IA (chaque nouvel article coûte plusieurs appels) lors des premières ingestions.
+            var maxItemsPerFeed = _configuration.GetValue<int>("FeedReader:MaxItemsPerFeed", 15);
+
             var items = new List<ArticleFeedItem>();
-            foreach (var item in feed.Items)
+            foreach (var item in feed.Items.Take(maxItemsPerFeed))
             {
                 items.Add(new ArticleFeedItem
                 {
