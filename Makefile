@@ -29,8 +29,9 @@ URL_dev  := http://localhost:5000
 URL_mock := http://localhost:5001
 
 # --- Staging (préproduction) : serveur Debian 192.168.30.160 ---
-STAGING_HOST ?= vigie24-staging   # alias SSH défini dans ~/.ssh/config
-STAGING_DIR  ?= vigie24           # dossier de déploiement sur le serveur (~/vigie24)
+# STAGING_HOST : alias SSH défini dans ~/.ssh/config ; STAGING_DIR : dossier de déploiement (~/vigie24)
+STAGING_HOST ?= vigie24-staging
+STAGING_DIR ?= vigie24
 
 .PHONY: help run debug stop down logs ps check-env \
         dev-run dev-debug mock-run mock-debug \

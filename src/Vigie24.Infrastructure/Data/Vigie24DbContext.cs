@@ -183,13 +183,14 @@ public class Vigie24DbContext : DbContext
         {
             entity.ToTable("article_votes");
             entity.HasKey(e => e.Id);
-            entity.HasIndex(e => new { e.UserId, e.ArticleId }).IsUnique();
+            entity.HasIndex(e => new { e.ArticleId, e.VoterKey }).IsUnique();
             
             entity.Property(e => e.VoteValue).IsRequired();
             
             entity.HasOne(e => e.User)
                 .WithMany(u => u.Votes)
                 .HasForeignKey(e => e.UserId)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Cascade);
             
             entity.HasOne(e => e.Article)

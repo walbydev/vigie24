@@ -27,6 +27,8 @@ public class Article
     
     public int VoteCount { get; set; }
     public decimal VoteAverage { get; set; }
+    /// <summary>Nombre de clics vers la source originale (engagement)</summary>
+    public int ClickCount { get; set; }
     public int CrossSourceCount { get; set; }
     public bool IsPublished { get; set; }
     
@@ -189,16 +191,18 @@ public class User
 }
 
 /// <summary>
-/// Vote d'un utilisateur sur un article
+/// Vote d'un visiteur sur un article — échelle 0 à 5 (0-1 : pas intéressant, 5 : très intéressant).
+/// Vote anonyme via VoterKey (cookie de session) ; UserId réservé à une future authentification.
 /// </summary>
 public class ArticleVote
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid ArticleId { get; set; }
-    public Guid UserId { get; set; }
-    public short VoteValue { get; set; } // -1, 0, 1
+    public Guid? UserId { get; set; }
+    public string? VoterKey { get; set; }
+    public short VoteValue { get; set; } // 0 à 5
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     public virtual Article Article { get; set; } = null!;
-    public virtual User User { get; set; } = null!;
+    public virtual User? User { get; set; }
 }

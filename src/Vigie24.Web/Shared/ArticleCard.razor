@@ -1,17 +1,19 @@
+@using System.Net.Http.Json
 @using Vigie24.Domain
 @using Vigie24.Domain.Models
+@inject IHttpClientFactory HttpFactory
 
-@* Carte article : illustration, catégories + thèmes, auteurs, score avec hint de calcul précis *@
+@* Carte article : illustration, catégories + thèmes, auteurs, pays, score avec hint, vote 0-5 et clics *@
 <div class="article-card">
     @if (!string.IsNullOrEmpty(Article.ImageUrl))
     {
-        <a href="@Article.CanonicalUrl" target="_blank" rel="noopener" class="card-img-link">
+        <a href="/api/articles/@Article.Id/track" target="_blank" rel="noopener" class="card-img-link">
             <img src="@Article.ImageUrl" class="card-img" alt="@Article.ImageAltText" loading="lazy" />
         </a>
     }
     else
     {
-        <a href="@Article.CanonicalUrl" target="_blank" rel="noopener" class="card-img-link">
+        <a href="/api/articles/@Article.Id/track" target="_blank" rel="noopener" class="card-img-link">
             <div class="card-img card-img-placeholder" style="background: linear-gradient(135deg, @_color1, @_color2);">
                 @_initial
             </div>
@@ -35,7 +37,7 @@
             }
         </div>
 
-        <h5 class="card-title"><a href="@Article.CanonicalUrl" target="_blank" rel="noopener">@Article.Title</a></h5>
+        <h5 class="card-title"><a href="/api/articles/@Article.Id/track" target="_blank" rel="noopener">@Article.Title</a></h5>
         <p class="card-text">@Article.Summary</p>
 
         @if (Article.Authors.Any() || _primarySource?.Source != null)
@@ -61,21 +63,44 @@
                 @if (_primarySource?.Source != null)
                 {
                     <span> · via </span>
-                    <a href="@_sourceLink" target="_blank" rel="noopener">@_primarySource.Source.Name</a>
+                    <a href="/api/articles/@Article.Id/track" target="_blank" rel="noopener">@_primarySource.Source.Name</a>
                 }
             </p>
         }
 
         <p class="meta">
-            <span>@Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+            <span>
+                @if (!string.IsNullOrEmpty(_countryDisplay))
+                {
+                    <span class="country" title="Pays de publication">@_countryDisplay</span>
+                    <span> · </span>
+                }
+                <span>@Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+            </span>
             <span class="score-hint">
-                <span class="score" @onclick="ToggleHint" title="Calcul du score">Score : <strong>@Article.RankingScore.ToString("0.0")</strong> ⓘ</span>
+                <span class="score" @onclick="ToggleHint" title="Calcul du score">Score : <strong>@_rankingScore.ToString("0.0")</strong> ⓘ</span>
                 @if (_showHint)
                 {
                     <span class="hint-popup">@_hint</span>
                 }
             </span>
         </p>
+
+        <div class="vote-row" title="Votre note : 0-1 pas intéressant, 2-4 moyen, 5 très intéressant">
+            <span class="vote-label">Notez :</span>
+            @for (var v = 0; v <= 5; v++)
+            {
+                var voteValue = v;
+                <button class="vote-btn @VoteClass(voteValue)" @onclick="() => VoteAsync(voteValue)" title="@VoteTooltip(voteValue)">@voteValue</button>
+            }
+            <span class="eng-stats">
+                @if (_voteCount > 0)
+                {
+                    <span class="vote-stats" title="Note moyenne (0-5)">⭐ @_voteAverage.ToString("0.0") (@_voteCount)</span>
+                }
+                <span class="click-stats" title="Clics vers l'article original">👁 @_clickCount</span>
+            </span>
+        </div>
     </div>
 </div>
 
@@ -89,13 +114,23 @@
     private string _color2 = "#9333ea";
     private string _initial = "?";
     private ArticleSource? _primarySource;
-    private string _sourceLink = "";
+    private string _countryDisplay = "";
     private static readonly (string Prefix, string C1, string C2)[] _palettes =
     {
         ("ia", "#4f46e5", "#9333ea"), ("developpement", "#0891b2", "#2563eb"),
         ("cyber", "#dc2626", "#7c3aed"), ("science", "#059669", "#0d9488"),
         ("hardware", "#d97706", "#dc2626"), ("", "#475569", "#64748b")
     };
+
+    // État engagement (rafraîchi via l'API)
+    private int? _myVote;
+    private decimal _voteAverage;
+    private int _voteCount;
+    private int _clickCount;
+    private decimal _rankingScore;
+
+    private sealed record VoteResult(decimal VoteAverage, int VoteCount, decimal RankingScore, int? MyVote);
+    private sealed record VoteStateResult(decimal VoteAverage, int VoteCount, int ClickCount, decimal RankingScore, int? MyVote);
 
     protected override void OnParametersSet()
     {
@@ -108,26 +143,108 @@
         _color2 = palette.C2;
         _initial = Article.Title.Length > 0 ? Article.Title[..1].ToUpperInvariant() : "?";
 
-        // Source principale : lien vers le site de la source (sinon l'URL de l'article)
+        // Source principale : lien vers l'article sur le site de la source (via /track)
         _primarySource = Article.Sources.FirstOrDefault(s => s.IsPrimary) ?? Article.Sources.FirstOrDefault();
-        _sourceLink = !string.IsNullOrWhiteSpace(_primarySource?.Source?.WebsiteUrl)
-            ? _primarySource.Source.WebsiteUrl
-            : (_primarySource?.SourceArticleUrl ?? "");
+
+        // Pays de publication (code ISO de la source primaire → nom + drapeau)
+        _countryDisplay = CountryInfo.Display(_primarySource?.Source?.CountryCode);
+
+        // État engagement initial depuis l'entité
+        _voteAverage = Article.VoteAverage;
+        _voteCount = Article.VoteCount;
+        _clickCount = Article.ClickCount;
+        _rankingScore = Article.RankingScore;
 
         // Hint « calcul précis » : mêmes formules que le Worker (Vigie24.Domain.ArticleScoring)
         var rec = ArticleScoring.CalculateRecencyScore(Article.PublishedAt);
         var con = ArticleScoring.CalculateContentScore(Article.Summary);
         var algo = Article.AlgorithmicScore;
         var ed = Article.EditorialScore;
+        var eng = ArticleScoring.CalculateEngagementScore(Article.VoteCount, Article.VoteAverage, Article.ClickCount);
         var rank = Article.RankingScore;
         _hint =
             $"Score de classement\n" +
-            $"= Éditorial {ed:0.0} × 0,6 + Algorithmique {algo:0.0} × 0,4\n" +
+            $"= Éditorial {ed:0.0} × 0,55 + Algorithmique {algo:0.0} × 0,35 + Engagement {eng:0.0} × 0,10\n" +
             $"= {rank:0.0}\n\n" +
             $"Algorithmique\n" +
             $"= (Récence {rec:0.0} + Contenu {con:0.0}) / 2\n" +
-            $"= {algo:0.0}";
+            $"= {algo:0.0}\n\n" +
+            $"Engagement (votes 0-5 + clics)\n" +
+            $"= {Article.VoteCount} vote(s), moy. {Article.VoteAverage:0.0}/5, {Article.ClickCount} clic(s)\n" +
+            $"= {eng:0.0}";
     }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Récupère mon vote (cookie) + agrégats à jour
+        try
+        {
+            var client = HttpFactory.CreateClient();
+            var response = await client.GetAsync($"/api/articles/{Article.Id}/vote");
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<VoteStateResult>();
+                if (result != null)
+                {
+                    _myVote = result.MyVote;
+                    _voteAverage = result.VoteAverage;
+                    _voteCount = result.VoteCount;
+                    _clickCount = result.ClickCount;
+                    _rankingScore = result.RankingScore;
+                }
+            }
+        }
+        catch
+        {
+            // Silencieux : l'affichage reste basé sur l'entité chargée
+        }
+    }
+
+    private async Task VoteAsync(int value)
+    {
+        try
+        {
+            var client = HttpFactory.CreateClient();
+            var response = await client.PostAsJsonAsync($"/api/articles/{Article.Id}/vote", new { value });
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<VoteResult>();
+                if (result != null)
+                {
+                    _myVote = result.MyVote;
+                    _voteAverage = result.VoteAverage;
+                    _voteCount = result.VoteCount;
+                    _rankingScore = result.RankingScore;
+                    StateHasChanged();
+                }
+            }
+        }
+        catch
+        {
+            // Silencieux : échec réseau -> l'UI reste inchangée
+        }
+    }
+
+    private string VoteClass(int v)
+    {
+        if (v != _myVote) return "";
+        return v switch
+        {
+            <= 1 => "active vote-bad",
+            >= 4 => "active vote-good",
+            _ => "active"
+        };
+    }
+
+    private static string VoteTooltip(int v) => v switch
+    {
+        0 => "0 — Pas intéressant",
+        1 => "1 — Pas intéressant",
+        2 => "2 — Bof",
+        3 => "3 — Moyen",
+        4 => "4 — Intéressant",
+        _ => "5 — Très intéressant"
+    };
 
     private void ToggleHint() => _showHint = !_showHint;
 }

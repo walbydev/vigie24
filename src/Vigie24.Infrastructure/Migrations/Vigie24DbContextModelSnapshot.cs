@@ -38,6 +38,9 @@ namespace Vigie24.Infrastructure.Migrations
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("ClickCount")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -186,17 +189,20 @@ namespace Vigie24.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid?>("UserId")
                         .HasColumnType("uuid");
 
                     b.Property<short>("VoteValue")
                         .HasColumnType("smallint");
 
+                    b.Property<string>("VoterKey")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ArticleId");
+                    b.HasIndex("UserId");
 
-                    b.HasIndex("UserId", "ArticleId")
+                    b.HasIndex("ArticleId", "VoterKey")
                         .IsUnique();
 
                     b.ToTable("article_votes", (string)null);
@@ -458,8 +464,7 @@ namespace Vigie24.Infrastructure.Migrations
                     b.HasOne("Vigie24.Domain.Models.User", "User")
                         .WithMany("Votes")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Article");
 
