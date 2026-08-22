@@ -3,9 +3,11 @@
 @using Vigie24.Domain.Models
 @using Vigie24.Services.Interfaces
 @using Vigie24.Infrastructure.Data
+@using Vigie24.Web.Services
 @using Microsoft.EntityFrameworkCore
 @inject IAiService AiService
 @inject Vigie24DbContext DbContext
+@inject IHealthCheckService Health
 @inject ILogger<Index> Logger
 
 <PageTitle>Accueil - Vigie24</PageTitle>
@@ -24,7 +26,8 @@ else
     <div class="status-card">
         <strong>Fournisseur IA :</strong> @AiService.ProviderName (@AiService.GetType().Name)<br />
         <strong>Modèle LLM :</strong> @AiService.ModelName<br />
-        <strong>Statut :</strong> <span class="text-success">Opérationnel</span> · <strong>Articles en base :</strong> @_totalArticles
+        <strong>Statut :</strong> <span class="@_status?.CssClass">@_status?.Label</span> · <strong>Dernière ingestion :</strong> @_lastIngestionText<br />
+        <strong>Articles en base :</strong> @_totalArticles
     </div>
 }
 
@@ -40,11 +43,17 @@ else
 
 @code {
     private int _totalArticles;
+    private HealthStatus? _status;
+    private string _lastIngestionText = "jamais";
 
     protected override async Task OnInitializedAsync()
     {
         _totalArticles = await DbContext.Articles.CountAsync();
-        Logger.LogInformation("Index : {Count} articles en base", _totalArticles);
+        _status = await Health.GetStatusAsync();
+        _lastIngestionText = _status.LastIngestionUtc is { } last
+            ? HealthEvaluator.FormatAge(DateTime.UtcNow - last)
+            : "jamais";
+        Logger.LogInformation("Index : {Count} articles en base, statut santé {Status}", _totalArticles, _status.Label);
     }
 
     /// <summary>Filtre de base : articles publiés (recherche/tri/pagination gérés par ArticleBrowser sur son propre contexte)</summary>

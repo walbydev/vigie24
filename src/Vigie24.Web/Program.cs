@@ -18,6 +18,8 @@ builder.Services.AddHttpContextAccessor();
 
 // Engagement des lecteurs (votes 0-5, clics) — accès DB direct dans le circuit
 builder.Services.AddScoped<IEngagementService, EngagementService>();
+builder.Services.AddScoped<IHealthCheckService, HealthCheckService>();
+builder.Services.Configure<HealthCheckOptions>(builder.Configuration.GetSection("HealthCheck"));
 
 // Database
 builder.Services.AddDbContext<Vigie24DbContext>(options =>

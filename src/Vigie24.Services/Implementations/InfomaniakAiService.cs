@@ -208,19 +208,13 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
 
     public async Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default)
     {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(8));
         try
         {
-            var request = new
-            {
-                model = _settings.Model,
-                messages = new[] { new { role = "user", content = "ok" } },
-                max_tokens = 1
-            };
-
-            var jsonRequest = JsonSerializer.Serialize(request);
-            var httpContent = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
-            
-            var response = await PostChatCompletionsAsync(jsonRequest, cancellationToken);
+            // GET /models : valide la clé API et l'endpoint SANS consommer de tokens
+            // (contrairement à un chat/completions, même avec max_tokens=1).
+            var response = await _httpClient.GetAsync("models", cts.Token);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
