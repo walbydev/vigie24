@@ -156,7 +156,7 @@ public class Vigie24Worker : BackgroundService
             // Use SyndicationFeed to parse RSS/Atom XML feeds
             // Add User-Agent to avoid being blocked by some sites
             var request = new HttpRequestMessage(HttpMethod.Get, feedUrl);
-            request.Headers.Add("User-Agent", "Vigie24-RSS-Monitor/1.0 (Philippe Walby; philippe@walby.dev)");
+            request.Headers.Add("User-Agent", "Vigie24-RSS-Monitor/1.0 (Walby Developments; philippe@walby.dev)");
             request.Headers.Add("Accept", "application/rss+xml, application/xml, text/xml, */*");
             
             var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -715,7 +715,7 @@ public class Vigie24Worker : BackgroundService
             cts.CancelAfter(TimeSpan.FromSeconds(12));
 
             using var request = new HttpRequestMessage(HttpMethod.Get, articleUrl);
-            request.Headers.Add("User-Agent", "Vigie24-RSS-Monitor/1.0 (Philippe Walby; philippe@walby.dev)");
+            request.Headers.Add("User-Agent", "Vigie24-RSS-Monitor/1.0 (Walby Developments; philippe@walby.dev)");
             request.Headers.Add("Accept", "text/html,application/xhtml+xml");
 
             using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token);
