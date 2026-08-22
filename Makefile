@@ -42,7 +42,8 @@ PROD_DIR ?= vigie24
         dev-run dev-debug mock-run mock-debug \
         staging-pub staging-ps staging-logs staging-down staging-status \
         prod-pub prod-ps prod-logs prod-down prod-status prod-backup prod-sync \
-        staging-worker-pause staging-worker-resume
+        staging-worker-pause staging-worker-resume \
+        prod-worker-pause prod-worker-resume
 
 help:
 	@echo "Vigie24 — cibles disponibles :"
@@ -178,3 +179,12 @@ staging-worker-pause:
 staging-worker-resume:
 	@ssh $(STAGING_HOST) "cd $(STAGING_DIR) && docker compose --env-file .env.staging -f docker-compose.staging.yml start vigie24-worker"
 	@echo "▶️ Worker staging relancé."
+
+# --- Production : pause/reprise du worker (économie de tokens IA) ---
+prod-worker-pause:
+	@ssh $(PROD_HOST) "cd $(PROD_DIR) && docker compose --env-file .env.production -f docker-compose.prod.yml stop vigie24-worker"
+	@echo "⏸️ Worker production arrêté — aucun token IA dépensé. Reprise : make prod-worker-resume"
+
+prod-worker-resume:
+	@ssh $(PROD_HOST) "cd $(PROD_DIR) && docker compose --env-file .env.production -f docker-compose.prod.yml start vigie24-worker"
+	@echo "▶️ Worker production relancé."
