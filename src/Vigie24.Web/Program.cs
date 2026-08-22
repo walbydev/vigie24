@@ -70,7 +70,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
     // Caddy tourne dans le réseau Docker bridge (172.16.0.0/12) — on n'accepte
     // les en-têtes de proxy que depuis ce réseau.
-    KnownNetworks = { new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse("172.16.0.0"), 12) }
+    KnownIPNetworks = { new System.Net.IPNetwork(IPAddress.Parse("172.16.0.0"), 12) }
 });
 
 // Configure the HTTP request pipeline.
