@@ -5,8 +5,10 @@ Synchronise les articles du staging vers la production (Vigie24).
 
 Idempotent et SANS DOUBLON : la déduplication repose sur la contrainte unique
 CanonicalUrl (IX_articles_CanonicalUrl). Les articles déjà présents en
-production sont ignorés ; les catégories sont mappées par slug, les tags
-manquants sont créés, les liens article_tags reproduits.
+production sont ignorés ; les catégories sont mappées par slug, les tags et
+les AUTEURS manquants sont créés, les liens article_tags / article_sources /
+article_authors reproduits (y compris pour les articles déjà présents dont
+les liens manqueraient — répare les imports incomplets).
 
 Usage :
     python3 scripts/sync-articles-to-prod.py            # synchronisation réelle
@@ -38,6 +40,12 @@ ARTICLE_COLS = [
     "RankingScore", "VoteCount", "VoteAverage", "CrossSourceCount", "IsPublished",
     "CreatedAt", "UpdatedAt", "ClickCount",
 ]
+SOURCE_LINK_COLS = [
+    "ArticleId", "SourceId", "SourceArticleUrl", "SourceTitle", "SourcePublishedAt",
+    "SourceAuthorText", "IsPrimary", "CreatedAt",
+]
+AUTHOR_COLS = ["Id", "Name", "ProfileUrl", "CreatedAt", "UpdatedAt"]
+ARTICLE_AUTHOR_COLS = ["ArticleId", "AuthorId", "AuthorOrder", "CreatedAt"]
 
 
 def psql(host_cmd, sql, timeout=180):
@@ -85,12 +93,32 @@ def main():
     at_rows = export(SSH_STAGING,
                      'SELECT at."ArticleId", t."Slug" FROM article_tags at '
                      'JOIN tags t ON t."Id" = at."TagId"')
+    src_rows = export(SSH_STAGING,
+                      "SELECT {} FROM article_sources".format(
+                          ",".join('"{}"'.format(c) for c in SOURCE_LINK_COLS)))
+    staging_src_feed = {r[0]: r[1] for r in export(SSH_STAGING,
+                                                   'SELECT "Id","FeedUrl" FROM sources')}
+    auth_rows = export(SSH_STAGING,
+                       "SELECT {} FROM authors".format(
+                           ",".join('"{}"'.format(c) for c in AUTHOR_COLS)))
+    aa_rows = export(SSH_STAGING,
+                     "SELECT {} FROM article_authors".format(
+                         ",".join('"{}"'.format(c) for c in ARTICLE_AUTHOR_COLS)))
 
     # ---- 2. État prod ----
     print("2) Lecture de la production…")
     prod_cats = {r[1]: r[0] for r in export(SSH_PROD, 'SELECT "Id","Slug" FROM categories')}
     prod_tags = {r[1]: r[0] for r in export(SSH_PROD, 'SELECT "Id","Slug" FROM tags')}
     prod_urls = {r[0] for r in export(SSH_PROD, 'SELECT "CanonicalUrl" FROM articles')}
+    prod_article_ids = {r[0] for r in export(SSH_PROD, 'SELECT "Id" FROM articles')}
+    # Sources : mapping par FeedUrl (identifiant naturel) — les Ids peuvent différer
+    # entre staging et prod si le worker prod a créé lui-même des sources.
+    prod_sources_feed = {r[1]: r[0] for r in export(SSH_PROD, 'SELECT "Id","FeedUrl" FROM sources')}
+    # Liens article→source déjà présents en prod (déduplication par article + FeedUrl)
+    prod_link_feeds = {(r[0], r[1]) for r in export(
+        SSH_PROD, 'SELECT a_s."ArticleId", s."FeedUrl" FROM article_sources a_s '
+                  'JOIN sources s ON s."Id" = a_s."SourceId"')}
+    prod_author_names = {r[1]: r[0] for r in export(SSH_PROD, 'SELECT "Id","Name" FROM authors')}
 
     # ---- 3. Mapping catégories (par slug) ----
     cat_map = {}            # id cat staging -> id cat prod
@@ -100,7 +128,7 @@ def main():
             cat_map[cid] = prod_cats[slug]
         else:
             cat_map[cid] = cid
-            parent_mapped = cat_map.get(parent) if parent and parent != "\\N" else None
+            parent_mapped = cat_map.get(parent) if parent and parent != "__NULL__" else None
             cats_to_insert.append((cid, slug, parent_mapped, disp, active))
 
     # ---- 4. Mapping tags (par slug) ----
@@ -135,7 +163,42 @@ def main():
     tagid_prod_by_slug = {slug: tag_map[slug_to_tagid[slug]] for slug in slug_to_tagid}
     links = [(aid, tagid_prod_by_slug[slug]) for aid, slug in at_rows if aid in art_ids_new]
 
-    # ---- 7. Rapport ----
+    # ---- 7. Liens article → source (pour TOUS les articles présents en prod) ----
+    # Mapping du SourceId staging → prod via le FeedUrl de la source.
+    src_links = []
+    for r in src_rows:
+        row = dict(zip(SOURCE_LINK_COLS, r))
+        if row["ArticleId"] not in prod_article_ids:
+            continue
+        feed = staging_src_feed.get(row["SourceId"])
+        if feed is None:
+            continue
+        prod_sid = prod_sources_feed.get(feed)
+        if prod_sid is None:
+            continue
+        # Déjà lié en prod (même article + même source) ? → ignorer, quel que soit l'Id.
+        if (row["ArticleId"], feed) in prod_link_feeds:
+            continue
+        row["SourceId"] = prod_sid
+        src_links.append(row)
+
+    # ---- 8. Auteurs (mapping par nom) + liens article → auteur ----
+    author_map = {}         # id auteur staging -> id auteur prod
+    authors_to_insert = []  # (id, name, profile_url, created, updated)
+    for r in auth_rows:
+        row = dict(zip(AUTHOR_COLS, r))
+        if row["Name"] in prod_author_names:
+            author_map[row["Id"]] = prod_author_names[row["Name"]]
+        else:
+            author_map[row["Id"]] = row["Id"]
+            authors_to_insert.append(row)
+
+    aa_links = [
+        (r[0], author_map.get(r[1], r[1]), r[2], r[3]) for r in aa_rows
+        if r[0] in prod_article_ids
+    ]
+
+    # ---- 9. Rapport ----
     print("\nRésumé :")
     print(f"  articles staging                : {len(art_rows)}")
     print(f"  déjà présents en production     : {existing}")
@@ -143,13 +206,17 @@ def main():
     print(f"  catégories à créer              : {len(cats_to_insert)}")
     print(f"  tags à créer                    : {len(tags_to_insert)}")
     print(f"  liens article→tag à créer       : {len(links)}")
+    print(f"  liens article→source à créer    : {len(src_links)}")
+    print(f"  auteurs à créer                 : {len(authors_to_insert)}")
+    print(f"  liens article→auteur à créer    : {len(aa_links)}")
 
-    if dry or not to_insert:
-        if not to_insert and not dry:
+    if dry or not (to_insert or cats_to_insert or tags_to_insert
+                   or links or src_links or authors_to_insert or aa_links):
+        if not dry:
             print("\nRien à importer : tout est déjà synchronisé.")
         return
 
-    # ---- 8. Génération du SQL d'import (transactionnel) ----
+    # ---- 10. Génération du SQL d'import (transactionnel) ----
     sql = ["BEGIN;"]
 
     if cats_to_insert:
@@ -168,6 +235,14 @@ def main():
         sql.append('INSERT INTO tags ("Id","Slug","CreatedAt","UpdatedAt") VALUES\n'
                    + vals + "\nON CONFLICT DO NOTHING;")
 
+    if authors_to_insert:
+        vals = ",\n".join(
+            "({},{},{},{},{})".format(q(a["Id"]), q(a["Name"]), q(a["ProfileUrl"]),
+                                      q(a["CreatedAt"]), q(a["UpdatedAt"]))
+            for a in authors_to_insert)
+        sql.append('INSERT INTO authors ("Id","Name","ProfileUrl","CreatedAt","UpdatedAt") VALUES\n'
+                   + vals + "\nON CONFLICT DO NOTHING;")
+
     if to_insert:
         cols = ",".join('"{}"'.format(c) for c in ARTICLE_COLS)
         vals = ",\n".join(
@@ -179,25 +254,48 @@ def main():
         sql.append('INSERT INTO articles ({}) VALUES\n'.format(cols)
                    + vals + "\nON CONFLICT (\"CanonicalUrl\") DO NOTHING;")
 
+    if src_links:
+        vals = ",\n".join(
+            "({},{},{},{},{},{},{},{})".format(
+                q(l["ArticleId"]), q(l["SourceId"]), q(l["SourceArticleUrl"]),
+                q(l["SourceTitle"]), q(l["SourcePublishedAt"]), q(l["SourceAuthorText"]),
+                b(l["IsPrimary"]), q(l["CreatedAt"]))
+            for l in src_links)
+        sql.append('INSERT INTO article_sources ("ArticleId","SourceId","SourceArticleUrl",'
+                   '"SourceTitle","SourcePublishedAt","SourceAuthorText","IsPrimary","CreatedAt") VALUES\n'
+                   + vals + "\nON CONFLICT DO NOTHING;")
+
     if links:
         vals = ",\n".join(
             "({},{},now())".format(q(aid), q(tid)) for aid, tid in links)
         sql.append('INSERT INTO article_tags ("ArticleId","TagId","CreatedAt") VALUES\n'
                    + vals + "\nON CONFLICT DO NOTHING;")
 
+    if aa_links:
+        vals = ",\n".join(
+            "({},{},{},{})".format(q(aid), q(auth_id), q(order), q(created))
+            for aid, auth_id, order, created in aa_links)
+        sql.append('INSERT INTO article_authors ("ArticleId","AuthorId","AuthorOrder","CreatedAt") VALUES\n'
+                   + vals + "\nON CONFLICT DO NOTHING;")
+
     sql.append("COMMIT;")
 
-    # ---- 9. Exécution ----
+    # ---- 11. Exécution ----
     print("\n3) Import en production…")
-    out = psql(SSH_PROD, "\n".join(sql))
-    # Comptage final de contrôle
+    psql(SSH_PROD, "\n".join(sql))
+
+    # Comptages finaux de contrôle
     n = psql(SSH_PROD, 'SELECT count(*) FROM articles;').strip()
     dup = psql(SSH_PROD,
                'SELECT count(*) FROM (SELECT "CanonicalUrl" FROM articles '
                'GROUP BY "CanonicalUrl" HAVING count(*) > 1) d;').strip()
+    n_src = psql(SSH_PROD, 'SELECT count(*) FROM article_sources;').strip()
+    n_auth = psql(SSH_PROD, 'SELECT count(*) FROM article_authors;').strip()
     print("\n✅ Synchronisation terminée.")
-    print(f"   articles en production après sync : {n}")
-    print(f"   doublons CanonicalUrl (doit être 0) : {dup}")
+    print(f"   articles en production après sync       : {n}")
+    print(f"   doublons CanonicalUrl (doit être 0)      : {dup}")
+    print(f"   liens article→source en production       : {n_src}")
+    print(f"   liens article→auteur en production       : {n_auth}")
 
 
 if __name__ == "__main__":
