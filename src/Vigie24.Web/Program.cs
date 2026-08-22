@@ -21,6 +21,13 @@ builder.Services.AddScoped<IEngagementService, EngagementService>();
 builder.Services.AddDbContext<Vigie24DbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Database")));
 
+// Contexte dédié pour les composants qui requêtent en arrière-plan (ArticleBrowser) :
+// en Blazor Server, le DbContext scoped du circuit est partagé entre le parent et ses
+// enfants — leurs OnInitializedAsync s'exécutent en parallèle. La factory évite la
+// concurrence sur un même contexte.
+builder.Services.AddDbContextFactory<Vigie24DbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Database")));
+
 // HTTP Client
 builder.Services.AddHttpClient();
 

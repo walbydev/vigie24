@@ -1,8 +1,9 @@
+@using System.Linq.Expressions
 @using Vigie24.Domain.Models
 @using Vigie24.Infrastructure.Data
 @using Vigie24.Web.Services
 @using Microsoft.EntityFrameworkCore
-@inject Vigie24DbContext DbContext
+@inject IDbContextFactory<Vigie24DbContext> DbFactory
 @inject IEngagementService Engagement
 @inject ILogger<ArticleBrowser> Logger
 
@@ -63,11 +64,12 @@ else
 
 @code {
     /// <summary>
-    /// Fabrique la requête de base (avec Includes) filtrée par catégorie / thème.
-    /// Appelée à chaque chargement — la recherche, le tri, la plage et la pagination sont appliqués par-dessus.
+    /// Prédicat de base fourni par la page (articles publiés, catégorie, thème).
+    /// ArticleBrowser exécute ses requêtes sur son propre DbContext (factory) pour
+    /// ne jamais entrer en concurrence avec le contexte scoped de la page parente.
     /// </summary>
     [Parameter]
-    public Func<IQueryable<Article>> Source { get; set; } = null!;
+    public Func<Expression<Func<Article, bool>>> Filter { get; set; } = null!;
 
     private List<Article> _articles = new();
     private List<DateTime> _dates = new();
@@ -84,29 +86,27 @@ else
     private int _loadVersion;
     private readonly SemaphoreSlim _loadLock = new(1, 1);
     private bool _initialized;
-    private Func<IQueryable<Article>>? _lastSource;
+    private Func<Expression<Func<Article, bool>>>? _lastFilter;
 
     protected override async Task OnInitializedAsync()
     {
         _initialized = true;
-        _lastSource = Source; // le premier jeu de paramètres est traité ici
+        _lastFilter = Filter; // le premier jeu de paramètres est traité ici
         await LoadAsync();
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        // Recharge uniquement si la source (catégorie / thème) change réellement
+        // Recharge uniquement si le filtre (catégorie / thème) change réellement
         // (le premier jeu de paramètres est couvert par OnInitializedAsync).
         if (!_initialized) return;
-        if (!ReferenceEquals(Source, _lastSource))
+        if (!ReferenceEquals(Filter, _lastFilter))
         {
-            _lastSource = Source;
+            _lastFilter = Filter;
             _page = 1;
             await LoadAsync();
         }
     }
-
-    private IQueryable<Article> BaseQuery() => Source();
 
     private IQueryable<Article> ApplyFilters(IQueryable<Article> q)
     {
@@ -186,7 +186,10 @@ else
         var version = ++_loadVersion;
         try
         {
-            var filtered = ApplyFilters(BaseQuery());
+            // Contexte dédié : aucune concurrence avec le DbContext scoped de la page.
+            await using var db = await DbFactory.CreateDbContextAsync();
+
+            var filtered = ApplyFilters(db.Articles.Where(Filter()));
 
             var totalCount = await filtered.CountAsync();
             var dates = await filtered.Select(a => a.PublishedAt).ToListAsync();
@@ -199,7 +202,7 @@ else
 
             _dates = dates;
 
-            var pageQuery = ApplySort(BaseQuery(), SortField)
+            var pageQuery = ApplySort(db.Articles.Where(Filter()), SortField)
                 .Skip((_page - 1) * PageSize)
                 .Take(PageSize)
                 .Include(a => a.Category).ThenInclude(c => c!.ParentCategory)

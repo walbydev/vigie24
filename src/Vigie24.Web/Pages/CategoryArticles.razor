@@ -27,7 +27,7 @@ else
         <span class="muted">@_categoryCount article(s)</span>
     </div>
 
-    <ArticleBrowser Source="@BuildQuery" />
+    <ArticleBrowser Filter="@BuildFilter" />
 }
 
 @code {
@@ -54,13 +54,9 @@ else
                  (_category.ParentCategoryId == null && a.Category!.ParentCategoryId == _category.Id)));
     }
 
-    /// <summary>Requête de base : articles publiés de la catégorie (recherche/tri/pagination gérés par ArticleBrowser)</summary>
-    private IQueryable<Article> BuildQuery() => DbContext.Articles
-        .Include(a => a.Category).ThenInclude(c => c!.ParentCategory)
-        .Include(a => a.Authors).ThenInclude(a => a.Author)
-        .Include(a => a.Sources).ThenInclude(s => s.Source)
-        .Include(a => a.Tags).ThenInclude(t => t.Tag)
-        .Where(a => a.IsPublished &&
-                    (a.CategoryId == _category!.Id ||
-                     (_category.ParentCategoryId == null && a.Category!.ParentCategoryId == _category.Id)));
+    /// <summary>Filtre de base : articles publiés de la catégorie (recherche/tri/pagination gérés par ArticleBrowser)</summary>
+    private System.Linq.Expressions.Expression<Func<Article, bool>> BuildFilter() =>
+        a => a.IsPublished &&
+             (a.CategoryId == _category!.Id ||
+              (_category.ParentCategoryId == null && a.Category!.ParentCategoryId == _category.Id));
 }
