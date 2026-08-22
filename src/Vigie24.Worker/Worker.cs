@@ -158,8 +158,24 @@ public class Vigie24Worker : BackgroundService
             var request = new HttpRequestMessage(HttpMethod.Get, feedUrl);
             request.Headers.Add("User-Agent", "Vigie24-RSS-Monitor/1.0 (Walby Developments; philippe@walby.dev)");
             request.Headers.Add("Accept", "application/rss+xml, application/xml, text/xml, */*");
-            
-            var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+            // Retry léger sur rate-limit (429) et erreurs 5xx : certains flux
+            // (Reddit, YouTube) limitent fortement les accès non authentifiés.
+            HttpResponseMessage response = null!;
+            for (var attempt = 1; attempt <= 3; attempt++)
+            {
+                response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                if ((int)response.StatusCode != 429 && (int)response.StatusCode < 500)
+                    break;
+
+                response.Dispose();
+                if (attempt < 3)
+                {
+                    _logger.LogWarning("Feed {FeedUrl} limité ({Status}), nouvelle tentative {Attempt}/3 dans {Delay}s",
+                        feedUrl, (int)response.StatusCode, attempt, 10 * attempt);
+                    await Task.Delay(TimeSpan.FromSeconds(10 * attempt), cancellationToken);
+                }
+            }
             response.EnsureSuccessStatusCode();
 
             using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
