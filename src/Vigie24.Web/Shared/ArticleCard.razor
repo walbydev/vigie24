@@ -79,7 +79,9 @@
                 <span>@Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
             </span>
             <span class="score-hint">
-                <span class="score" @onclick="ToggleHint" title="Calcul du score">Score : <strong>@_state.RankingScore.ToString("0.0")</strong> ⓘ</span>
+                <span class="score" @onclick="ToggleHint" @onkeydown="OnScoreKey" role="button" tabindex="0"
+                      aria-expanded="@_showHint"
+                      title="Calcul du score (Entrée pour afficher)">Score : <strong>@_state.RankingScore.ToString("0.0")</strong> ⓘ</span>
                 @if (_showHint)
                 {
                     <span class="hint-popup">@_hint</span>
@@ -88,11 +90,14 @@
         </p>
 
         <div class="vote-row" title="Votre note : 0-1 pas intéressant, 2-4 moyen, 5 très intéressant">
-            <span class="vote-label">Notez :</span>
+            <span class="vote-label" id="vote-label-@Article.Id">Notez :</span>
             @for (var v = 0; v <= 5; v++)
             {
                 var voteValue = v;
-                <button class="vote-btn @VoteClass(voteValue)" @onclick="() => VoteAsync(voteValue)" title="@VoteTooltip(voteValue)">@voteValue</button>
+                <button class="vote-btn @VoteClass(voteValue)" @onclick="() => VoteAsync(voteValue)"
+                        title="@VoteTooltip(voteValue)"
+                        aria-label="Noter @voteValue sur 5 : @VoteTooltip(voteValue)"
+                        aria-pressed="@(voteValue == _state.MyVote)">@voteValue</button>
             }
             <span class="eng-stats">
                 @if (_state.VoteCount > 0)
@@ -208,4 +213,13 @@
     };
 
     private void ToggleHint() => _showHint = !_showHint;
+
+    private async Task OnScoreKey(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or " ")
+        {
+            ToggleHint();
+            await Task.CompletedTask;
+        }
+    }
 }

@@ -2,13 +2,15 @@
 @using Microsoft.AspNetCore.Components.Routing
 
 <div class="page">
-    <nav class="topnav">
+    <a class="skip-link" href="#main-content">Aller au contenu</a>
+    <nav class="topnav" aria-label="Navigation principale">
         <a class="brand" href="/">Vigie<span>24</span></a>
         <NavLink class="nav" href="/" Match="NavLinkMatch.All">Accueil</NavLink>
         <NavLink class="nav" href="/categories">Catégories</NavLink>
         <NavLink class="nav" href="/themes">Thématiques</NavLink>
+        <ThemeSwitcher />
     </nav>
-    <main>
+    <main id="main-content">
         <div class="content px-4">
             @Body
         </div>

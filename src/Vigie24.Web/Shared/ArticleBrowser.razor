@@ -1,4 +1,5 @@
 @using System.Linq.Expressions
+@using Vigie24.Domain
 @using Vigie24.Domain.Models
 @using Vigie24.Infrastructure.Data
 @using Vigie24.Web.Services
@@ -7,26 +8,39 @@
 @inject IEngagementService Engagement
 @inject ILogger<ArticleBrowser> Logger
 
-@* Navigation d'articles : recherche plein-texte, tri, plage de dates, pagination.
-   Les requêtes sont exécutées en base (EF Core) — aucune liste complète en mémoire. *@
+@* Navigation d'articles : recherche plein-texte, pays, tri, plage de dates, pagination.
+   Filtres avancés (sources, score min, note min) dans un panneau dépliable.
+   Les requêtes sont exécutées en base (EF Core) sur un contexte dédié. *@
 
 <div class="browser-toolbar">
     <input type="search" class="search-input"
            placeholder="🔍 Rechercher : titre, résumé, source, thème…"
+           aria-label="Rechercher dans les articles"
            value="@SearchText" @oninput="OnSearchInput" />
-    <select @bind="SortField" @bind:after="OnFilterChanged">
+    <select @bind="_country" @bind:after="OnCountryChanged" aria-label="Filtrer par pays d'origine">
+        <option value="">🌍 Tous les pays</option>
+        @foreach (var c in _availableCountries)
+        {
+            <option value="@c">@CountryInfo.Display(c)</option>
+        }
+    </select>
+    <select @bind="SortField" @bind:after="OnFilterChanged" aria-label="Trier les articles">
         <option value="date">Tri : plus récents</option>
         <option value="dateAsc">Tri : plus anciens</option>
         <option value="score">Tri : score de classement</option>
         <option value="rating">Tri : note moyenne</option>
         <option value="clicks">Tri : clics</option>
     </select>
-    <select @bind="PageSize" @bind:after="OnFilterChanged">
+    <select @bind="PageSize" @bind:after="OnFilterChanged" aria-label="Nombre d'articles par page">
         <option value="20">20 / page</option>
         <option value="50">50 / page</option>
         <option value="100">100 / page</option>
     </select>
-    <span class="result-count">
+    <button class="btn-toggle @(_advancedOpen ? "open" : "")" @onclick="ToggleAdvanced"
+            aria-expanded="@_advancedOpen" aria-controls="advanced-filters">
+        @(_advancedOpen ? "▲ Filtres avancés" : "▼ Filtres avancés")
+    </button>
+    <span class="result-count" role="status" aria-live="polite">
         @if (_totalCount == 0)
         {
             <text>0 article</text>
@@ -39,6 +53,42 @@
         }
     </span>
 </div>
+
+@if (_advancedOpen)
+{
+    <div id="advanced-filters" class="advanced-filters">
+        <div class="af-group">
+            <label id="lbl-sources">Sources</label>
+            <div class="af-chips" role="group" aria-labelledby="lbl-sources">
+                @foreach (var s in _availableSources)
+                {
+                    <button class="af-chip @(_selectedSources.Contains(s) ? "active" : "")"
+                            @onclick="() => ToggleSourceAsync(s)"
+                            aria-pressed="@(_selectedSources.Contains(s))">@s</button>
+                }
+            </div>
+        </div>
+        <div class="af-group">
+            <label for="min-score">Score minimum : <span class="af-value">@(_minScore > 0 ? _minScore.ToString() : "—")</span></label>
+            <div class="af-range">
+                <input id="min-score" type="range" min="0" max="100" step="5" @bind="_minScore" @bind:after="OnFilterChanged" />
+                <span class="muted">0 = aucun filtre</span>
+            </div>
+        </div>
+        <div class="af-group">
+            <label id="lbl-rating">Note moyenne minimum</label>
+            <div class="af-chips" role="group" aria-labelledby="lbl-rating">
+                @foreach (var r in new[] { 0, 1, 2, 3, 4, 5 })
+                {
+                    <button class="af-chip @(_minRating == r ? "active" : "")"
+                            @onclick="() => SetMinRatingAsync(r)"
+                            aria-pressed="@(_minRating == r)">@(r == 0 ? "Toutes" : "⭐ " + r)</button>
+                }
+            </div>
+        </div>
+        <button class="af-reset" @onclick="ResetFiltersAsync">✕ Réinitialiser les filtres</button>
+    </div>
+}
 
 <TimelineFilter Dates="@_dates" Range="@_range" RangeChanged="@OnRangeChanged" />
 
@@ -55,11 +105,11 @@ else
         }
     </div>
 
-    <div class="pagination">
-        <button disabled="@(_page <= 1)" @onclick="() => GoToPageAsync(_page - 1)">‹ Précédent</button>
+    <nav class="pagination" aria-label="Pagination">
+        <button disabled="@(_page <= 1)" @onclick="() => GoToPageAsync(_page - 1)" aria-label="Page précédente">‹ Précédent</button>
         <span class="page-info">Page <span class="page-current">@_page</span> / @_totalPages</span>
-        <button disabled="@(_page >= _totalPages)" @onclick="() => GoToPageAsync(_page + 1)">Suivant ›</button>
-    </div>
+        <button disabled="@(_page >= _totalPages)" @onclick="() => GoToPageAsync(_page + 1)" aria-label="Page suivante">Suivant ›</button>
+    </nav>
 }
 
 @code {
@@ -74,6 +124,8 @@ else
     private List<Article> _articles = new();
     private List<DateTime> _dates = new();
     private Dictionary<Guid, int> _myVotes = new();
+    private List<string> _availableCountries = new();
+    private List<string> _availableSources = new();
     private int _totalCount;
     private int _totalPages = 1;
     private int _page = 1;
@@ -81,6 +133,13 @@ else
     private string SortField = "date";
     private int PageSize = 20;
     private (DateTime? From, DateTime? To)? _range;
+
+    // Filtres
+    private bool _advancedOpen;
+    private string _country = "";                       // "" = tous les pays
+    private readonly HashSet<string> _selectedSources = new();
+    private int _minScore;                              // 0 = aucun filtre
+    private int _minRating;                             // 0 = aucune note minimale
 
     private CancellationTokenSource? _searchCts;
     private int _loadVersion;
@@ -92,6 +151,7 @@ else
     {
         _initialized = true;
         _lastFilter = Filter; // le premier jeu de paramètres est traité ici
+        await LoadContextAsync();
         await LoadAsync();
     }
 
@@ -104,7 +164,37 @@ else
         {
             _lastFilter = Filter;
             _page = 1;
+            await LoadContextAsync();
             await LoadAsync();
+        }
+    }
+
+    /// <summary>Listes des pays et sources disponibles pour le contexte (catégorie / thème) courant</summary>
+    private async Task LoadContextAsync()
+    {
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var filter = Filter();
+
+            _availableCountries = await db.Articles.AsNoTracking().Where(filter)
+                .SelectMany(a => a.Sources)
+                .Where(s => s.Source.CountryCode != null)
+                .Select(s => s.Source.CountryCode!)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
+
+            _availableSources = await db.Articles.AsNoTracking().Where(filter)
+                .SelectMany(a => a.Sources)
+                .Select(s => s.Source.Name)
+                .Distinct()
+                .OrderBy(n => n)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Impossible de charger les pays/sources disponibles");
         }
     }
 
@@ -118,6 +208,27 @@ else
                 || EF.Functions.ILike(a.Summary, pattern)
                 || a.Tags.Any(t => EF.Functions.ILike(t.Tag.Slug, pattern))
                 || a.Sources.Any(s => EF.Functions.ILike(s.Source.Name, pattern)));
+        }
+
+        if (!string.IsNullOrEmpty(_country))
+        {
+            // Le pays affiché est celui de la source primaire
+            q = q.Where(a => a.Sources.Any(s => s.IsPrimary && s.Source.CountryCode == _country));
+        }
+
+        if (_selectedSources.Count > 0)
+        {
+            q = q.Where(a => a.Sources.Any(s => _selectedSources.Contains(s.Source.Name)));
+        }
+
+        if (_minScore > 0)
+        {
+            q = q.Where(a => a.RankingScore >= _minScore);
+        }
+
+        if (_minRating > 0)
+        {
+            q = q.Where(a => a.VoteAverage >= _minRating);
         }
 
         if (_range is { } range)
@@ -164,6 +275,12 @@ else
         await LoadAsync();
     }
 
+    private async Task OnCountryChanged()
+    {
+        _page = 1;
+        await LoadAsync();
+    }
+
     private async Task OnRangeChanged((DateTime? From, DateTime? To)? range)
     {
         _range = range;
@@ -178,9 +295,42 @@ else
         await LoadAsync();
     }
 
+    private Task ToggleAdvanced()
+    {
+        _advancedOpen = !_advancedOpen;
+        return Task.CompletedTask;
+    }
+
+    private async Task ToggleSourceAsync(string name)
+    {
+        if (!_selectedSources.Add(name)) _selectedSources.Remove(name);
+        _page = 1;
+        await LoadAsync();
+    }
+
+    private async Task SetMinRatingAsync(int rating)
+    {
+        _minRating = rating == _minRating ? 0 : rating;
+        _page = 1;
+        await LoadAsync();
+    }
+
+    private async Task ResetFiltersAsync()
+    {
+        _searchCts?.Cancel();
+        SearchText = "";
+        _country = "";
+        _selectedSources.Clear();
+        _minScore = 0;
+        _minRating = 0;
+        _range = null;
+        _page = 1;
+        await LoadAsync();
+    }
+
     private async Task LoadAsync()
     {
-        // Sémaphore : un seul chargement à la fois sur le DbContext (scoped),
+        // Sémaphore : un seul chargement à la fois sur le DbContext dédié,
         // même pendant le prerender où les continuations s'exécutent sur le pool.
         await _loadLock.WaitAsync();
         var version = ++_loadVersion;
@@ -202,7 +352,7 @@ else
 
             _dates = dates;
 
-            var pageQuery = ApplySort(db.Articles.Where(Filter()), SortField)
+            var pageQuery = ApplySort(ApplyFilters(db.Articles.Where(Filter())), SortField)
                 .Skip((_page - 1) * PageSize)
                 .Take(PageSize)
                 .Include(a => a.Category).ThenInclude(c => c!.ParentCategory)
