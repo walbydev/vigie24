@@ -79,11 +79,22 @@ else
 
     private CancellationTokenSource? _searchCts;
     private int _loadVersion;
+    private bool _isLoading;
+    private bool _loadRequested;
+    private bool _initialized;
     private Func<IQueryable<Article>>? _lastSource;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _initialized = true;
+        await LoadAsync();
+    }
 
     protected override void OnParametersSet()
     {
-        // Recharge quand la source (catégorie / thème) change ; ignore les re-rendus sans changement.
+        // Au premier rendu, OnInitializedAsync charge ; ensuite, on recharge
+        // seulement si la source (catégorie / thème) change.
+        if (!_initialized) return;
         if (!ReferenceEquals(Source, _lastSource))
         {
             _lastSource = Source;
@@ -166,6 +177,14 @@ else
 
     private async Task LoadAsync()
     {
+        // Un seul chargement à la fois sur le DbContext (scoped) : les demandes
+        // arrivées pendant un chargement sont rejouées à la fin.
+        if (_isLoading)
+        {
+            _loadRequested = true;
+            return;
+        }
+        _isLoading = true;
         var version = ++_loadVersion;
         try
         {
@@ -202,6 +221,16 @@ else
             _articles = new();
             _totalCount = 0;
             _totalPages = 1;
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+            if (_loadRequested)
+            {
+                _loadRequested = false;
+                _ = LoadAsync();
+            }
         }
     }
 }
