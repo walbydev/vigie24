@@ -50,8 +50,8 @@ BEGIN
     k := g.ids[1];
     FOR i IN 2..array_length(g.ids, 1) LOOP
       dup := g.ids[i];
-      INSERT INTO article_tags ("ArticleId", "TagId")
-        SELECT "ArticleId", k FROM article_tags WHERE "TagId" = dup
+      INSERT INTO article_tags ("ArticleId", "TagId", "CreatedAt")
+        SELECT "ArticleId", k, now() FROM article_tags WHERE "TagId" = dup
         ON CONFLICT DO NOTHING;
       DELETE FROM article_tags WHERE "TagId" = dup;
       DELETE FROM tags WHERE "Id" = dup;
@@ -71,8 +71,8 @@ BEGIN
     ('bon-plan','bons-plans'),
     ('fuites-de-donnees','fuite-de-donnees')
   ) AS t(dup_slug, keeper_slug) LOOP
-    INSERT INTO article_tags ("ArticleId", "TagId")
-      SELECT at."ArticleId", k."Id" FROM article_tags at
+    INSERT INTO article_tags ("ArticleId", "TagId", "CreatedAt")
+      SELECT at."ArticleId", k."Id", now() FROM article_tags at
       JOIN tags d ON at."TagId" = d."Id"
       JOIN tags k ON k."Slug" = m.keeper_slug
       WHERE d."Slug" = m.dup_slug
