@@ -31,6 +31,13 @@
         <option value="rating">Tri : note moyenne</option>
         <option value="clicks">Tri : clics</option>
     </select>
+    <select @bind="_sourceKind" @bind:after="OnFilterChanged" aria-label="Type de source">
+        <option value="">Type : tous</option>
+        <option value="youtube">📺 YouTube</option>
+        <option value="reddit">💬 Reddit</option>
+        <option value="press">Presse</option>
+        <option value="bloglab">Blogs</option>
+    </select>
     <select @bind="PageSize" @bind:after="OnFilterChanged" aria-label="Nombre d'articles par page">
         <option value="20">20 / page</option>
         <option value="50">50 / page</option>
@@ -137,6 +144,7 @@ else
     // Filtres
     private bool _advancedOpen;
     private string _country = "";                       // "" = tous les pays
+    private string _sourceKind = "";                    // "" = tous ; youtube | reddit | press | bloglab
     private readonly HashSet<string> _selectedSources = new();
     private int _minScore;                              // 0 = aucun filtre
     private int _minRating;                             // 0 = aucune note minimale
@@ -214,6 +222,12 @@ else
         {
             // Le pays affiché est celui de la source primaire
             q = q.Where(a => a.Sources.Any(s => s.IsPrimary && s.Source.CountryCode == _country));
+        }
+
+        if (!string.IsNullOrEmpty(_sourceKind))
+        {
+            // Type de source : YouTube, Reddit, Presse, Blogs (insensible à la casse)
+            q = q.Where(a => a.Sources.Any(s => s.Source.SourceKind.ToLower() == _sourceKind));
         }
 
         if (_selectedSources.Count > 0)
@@ -320,6 +334,7 @@ else
         _searchCts?.Cancel();
         SearchText = "";
         _country = "";
+        _sourceKind = "";
         _selectedSources.Clear();
         _minScore = 0;
         _minRating = 0;
