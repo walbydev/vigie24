@@ -146,7 +146,7 @@ prod-pub:
 	@echo "🐳 Construction des images et démarrage des conteneurs sur le VPS..."
 	@ssh $(PROD_HOST) "cd $(PROD_DIR) && docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build"
 	@echo ""
-	@echo "✅ Production déployée — accès : https://$$(ssh $(PROD_HOST) \"grep -E '^VIGIE24_DOMAIN=' $(PROD_DIR)/.env.production | cut -d= -f2\" 2>/dev/null)"
+	@ssh $(PROD_HOST) "echo '✅ Production déployée — accès : ' && grep -E '^VIGIE24_DOMAIN=' $(PROD_DIR)/.env.production | cut -d= -f2"
 	@ssh $(PROD_HOST) "cd $(PROD_DIR) && docker compose --env-file .env.production -f docker-compose.prod.yml ps --format 'table {{.Name}}	{{.Status}}	{{.Ports}}'"
 
 prod-ps:
