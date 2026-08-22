@@ -16,7 +16,12 @@
     {
         <a href="/api/articles/@Article.Id/track" target="_blank" rel="noopener" class="card-img-link">
             <div class="card-img card-img-placeholder" style="background: linear-gradient(135deg, @_color1, @_color2);">
-                @_initial
+                <span class="card-img-initial">@_initial</span>
+                @if (!string.IsNullOrEmpty(_sourceFaviconUrl))
+                {
+                    <img src="@_sourceFaviconUrl" class="card-img-favicon" alt=""
+                         loading="lazy" onerror="this.remove()" />
+                }
             </div>
         </a>
     }
@@ -125,6 +130,7 @@
     private string _initial = "?";
     private ArticleSource? _primarySource;
     private string _countryDisplay = "";
+    private string _sourceFaviconUrl = "";
     private static readonly (string Prefix, string C1, string C2)[] _palettes =
     {
         ("ia", "#4f46e5", "#9333ea"), ("developpement", "#0891b2", "#2563eb"),
@@ -148,6 +154,12 @@
 
         // Source principale : lien vers l'article sur le site de la source (via /track)
         _primarySource = Article.Sources.FirstOrDefault(s => s.IsPrimary) ?? Article.Sources.FirstOrDefault();
+
+        // Favicon de la source pour le placeholder d'illustration (fallback : initiale du titre)
+        _sourceFaviconUrl = _primarySource?.Source?.WebsiteUrl is { } url
+                            && Uri.TryCreate(url, UriKind.Absolute, out var site)
+            ? $"{site.Scheme}://{site.Host}/favicon.ico"
+            : "";
 
         // Pays de publication (code ISO de la source primaire → nom + drapeau)
         _countryDisplay = CountryInfo.Display(_primarySource?.Source?.CountryCode);

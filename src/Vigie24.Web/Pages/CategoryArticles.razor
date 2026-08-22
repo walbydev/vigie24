@@ -25,6 +25,7 @@ else
     <div class="page-head">
         <h1>@_title</h1>
         <span class="muted">@_categoryCount article(s)</span>
+        <a class="chip" href="/categories/@_category.Slug/feed" rel="alternate" type="application/rss+xml" title="S'abonner au flux RSS de cette catégorie">📡 RSS</a>
     </div>
 
     <ArticleBrowser Filter="@BuildFilter" />

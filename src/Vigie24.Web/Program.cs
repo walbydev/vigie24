@@ -190,6 +190,57 @@ app.MapGet("/api/articles/{id:guid}/track", async (Guid id, Vigie24DbContext db)
     return string.IsNullOrWhiteSpace(target) ? Results.NotFound() : Results.Redirect(target);
 });
 
+// ===== Flux RSS 2.0 (abonnement) =====
+// /feed                     → les 50 derniers articles publiés, toutes catégories
+// /categories/{slug}/feed   → les 50 derniers articles publiés de la catégorie (et ses sous-catégories)
+// Le canal "link" utilise le schéma détecté (https derrière Caddy grâce à UseForwardedHeaders).
+const int RssFeedSize = 50;
+
+app.MapGet("/feed", async (Vigie24DbContext db, HttpContext http) =>
+{
+    var baseUrl = $"{http.Request.Scheme}://{http.Request.Host}";
+    var articles = await db.Articles
+        .Where(a => a.IsPublished)
+        .OrderByDescending(a => a.PublishedAt)
+        .Take(RssFeedSize)
+        .Select(a => new RssItem(a.Title, a.CanonicalUrl, a.Summary, a.PublishedAt, a.CanonicalUrl))
+        .ToListAsync();
+
+    var xml = RssFeedBuilder.Build(
+        "Vigie24 — Surveillance RSS et analyse IA",
+        baseUrl,
+        "Veille technologique francophone (France, Suisse, Belgique, Québec, Luxembourg) — articles sélectionnés et analysés par IA.",
+        articles);
+
+    return Results.Content(xml, "application/rss+xml; charset=utf-8");
+});
+
+app.MapGet("/categories/{slug}/feed", async (string slug, Vigie24DbContext db, HttpContext http) =>
+{
+    var category = await db.Categories.FirstOrDefaultAsync(c => c.Slug == slug);
+    if (category is null)
+        return Results.NotFound();
+
+    var baseUrl = $"{http.Request.Scheme}://{http.Request.Host}";
+    var articles = await db.Articles
+        .Where(a => a.IsPublished
+                    && a.Category != null
+                    && (a.Category.Slug == slug
+                        || (a.Category.ParentCategory != null && a.Category.ParentCategory.Slug == slug)))
+        .OrderByDescending(a => a.PublishedAt)
+        .Take(RssFeedSize)
+        .Select(a => new RssItem(a.Title, a.CanonicalUrl, a.Summary, a.PublishedAt, a.CanonicalUrl))
+        .ToListAsync();
+
+    var xml = RssFeedBuilder.Build(
+        $"Vigie24 — {VigieTaxonomy.DisplayName(slug)}",
+        baseUrl,
+        $"Vigie24 — articles de la catégorie {VigieTaxonomy.DisplayName(slug)}.",
+        articles);
+
+    return Results.Content(xml, "application/rss+xml; charset=utf-8");
+});
+
 app.Run();
 
 /// <summary>Corps de requête du vote : { value: 0..5 }</summary>

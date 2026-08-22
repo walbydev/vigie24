@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vigie24 - Surveillance RSS</title>
     <base href="~/" />
+    <link rel="alternate" type="application/rss+xml" title="Vigie24 — Flux RSS complet" href="/feed" />
     <style>
         /* ============================================================
            Thèmes : clair / sombre × contraste normal / élevé (WCAG AA/AAA)
@@ -296,7 +297,9 @@
         .article-card:hover { box-shadow: 0 4px 12px var(--shadow); }
         .card-img-link { display: block; }
         .card-img { width: 100%; height: 180px; object-fit: cover; display: block; }
-        .card-img-placeholder { display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.92); font-size: 3rem; font-weight: 700; }
+        .card-img-placeholder { display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.92); font-size: 3rem; font-weight: 700; position: relative; }
+        .card-img-placeholder .card-img-initial { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 700; opacity: 0.55; }
+        .card-img-placeholder .card-img-favicon { position: relative; z-index: 1; width: 56px; height: 56px; object-fit: contain; border-radius: 12px; background: rgba(255,255,255,0.20); padding: 8px; }
         .card-body { padding: 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
         .card-title { margin: 0; font-size: 1.05rem; line-height: 1.35; }
         .card-title a { color: var(--text); text-decoration: none; }

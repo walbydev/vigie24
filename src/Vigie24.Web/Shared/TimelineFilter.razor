@@ -64,6 +64,9 @@
         var yearStart = new DateTime(today.Year, 1, 1);
         AddBucket(buckets, dates, "cette année", yearStart, yearStart.AddYears(1));
 
+        // Tout ce qui précède l'année courante (fil d'archives).
+        AddBucket(buckets, dates, "années précédentes", DateTime.MinValue, yearStart);
+
         _buckets = buckets.OrderByDescending(b => b.From ?? DateTime.MinValue).ToList();
     }
 
