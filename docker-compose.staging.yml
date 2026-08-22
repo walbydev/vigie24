@@ -29,6 +29,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Staging
       - DOTNET_ENVIRONMENT=Staging
       - AiService__Provider=${AI_PROVIDER:-infomaniak}
+      - AiService__ApiUrl=${INFOMANIAK_API_URL:-https://api.infomaniak.com}
+      - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
+      - AiService__Model=${AI_MODEL:-llama-3.1-70b}
       - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_staging};Username=${DB_USER:-postgres_staging};Password=${DB_PASSWORD}
     depends_on:
       postgres:
@@ -48,6 +51,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Staging
       - DOTNET_ENVIRONMENT=Staging
       - AiService__Provider=${AI_PROVIDER:-infomaniak}
+      - AiService__ApiUrl=${INFOMANIAK_API_URL:-https://api.infomaniak.com}
+      - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
+      - AiService__Model=${AI_MODEL:-llama-3.1-70b}
       - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_staging};Username=${DB_USER:-postgres_staging};Password=${DB_PASSWORD}
     ports:
       - "80:8080"
