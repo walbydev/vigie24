@@ -24,7 +24,7 @@ services:
       dockerfile: src/Vigie24.Worker/Dockerfile
       target: final
     container_name: vigie24-worker-prod
-    env_file: .env.production.local
+    env_file: .env.production
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - DOTNET_ENVIRONMENT=Production
@@ -46,7 +46,7 @@ services:
       dockerfile: src/Vigie24.Web/Dockerfile
       target: final
     container_name: vigie24-web-prod
-    env_file: .env.production.local
+    env_file: .env.production
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - DOTNET_ENVIRONMENT=Production
@@ -55,13 +55,33 @@ services:
       - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
       - AiService__Model=${AI_MODEL:-llama-3.1-70b}
       - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_prod};Username=${DB_USER:-postgres_prod};Password=${DB_PASSWORD}
-    ports:
-      - "127.0.0.1:8080:8080"
+    expose:
+      - "8080"
     depends_on:
       postgres:
         condition: service_healthy
       vigie24-worker:
         condition: service_started
+    networks:
+      - vigie24-network
+    restart: unless-stopped
+
+  # Reverse proxy : HTTPS automatique (Let's Encrypt) si VIGIE24_DOMAIN est un domaine,
+  # HTTP simple si c'est une IP. Les WebSockets Blazor sont gérés nativement.
+  caddy:
+    image: caddy:2-alpine
+    container_name: vigie24-caddy-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - VIGIE24_DOMAIN=${VIGIE24_DOMAIN:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - vigie24-web
     networks:
       - vigie24-network
     restart: unless-stopped
@@ -73,3 +93,5 @@ networks:
 volumes:
   postgres_prod_data:
     name: vigie24_prod_data
+  caddy_data:
+  caddy_config:

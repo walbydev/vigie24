@@ -33,9 +33,15 @@ URL_mock := http://localhost:5001
 STAGING_HOST ?= vigie24-staging
 STAGING_DIR ?= vigie24
 
+# --- Production (VPS) ---
+# PROD_HOST : alias SSH défini dans ~/.ssh/config (ex: vigie24-prod) ; PROD_DIR : dossier de déploiement
+PROD_HOST ?= vigie24-prod
+PROD_DIR ?= vigie24
+
 .PHONY: help run debug stop down logs ps check-env \
         dev-run dev-debug mock-run mock-debug \
-        staging-pub staging-ps staging-logs staging-down staging-status
+        staging-pub staging-ps staging-logs staging-down staging-status \
+        prod-deploy prod-ps prod-logs prod-down prod-status prod-backup
 
 help:
 	@echo "Vigie24 — cibles disponibles :"
@@ -112,8 +118,7 @@ staging-pub:
 		--exclude='.git/' --exclude='bin/' --exclude='obj/' \
 		--exclude='.idea/' --exclude='.vscode/' --exclude='.junie/' \
 		--exclude='*.bak' --exclude='*.local' --exclude='*.md~' \
-		--exclude='.env' --exclude='.env.development' --exclude='.env.development.example' \
-		--exclude='.env.mock' --exclude='.env.production' --exclude='.env.production.example' \
+		--exclude='.env*' \
 		./ $(STAGING_HOST):$(STAGING_DIR)/
 	@echo "🐳 Construction des images et démarrage des conteneurs sur le staging..."
 	@ssh $(STAGING_HOST) "cd $(STAGING_DIR) && docker compose --env-file .env.staging -f docker-compose.staging.yml up -d --build"
@@ -131,3 +136,35 @@ staging-logs:
 
 staging-down:
 	@ssh $(STAGING_HOST) "cd $(STAGING_DIR) && docker compose --env-file .env.staging -f docker-compose.staging.yml down"
+
+# --- Production (VPS) : déploiement complet (code + images + conteneurs) ---
+prod-deploy:
+	@echo "🚀 Publication de la solution vers la production ($(PROD_HOST))..."
+	@ssh $(PROD_HOST) "mkdir -p $(PROD_DIR)"
+	@rsync -az --delete \
+		--exclude='.git/' --exclude='bin/' --exclude='obj/' \
+		--exclude='.idea/' --exclude='.vscode/' --exclude='.junie/' \
+		--exclude='*.bak' --exclude='*.local' --exclude='*.md~' \
+		--exclude='.env*' \
+		./ $(PROD_HOST):$(PROD_DIR)/
+	@echo "🐳 Construction des images et démarrage des conteneurs sur le VPS..."
+	@ssh $(PROD_HOST) "cd $(PROD_DIR) && docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build"
+	@echo ""
+	@echo "✅ Production déployée — accès : https://$$(ssh $(PROD_HOST) \"grep -E '^VIGIE24_DOMAIN=' $(PROD_DIR)/.env.production | cut -d= -f2\" 2>/dev/null)"
+	@ssh $(PROD_HOST) "cd $(PROD_DIR) && docker compose --env-file .env.production -f docker-compose.prod.yml ps --format 'table {{.Name}}	{{.Status}}	{{.Ports}}'"
+
+prod-ps:
+	@ssh $(PROD_HOST) "cd $(PROD_DIR) && docker compose --env-file .env.production -f docker-compose.prod.yml ps --format 'table {{.Name}}	{{.Status}}	{{.Ports}}'"
+
+prod-status: prod-ps
+
+prod-logs:
+	@ssh $(PROD_HOST) "cd $(PROD_DIR) && docker compose --env-file .env.production -f docker-compose.prod.yml logs -f --tail=100"
+
+prod-down:
+	@ssh $(PROD_HOST) "cd $(PROD_DIR) && docker compose --env-file .env.production -f docker-compose.prod.yml down"
+
+prod-backup:
+	@mkdir -p backups
+	@ssh $(PROD_HOST) "cd $(PROD_DIR) && docker compose --env-file .env.production -f docker-compose.prod.yml exec -T postgres pg_dump -U postgres_prod -d vigie24_prod" > backups/vigie24-prod-$$(date +%Y%m%d-%H%M%S).sql
+	@echo "✅ Sauvegarde PostgreSQL effectuée dans backups/"

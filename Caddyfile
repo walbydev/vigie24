@@ -1,0 +1,8 @@
+# Vigie24 — reverse proxy Caddy (production)
+# VIGIE24_DOMAIN (variable .env.production) :
+#   - un nom de domaine  -> HTTPS automatique (Let's Encrypt) + redirection 80 -> 443
+#   - une IP publique     -> HTTP simple (pas de certificat possible pour une IP)
+{$VIGIE24_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy vigie24-web:8080
+}

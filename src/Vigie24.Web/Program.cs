@@ -1,3 +1,5 @@
+using System.Net;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Vigie24.Domain;
 using Vigie24.Domain.Models;
@@ -60,6 +62,16 @@ builder.Services.AddSingleton<IAiService>(sp => {
 });
 
 var app = builder.Build();
+
+// Derrière le reverse proxy (Caddy en production) : préserver le schéma HTTPS
+// (X-Forwarded-Proto) pour que la redirection HTTPS et les liens soient corrects.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    // Caddy tourne dans le réseau Docker bridge (172.16.0.0/12) — on n'accepte
+    // les en-têtes de proxy que depuis ce réseau.
+    KnownNetworks = { new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse("172.16.0.0"), 12) }
+});
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
