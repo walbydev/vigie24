@@ -1,12 +1,16 @@
 # =====================================================================
 # Vigie24 — Makefile
-# Lancement des environnements dev et mock (modes run / debug)
+# Lancement des environnements dev, mock et publication staging
 #
 # Usage :
 #   make dev-run        Démarre l'environnement dev  (IA réelles, port 5000) en arrière-plan
 #   make dev-debug      Démarre l'environnement dev  en avant-plan (logs live, Ctrl+C)
 #   make mock-run       Démarre l'environnement mock (IA simulées, port 5001) en arrière-plan
 #   make mock-debug     Démarre l'environnement mock en avant-plan (logs live, Ctrl+C)
+#   make staging-pub    Publie la solution sur le serveur de staging (192.168.30.160, port 80)
+#   make staging-ps     État des conteneurs sur le staging
+#   make staging-logs   Suit les logs de la stack staging
+#   make staging-down   Arrête la stack staging
 #   make run ENV=dev    Forme paramétrée : ENV = dev | mock (défaut : dev)
 #   make debug ENV=mock Forme paramétrée : lancement en avant-plan
 #   make stop ENV=dev   Arrête la stack ENV (conteneurs conservés)
@@ -24,8 +28,13 @@ COMPOSE = docker compose -f docker-compose.$(ENV).yml
 URL_dev  := http://localhost:5000
 URL_mock := http://localhost:5001
 
+# --- Staging (préproduction) : serveur Debian 192.168.30.160 ---
+STAGING_HOST ?= vigie24-staging   # alias SSH défini dans ~/.ssh/config
+STAGING_DIR  ?= vigie24           # dossier de déploiement sur le serveur (~/vigie24)
+
 .PHONY: help run debug stop down logs ps check-env \
-        dev-run dev-debug mock-run mock-debug
+        dev-run dev-debug mock-run mock-debug \
+        staging-pub staging-ps staging-logs staging-down staging-status
 
 help:
 	@echo "Vigie24 — cibles disponibles :"
@@ -33,6 +42,10 @@ help:
 	@echo "  make dev-debug     Démarre l'environnement dev  en avant-plan avec logs live (Ctrl+C)"
 	@echo "  make mock-run      Démarre l'environnement mock (IA simulées, port 5001) en arrière-plan"
 	@echo "  make mock-debug    Démarre l'environnement mock en avant-plan avec logs live (Ctrl+C)"
+	@echo "  make staging-pub   Publie la solution sur le staging (192.168.30.160, http://192.168.30.160)"
+	@echo "  make staging-ps    État des conteneurs sur le staging"
+	@echo "  make staging-logs  Suit les logs de la stack staging"
+	@echo "  make staging-down  Arrête la stack staging"
 	@echo "  make run ENV=dev   Démarre ENV (dev|mock) en arrière-plan"
 	@echo "  make debug ENV=dev Démarre ENV en avant-plan, logs live (Ctrl+C pour arrêter)"
 	@echo "  make stop ENV=dev  Arrête la stack ENV sans supprimer les conteneurs"
@@ -86,3 +99,34 @@ logs: check-env
 
 ps: check-env
 	$(COMPOSE) ps
+
+# --- Staging (préproduction) ---
+# Publie la solution sur le serveur Debian 192.168.30.160, construit les images
+# Docker sur place et démarre la stack. Vigie24 est alors accessible sur
+# http://192.168.30.160 (port 80).
+staging-pub:
+	@echo "🚀 Publication de la solution vers le staging ($(STAGING_HOST))..."
+	@ssh $(STAGING_HOST) "mkdir -p $(STAGING_DIR)"
+	@rsync -az --delete \
+		--exclude='.git/' --exclude='bin/' --exclude='obj/' \
+		--exclude='.idea/' --exclude='.vscode/' --exclude='.junie/' \
+		--exclude='*.bak' --exclude='*.local' --exclude='*.md~' \
+		--exclude='.env' --exclude='.env.development' --exclude='.env.development.example' \
+		--exclude='.env.mock' --exclude='.env.production' --exclude='.env.production.example' \
+		./ $(STAGING_HOST):$(STAGING_DIR)/
+	@echo "🐳 Construction des images et démarrage des conteneurs sur le staging..."
+	@ssh $(STAGING_HOST) "cd $(STAGING_DIR) && docker compose --env-file .env.staging -f docker-compose.staging.yml up -d --build"
+	@echo ""
+	@echo "✅ Staging déployé — Vigie24 : http://192.168.30.160"
+	@ssh $(STAGING_HOST) "cd $(STAGING_DIR) && docker compose --env-file .env.staging -f docker-compose.staging.yml ps --format 'table {{.Name}}	{{.Status}}	{{.Ports}}'"
+
+staging-ps:
+	@ssh $(STAGING_HOST) "cd $(STAGING_DIR) && docker compose --env-file .env.staging -f docker-compose.staging.yml ps --format 'table {{.Name}}	{{.Status}}	{{.Ports}}'"
+
+staging-status: staging-ps
+
+staging-logs:
+	@ssh $(STAGING_HOST) "cd $(STAGING_DIR) && docker compose --env-file .env.staging -f docker-compose.staging.yml logs -f --tail=100"
+
+staging-down:
+	@ssh $(STAGING_HOST) "cd $(STAGING_DIR) && docker compose --env-file .env.staging -f docker-compose.staging.yml down"
