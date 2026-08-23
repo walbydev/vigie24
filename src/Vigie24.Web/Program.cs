@@ -290,6 +290,35 @@ app.MapGet("/sources.xml", async (Vigie24DbContext db) =>
     return Results.Content(doc.ToString(), "application/xml; charset=utf-8");
 });
 
+// /sitemap.xml → sitemap XML (SEO) : pages statiques + catégories actives + thèmes liés à
+// des articles publiés. N'inclut pas /articles/{id} (301 vers la source) ni /feed (flux).
+app.MapGet("/sitemap.xml", async (Vigie24DbContext db) =>
+{
+    const string baseUrl = "https://vigie24.info";
+
+    var categorySlugs = await db.Categories.AsNoTracking()
+        .Where(c => c.IsActive)
+        .OrderBy(c => c.DisplayOrder).ThenBy(c => c.Slug)
+        .Select(c => c.Slug)
+        .ToListAsync();
+
+    // Thèmes = tags rattachés à au moins un article publié (même logique que la page /themes)
+    var themeSlugs = await db.Articles.AsNoTracking()
+        .Where(a => a.IsPublished)
+        .SelectMany(a => a.Tags.Select(t => t.Tag!.Slug))
+        .Distinct()
+        .OrderBy(s => s)
+        .ToListAsync();
+
+    // lastmod = date du dernier article publié (une seule requête, partagée par toutes les URLs)
+    var lastMod = await db.Articles.AsNoTracking()
+        .Where(a => a.IsPublished)
+        .MaxAsync(a => (DateTime?)a.PublishedAt);
+
+    var xml = SitemapBuilder.Build(baseUrl, categorySlugs, themeSlugs, lastMod);
+    return Results.Content(xml, "application/xml; charset=utf-8");
+});
+
 app.Run();
 
 /// <summary>Corps de requête du vote : { value: 0..5 }</summary>
