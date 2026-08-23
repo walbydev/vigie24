@@ -33,6 +33,14 @@ else
     </div>
 }
 
+<a class="debate-banner" href="/debats" title="Voir les articles contradictoires mis en parallèle">
+    <span class="debate-banner-icon">🥊</span>
+    <span class="debate-banner-text">
+        <strong>Débats en cours</strong> — @_debateCount débat(s) actif(s) : des articles contradictoires sur un même sujet, mis en parallèle
+    </span>
+    <span class="debate-banner-cta">Voir les débats →</span>
+</a>
+
 <div class="page-head">
     <h2>Derniers articles</h2>
     <div class="chips">
@@ -49,11 +57,13 @@ else
     private string _lastIngestionText = "jamais";
     private long _todayTokens;
     private decimal _todayCostChf;
+    private int _debateCount;
 
     protected override async Task OnInitializedAsync()
     {
         _totalArticles = await DbContext.Articles.CountAsync();
         _status = await Health.GetStatusAsync();
+        _debateCount = await DbContext.Debates.CountAsync();
         _lastIngestionText = _status.LastIngestionUtc is { } last
             ? HealthEvaluator.FormatAge(DateTime.UtcNow - last)
             : "jamais";

@@ -420,6 +420,15 @@
         /* ===== Page Débats ===== */
         .chip-debate { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
         [data-theme="dark"] .chip-debate { background: #452d03; color: #fbbf24; border-color: #b45309; }
+        .debate-banner { display: flex; align-items: center; gap: 14px; background: linear-gradient(135deg, #fffbeb, #fef3c7); border: 1px solid #f59e0b; border-radius: 10px; padding: 14px 18px; margin: 16px 0 4px; text-decoration: none; color: var(--text); transition: transform 0.12s ease, box-shadow 0.12s ease; }
+        .debate-banner:hover { transform: translateY(-1px); box-shadow: 0 4px 14px var(--shadow); }
+        .debate-banner-icon { font-size: 1.6rem; line-height: 1; }
+        .debate-banner-text { flex: 1; font-size: 0.95rem; }
+        .debate-banner-text strong { color: #92400e; }
+        .debate-banner-cta { font-weight: 700; color: #92400e; white-space: nowrap; font-size: 0.9rem; }
+        [data-theme="dark"] .debate-banner { background: linear-gradient(135deg, #3b2a06, #452d03); border-color: #b45309; }
+        [data-theme="dark"] .debate-banner-text strong, [data-theme="dark"] .debate-banner-cta { color: #fbbf24; }
+        [data-theme$="-hc"] .debate-banner { border-width: 2px; }
         .debate-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px 22px; margin: 18px 0; }
         .debate-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 14px; }
         .debate-head h2 { margin: 0; font-size: 1.2rem; }
