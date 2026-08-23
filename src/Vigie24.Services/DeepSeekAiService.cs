@@ -105,6 +105,13 @@ IMPORTANT: Ne retourne QUE le JSON, sans texte supplémentaire.";
             ?? new AiProcessingResult();
         
         result.EditorialScore = Math.Min(result.EditorialScore, 100);
+
+        // Consommation en tokens rapportée par l'API (usage) — pour le suivi de coût par article
+        if (apiResponse?.Usage is { } usage)
+        {
+            result.PromptTokens = usage.PromptTokens;
+            result.CompletionTokens = usage.CompletionTokens;
+        }
         
         _logger.LogInformation("Article processed successfully via DeepSeek. Score: {Score}, Themes: {Themes}",
             result.EditorialScore, string.Join(", ", result.DetectedThemes));
@@ -212,6 +219,22 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
     private class DeepSeekApiResponse
     {
         public List<Choice>? Choices { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("usage")]
+        public Usage? Usage { get; set; }
+    }
+
+    /// <summary>Consommation en tokens rapportée par l'API OpenAI-compatible</summary>
+    private class Usage
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("prompt_tokens")]
+        public int PromptTokens { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("completion_tokens")]
+        public int CompletionTokens { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("total_tokens")]
+        public int TotalTokens { get; set; }
     }
 
     private class Choice

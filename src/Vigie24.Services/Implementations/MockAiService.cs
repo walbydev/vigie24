@@ -73,7 +73,10 @@ public class MockAiService : IAiService
             EditorialScore = editorialScore,
             DetectedThemes = detectedThemes,
             DetectedCategories = new List<string> { category.Parent, category.Sub },
-            IsDuplicate = false
+            IsDuplicate = false,
+            // Simulation réaliste de la consommation (le Mock n'appelle pas d'API)
+            PromptTokens = 1200 + _random.Next(0, 600),
+            CompletionTokens = 150 + _random.Next(0, 120)
         };
 
         _logger.LogDebug("Mock result: Score={Score}, Themes={Themes}", 

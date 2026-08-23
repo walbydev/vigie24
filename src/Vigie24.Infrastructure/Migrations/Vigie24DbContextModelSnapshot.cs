@@ -41,6 +41,9 @@ namespace Vigie24.Infrastructure.Migrations
                     b.Property<int>("ClickCount")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("CompletionTokens")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -65,6 +68,9 @@ namespace Vigie24.Infrastructure.Migrations
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int?>("PromptTokens")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("PublishedAt")
                         .HasColumnType("timestamp with time zone");

@@ -25,4 +25,10 @@ public class AiServiceSettings
     
     /// <summary>Nombre maximum de tokens dans la réponse</summary>
     public int MaxTokens { get; set; } = 1024;
+
+    /// <summary>Prix d'entrée en CHF par million de tokens (pour l'estimation du coût quotidien)</summary>
+    public decimal InputPricePerMillionTokens { get; set; } = 0.20m;
+
+    /// <summary>Prix de sortie en CHF par million de tokens (pour l'estimation du coût quotidien)</summary>
+    public decimal OutputPricePerMillionTokens { get; set; } = 0.40m;
 }

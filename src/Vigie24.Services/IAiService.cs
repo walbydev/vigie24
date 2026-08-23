@@ -38,6 +38,15 @@ public class AiProcessingResult
     /// <summary>Liste des mots-clés extraits</summary>
     [JsonPropertyName("keywords")]
     public List<string> Keywords { get; set; } = new();
+
+    /// <summary>Tokens d'entrée consommés par l'API (usage.prompt_tokens) — rempli par le service IA</summary>
+    public int PromptTokens { get; set; }
+
+    /// <summary>Tokens de sortie consommés par l'API (usage.completion_tokens) — rempli par le service IA</summary>
+    public int CompletionTokens { get; set; }
+
+    /// <summary>Tokens totaux consommés par l'API (usage.total_tokens)</summary>
+    public int TotalTokens => PromptTokens + CompletionTokens;
 }
 
 /// <summary>

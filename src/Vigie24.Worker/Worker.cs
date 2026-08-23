@@ -402,7 +402,9 @@ public class Vigie24Worker : BackgroundService
             ImageUrl = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl,
             ImageAltText = string.IsNullOrWhiteSpace(imageUrl) ? null : item.Title,
             CategoryId = await GetOrCreateCategoryAsync(dbContext, aiResult, cancellationToken),
-            IsPublished = aiResult.EditorialScore >= 60 // Seuil de publication
+            IsPublished = aiResult.EditorialScore >= 60, // Seuil de publication
+            PromptTokens = aiResult.PromptTokens > 0 ? aiResult.PromptTokens : null,
+            CompletionTokens = aiResult.CompletionTokens > 0 ? aiResult.CompletionTokens : null
         };
 
         // Calculer le score algorithmique (formules partagées dans Vigie24.Domain.ArticleScoring)

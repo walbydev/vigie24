@@ -8,6 +8,7 @@
 @inject IAiService AiService
 @inject Vigie24DbContext DbContext
 @inject IHealthCheckService Health
+@inject AiServiceSettings AiSettings
 @inject ILogger<Index> Logger
 
 <PageTitle>Accueil - Vigie24</PageTitle>
@@ -27,7 +28,8 @@ else
         <strong>Fournisseur IA :</strong> @AiService.ProviderName (@AiService.GetType().Name)<br />
         <strong>Modèle LLM :</strong> @AiService.ModelName<br />
         <strong>Statut :</strong> <span class="@_status?.CssClass">@_status?.Label</span> · <strong>Dernière ingestion :</strong> @_lastIngestionText<br />
-        <strong>Articles en base :</strong> @_totalArticles
+        <strong>Articles en base :</strong> @_totalArticles<br />
+        <strong>Coût IA aujourd'hui :</strong> @FormatTokens(_todayTokens) tokens · ≈ CHF @FormatCost(_todayCostChf)
     </div>
 }
 
@@ -45,6 +47,8 @@ else
     private int _totalArticles;
     private HealthStatus? _status;
     private string _lastIngestionText = "jamais";
+    private long _todayTokens;
+    private decimal _todayCostChf;
 
     protected override async Task OnInitializedAsync()
     {
@@ -53,8 +57,30 @@ else
         _lastIngestionText = _status.LastIngestionUtc is { } last
             ? HealthEvaluator.FormatAge(DateTime.UtcNow - last)
             : "jamais";
+
+        // Coût IA du jour : somme des tokens consommés par les analyses du jour, convertie en CHF
+        var today = DateTime.UtcNow.Date;
+        var prompt = await DbContext.Articles
+            .Where(a => a.PromptTokens != null && a.UpdatedAt >= today)
+            .SumAsync(a => (long)a.PromptTokens!);
+        var completion = await DbContext.Articles
+            .Where(a => a.CompletionTokens != null && a.UpdatedAt >= today)
+            .SumAsync(a => (long)a.CompletionTokens!);
+        _todayTokens = prompt + completion;
+        _todayCostChf = AiCost.Calculate(
+            (int)prompt, (int)completion,
+            AiSettings.InputPricePerMillionTokens, AiSettings.OutputPricePerMillionTokens);
+
         Logger.LogInformation("Index : {Count} articles en base, statut santé {Status}", _totalArticles, _status.Label);
     }
+
+    private string FormatTokens(long tokens)
+        => tokens.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"));
+
+    private string FormatCost(decimal cost)
+        => cost >= 0.01m
+            ? cost.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))
+            : cost.ToString("0.000", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"));
 
     /// <summary>Filtre de base : articles publiés (recherche/tri/pagination gérés par ArticleBrowser sur son propre contexte)</summary>
     private System.Linq.Expressions.Expression<Func<Article, bool>> BuildFilter() => a => a.IsPublished;

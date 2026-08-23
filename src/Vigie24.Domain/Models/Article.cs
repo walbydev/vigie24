@@ -34,6 +34,12 @@ public class Article
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Tokens d'entrée consommés par l'IA pour l'analyse de cet article</summary>
+    public int? PromptTokens { get; set; }
+
+    /// <summary>Tokens de sortie consommés par l'IA pour l'analyse de cet article</summary>
+    public int? CompletionTokens { get; set; }
     
     // Navigation properties
     public virtual Category? Category { get; set; }

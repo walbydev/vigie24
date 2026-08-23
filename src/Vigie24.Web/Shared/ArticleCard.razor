@@ -82,6 +82,11 @@
                     <span> · </span>
                 }
                 <span>@Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                @if (Article.PromptTokens is > 0)
+                {
+                    <span> · </span>
+                    <span title="Tokens consommés par l'analyse IA de cet article (entrée + sortie)">⚙️ @(((Article.PromptTokens ?? 0) + (Article.CompletionTokens ?? 0)).ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))) tok</span>
+                }
             </span>
             <span class="score-hint">
                 <span class="score" @onclick="ToggleHint" @onkeydown="OnScoreKey" role="button" tabindex="0"
