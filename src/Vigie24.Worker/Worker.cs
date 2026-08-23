@@ -315,15 +315,17 @@ public class Vigie24Worker : BackgroundService
             // Add User-Agent to avoid being blocked by some sites
             // (configurable via FeedReader:UserAgent — certains sites comme Reddit
             //  bloquent les User-Agent robots explicites).
-            var request = new HttpRequestMessage(HttpMethod.Get, feedUrl);
-            request.Headers.Add("User-Agent", UserAgent);
-            request.Headers.Add("Accept", "application/rss+xml, application/xml, text/xml, */*");
+            // NB: le HttpRequestMessage est créé À CHAQUE tentative — un message
+            // déjà envoyé ne peut pas être réutilisé ("request message was already sent").
 
             // Retry léger sur rate-limit (429) et erreurs 5xx : certains flux
             // (Reddit, YouTube) limitent fortement les accès non authentifiés.
             HttpResponseMessage response = null!;
             for (var attempt = 1; attempt <= 3; attempt++)
             {
+                var request = new HttpRequestMessage(HttpMethod.Get, feedUrl);
+                request.Headers.Add("User-Agent", UserAgent);
+                request.Headers.Add("Accept", "application/rss+xml, application/xml, text/xml, */*");
                 response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                 if ((int)response.StatusCode != 429 && (int)response.StatusCode < 500)
                     break;
