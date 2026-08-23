@@ -138,8 +138,10 @@ public class Vigie24Worker : BackgroundService
             }
         }
 
-        // Mettre à jour le timestamp d'ingestion
+        // Mettre à jour le timestamp d'ingestion (sauvegardé immédiatement pour
+        // que la page Sources reflète la fraîcheur de chaque source en temps réel)
         source.LastIngestedAt = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private async Task<List<ArticleFeedItem>> FetchRssFeedAsync(string feedUrl, CancellationToken cancellationToken)
