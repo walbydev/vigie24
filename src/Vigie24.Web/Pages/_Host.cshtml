@@ -417,6 +417,28 @@
         [data-theme$="-hc"] .source-card { border-width: 2px; }
         [data-theme$="-hc"] .source-disabled .source-name { text-decoration-thickness: 2px; }
 
+        /* ===== Page Débats ===== */
+        .chip-debate { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+        [data-theme="dark"] .chip-debate { background: #452d03; color: #fbbf24; border-color: #b45309; }
+        .debate-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px 22px; margin: 18px 0; }
+        .debate-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 14px; }
+        .debate-head h2 { margin: 0; font-size: 1.2rem; }
+        .debate-head .count { font-size: 0.85rem; color: var(--text-muted); font-weight: 700; }
+        .debate-camps { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+        .debate-camp { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: var(--surface-alt); }
+        .debate-camp h3 { margin: 0 0 8px; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+        .debate-camp .count { font-size: 0.8rem; color: var(--text-muted); }
+        .debate-camp-pour { border-top: 3px solid #16a34a; }
+        .debate-camp-contre { border-top: 3px solid #dc2626; }
+        .debate-camp-nuance { border-top: 3px solid #f59e0b; }
+        .debate-camp-neutre { border-top: 3px solid #94a3b8; }
+        .debate-article { padding: 7px 0; border-bottom: 1px dashed var(--border); }
+        .debate-article:last-child { border-bottom: none; }
+        .debate-article a { color: var(--text); text-decoration: none; display: block; font-size: 0.92rem; line-height: 1.35; }
+        .debate-article a:hover { color: var(--accent); text-decoration: underline; }
+        .debate-article .muted { font-size: 0.78rem; }
+        [data-theme$="-hc"] .debate-card { border-width: 2px; }
+
         /* ===== Haut contraste : renforce les éléments ===== */
         [data-theme$="-hc"] .article-card { border-width: 2px; }
         [data-theme$="-hc"] .chip { border: 1px solid currentColor; }

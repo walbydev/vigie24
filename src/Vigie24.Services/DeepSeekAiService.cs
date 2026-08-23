@@ -60,6 +60,8 @@ Fournis ta réponse au format JSON suivant (sans markdown, juste le JSON brut):
   ""categories"": [""catégorie parente"", ""sous-catégorie""],
   ""themes"": [""liste"", ""de"", ""themes""],
   ""keywords"": [""liste"", ""de"", ""mots-clés""],
+  ""topic"": ""sujet précis du débat en 2-5 mots neutres sans opinion (ex: régulation IA Europe) — OU vide si l'article ne participe à aucun débat"",
+  ""stance"": ""position de l'article sur ce sujet : pour / contre / nuance / neutre — OU vide si pas de débat"",
   ""is_duplicate"": false
 }}
 
@@ -194,6 +196,10 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
             return false;
         }
     }
+
+    /// <summary>Le fallback DeepSeek ne fournit pas d'embeddings — pas de rapprochement sémantique.</summary>
+    public Task<float[]?> GetEmbeddingAsync(string text, CancellationToken cancellationToken = default)
+        => Task.FromResult<float[]?>(null);
 
     private static string Truncate(string value, int maxLength)
     {

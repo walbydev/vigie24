@@ -78,6 +78,9 @@ namespace Vigie24.Infrastructure.Migrations
                     b.Property<decimal>("RankingScore")
                         .HasColumnType("numeric");
 
+                    b.Property<string>("Stance")
+                        .HasColumnType("text");
+
                     b.Property<string>("Summary")
                         .IsRequired()
                         .HasColumnType("text");
@@ -86,6 +89,9 @@ namespace Vigie24.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Topic")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -129,6 +135,23 @@ namespace Vigie24.Infrastructure.Migrations
                     b.HasIndex("AuthorId");
 
                     b.ToTable("article_authors", (string)null);
+                });
+
+            modelBuilder.Entity("Vigie24.Domain.Models.ArticleEmbedding", b =>
+                {
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.PrimitiveCollection<float[]>("Vector")
+                        .IsRequired()
+                        .HasColumnType("real[]");
+
+                    b.HasKey("ArticleId");
+
+                    b.ToTable("article_embeddings", (string)null);
                 });
 
             modelBuilder.Entity("Vigie24.Domain.Models.ArticleSource", b =>
@@ -270,6 +293,59 @@ namespace Vigie24.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("categories", (string)null);
+                });
+
+            modelBuilder.Entity("Vigie24.Domain.Models.Debate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisplayTopic")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Topic")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Topic")
+                        .IsUnique();
+
+                    b.ToTable("debates", (string)null);
+                });
+
+            modelBuilder.Entity("Vigie24.Domain.Models.DebateArticle", b =>
+                {
+                    b.Property<Guid>("DebateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Stance")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("DebateId", "ArticleId");
+
+                    b.HasIndex("ArticleId");
+
+                    b.ToTable("debate_articles", (string)null);
                 });
 
             modelBuilder.Entity("Vigie24.Domain.Models.Source", b =>
@@ -421,6 +497,17 @@ namespace Vigie24.Infrastructure.Migrations
                     b.Navigation("Author");
                 });
 
+            modelBuilder.Entity("Vigie24.Domain.Models.ArticleEmbedding", b =>
+                {
+                    b.HasOne("Vigie24.Domain.Models.Article", "Article")
+                        .WithOne()
+                        .HasForeignKey("Vigie24.Domain.Models.ArticleEmbedding", "ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+                });
+
             modelBuilder.Entity("Vigie24.Domain.Models.ArticleSource", b =>
                 {
                     b.HasOne("Vigie24.Domain.Models.Article", "Article")
@@ -487,6 +574,25 @@ namespace Vigie24.Infrastructure.Migrations
                     b.Navigation("ParentCategory");
                 });
 
+            modelBuilder.Entity("Vigie24.Domain.Models.DebateArticle", b =>
+                {
+                    b.HasOne("Vigie24.Domain.Models.Article", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vigie24.Domain.Models.Debate", "Debate")
+                        .WithMany("Articles")
+                        .HasForeignKey("DebateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+
+                    b.Navigation("Debate");
+                });
+
             modelBuilder.Entity("Vigie24.Domain.Models.Article", b =>
                 {
                     b.Navigation("Authors");
@@ -504,6 +610,11 @@ namespace Vigie24.Infrastructure.Migrations
             modelBuilder.Entity("Vigie24.Domain.Models.Category", b =>
                 {
                     b.Navigation("SubCategories");
+                });
+
+            modelBuilder.Entity("Vigie24.Domain.Models.Debate", b =>
+                {
+                    b.Navigation("Articles");
                 });
 
             modelBuilder.Entity("Vigie24.Domain.Models.Tag", b =>

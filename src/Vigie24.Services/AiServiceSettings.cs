@@ -31,4 +31,7 @@ public class AiServiceSettings
 
     /// <summary>Prix de sortie en CHF par million de tokens (pour l'estimation du coût quotidien)</summary>
     public decimal OutputPricePerMillionTokens { get; set; } = 0.40m;
+
+    /// <summary>Modèle d'embedding pour le rapprochement sémantique (débats)</summary>
+    public string EmbeddingModel { get; set; } = "bge_multilingual_gemma2";
 }

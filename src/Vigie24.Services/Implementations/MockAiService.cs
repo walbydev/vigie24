@@ -76,7 +76,10 @@ public class MockAiService : IAiService
             IsDuplicate = false,
             // Simulation réaliste de la consommation (le Mock n'appelle pas d'API)
             PromptTokens = 1200 + _random.Next(0, 600),
-            CompletionTokens = 150 + _random.Next(0, 120)
+            CompletionTokens = 150 + _random.Next(0, 120),
+            // Le Mock simule parfois un sujet de débat avec une position
+            Topic = _random.Next(4) == 0 ? "régulation IA Europe" : null,
+            Stance = _random.Next(4) == 0 ? new[] { "pour", "contre", "nuance" }[_random.Next(3)] : null
         };
 
         _logger.LogDebug("Mock result: Score={Score}, Themes={Themes}", 
@@ -97,6 +100,18 @@ public class MockAiService : IAiService
     public Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(true);
+    }
+
+    /// <summary>Embedding simulé : vecteur déterministe (3584 dims) dérivé du hash du texte,
+    /// afin que deux textes identiques produisent le même vecteur en mock.</summary>
+    public Task<float[]?> GetEmbeddingAsync(string text, CancellationToken cancellationToken = default)
+    {
+        var seed = text.GetHashCode();
+        var rng = new Random(seed);
+        var vector = new float[3584];
+        for (int i = 0; i < vector.Length; i++)
+            vector[i] = (float)(rng.NextDouble() * 2 - 1);
+        return Task.FromResult<float[]?>(vector);
     }
     
     private string GenerateMockSummary(string title, string originalContent)

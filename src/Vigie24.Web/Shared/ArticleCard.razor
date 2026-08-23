@@ -28,6 +28,10 @@
 
     <div class="card-body">
         <div class="chips">
+            @if (Article.DebateArticles.Any())
+            {
+                <a class="chip chip-debate" href="/debats" title="Cet article participe à un débat — voir les positions opposées">🥊 Débat</a>
+            }
             @if (Article.Category != null)
             {
                 @if (Article.Category.ParentCategory != null)

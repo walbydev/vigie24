@@ -21,6 +21,9 @@ public class Vigie24DbContext : DbContext
     public DbSet<ArticleTag> ArticleTags => Set<ArticleTag>();
     public DbSet<User> Users => Set<User>();
     public DbSet<ArticleVote> ArticleVotes => Set<ArticleVote>();
+    public DbSet<Debate> Debates => Set<Debate>();
+    public DbSet<DebateArticle> DebateArticles => Set<DebateArticle>();
+    public DbSet<ArticleEmbedding> ArticleEmbeddings => Set<ArticleEmbedding>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -69,6 +72,47 @@ public class Vigie24DbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.CategoryId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Configure Debate (mise en parallèle d'articles contradictoires)
+        modelBuilder.Entity<Debate>(entity =>
+        {
+            entity.ToTable("debates");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Topic).IsUnique();
+            entity.Property(e => e.Topic).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.DisplayTopic).HasMaxLength(200).IsRequired();
+        });
+
+        // Configure DebateArticle
+        modelBuilder.Entity<DebateArticle>(entity =>
+        {
+            entity.ToTable("debate_articles");
+            entity.HasKey(e => new { e.DebateId, e.ArticleId });
+            entity.Property(e => e.Stance).HasMaxLength(20).IsRequired();
+
+            entity.HasOne(e => e.Debate)
+                .WithMany(d => d.Articles)
+                .HasForeignKey(e => e.DebateId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Article)
+                .WithMany(a => a.DebateArticles)
+                .HasForeignKey(e => e.ArticleId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure ArticleEmbedding (vecteur sémantique, table dédiée pour ne pas alourdir articles)
+        modelBuilder.Entity<ArticleEmbedding>(entity =>
+        {
+            entity.ToTable("article_embeddings");
+            entity.HasKey(e => e.ArticleId);
+            entity.Property(e => e.Vector).HasColumnType("real[]").IsRequired();
+
+            entity.HasOne(e => e.Article)
+                .WithOne()
+                .HasForeignKey<ArticleEmbedding>(e => e.ArticleId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Configure Source

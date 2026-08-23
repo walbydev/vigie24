@@ -40,12 +40,19 @@ public class Article
 
     /// <summary>Tokens de sortie consommés par l'IA pour l'analyse de cet article</summary>
     public int? CompletionTokens { get; set; }
+
+    /// <summary>Sujet précis du débat (normalisé) — vide si l'article ne participe à aucun débat</summary>
+    public string? Topic { get; set; }
+
+    /// <summary>Position de l'article : pour / contre / nuance / neutre / vide</summary>
+    public string? Stance { get; set; }
     
     // Navigation properties
     public virtual Category? Category { get; set; }
     public virtual ICollection<ArticleSource> Sources { get; set; } = new List<ArticleSource>();
     public virtual ICollection<ArticleAuthor> Authors { get; set; } = new List<ArticleAuthor>();
     public virtual ICollection<ArticleTag> Tags { get; set; } = new List<ArticleTag>();
+    public virtual ICollection<DebateArticle> DebateArticles { get; set; } = new List<DebateArticle>();
 }
 
 /// <summary>

@@ -373,7 +373,8 @@ else
                 .Include(a => a.Category).ThenInclude(c => c!.ParentCategory)
                 .Include(a => a.Authors).ThenInclude(a => a.Author)
                 .Include(a => a.Sources).ThenInclude(s => s.Source)
-                .Include(a => a.Tags).ThenInclude(t => t.Tag);
+                .Include(a => a.Tags).ThenInclude(t => t.Tag)
+                .Include(a => a.DebateArticles);
 
             var articles = await pageQuery.ToListAsync();
             if (version != _loadVersion) return;

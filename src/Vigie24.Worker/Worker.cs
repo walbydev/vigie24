@@ -102,6 +102,153 @@ public class Vigie24Worker : BackgroundService
 
         // Mettre à jour les timestamps d'ingestion
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Reconstruire les « débats » : mise en parallèle d'articles contradictoires
+        await RebuildDebatesAsync(dbContext, cancellationToken);
+    }
+
+    /// <summary>
+    /// Reconstruit les débats à partir des articles des 14 derniers jours porteurs d'un
+    /// topic + stance. Regroupement par topic normalisé, puis fusion sémantique des
+    /// topics isolés par similarité d'embedding (seuil cosinus configurable).
+    /// </summary>
+    private async Task RebuildDebatesAsync(Vigie24DbContext dbContext, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var since = DateTime.UtcNow.AddDays(-14);
+            var candidates = await dbContext.Articles.AsNoTracking()
+                .Where(a => a.Topic != null && a.Stance != null && a.PublishedAt >= since)
+                .Select(a => new { a.Id, a.Topic, a.Stance })
+                .ToListAsync(cancellationToken);
+
+            var groups = DebateEngine.Build(candidates.Select(a => new Article
+            {
+                Id = a.Id,
+                Topic = a.Topic,
+                Stance = a.Stance
+            }));
+
+            // Fusion sémantique : les topics isolés (sans opposant) sont rapprochés des
+            // débats proches par similarité cosinus de leur embedding.
+            groups = await MergeIsolatedGroupsAsync(groups, dbContext, cancellationToken);
+
+            var existing = await dbContext.Debates
+                .Include(d => d.Articles)
+                .ToListAsync(cancellationToken);
+            var existingByTopic = existing.ToDictionary(d => d.Topic);
+            var wantedTopics = groups.Keys.ToHashSet();
+
+            foreach (var (topic, group) in groups)
+            {
+                if (!existingByTopic.TryGetValue(topic, out var debate))
+                {
+                    debate = new Debate { Topic = topic, DisplayTopic = group.DisplayTopic };
+                    dbContext.Debates.Add(debate);
+                }
+                else
+                {
+                    debate.DisplayTopic = group.DisplayTopic;
+                    debate.UpdatedAt = DateTime.UtcNow;
+                }
+
+                var wantedIds = group.Entries.Select(e => e.ArticleId).ToHashSet();
+
+                // Retirer les liens devenus obsolètes
+                foreach (var link in debate.Articles.Where(l => !wantedIds.Contains(l.ArticleId)).ToList())
+                    dbContext.DebateArticles.Remove(link);
+
+                // Ajouter les nouveaux articles du débat
+                foreach (var entry in group.Entries.Where(e => !debate.Articles.Any(l => l.ArticleId == e.ArticleId)))
+                {
+                    debate.Articles.Add(new DebateArticle
+                    {
+                        ArticleId = entry.ArticleId,
+                        Stance = entry.Stance
+                    });
+                }
+            }
+
+            // Supprimer les débats qui n'ont plus d'articles opposés
+            foreach (var stale in existing.Where(d => !wantedTopics.Contains(d.Topic)).ToList())
+                dbContext.Debates.Remove(stale);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            if (groups.Count > 0)
+            {
+                _logger.LogInformation("Debates rebuilt: {Count} débats actifs", groups.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Debate rebuild failed");
+        }
+    }
+
+    /// <summary>
+    /// Rapproche les groupes de débat isolés (1 seul article, donc pas encore un débat)
+    /// d'un débat existant dont l'embedding est sémantiquement proche (cosinus ≥ seuil),
+    /// ce qui peut créer l'opposition manquante.
+    /// </summary>
+    private static async Task<Dictionary<string, DebateEngine.DebateGroup>> MergeIsolatedGroupsAsync(
+        Dictionary<string, DebateEngine.DebateGroup> groups,
+        Vigie24DbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        const float similarityThreshold = 0.85f;
+        var isolated = groups.Values.Where(g => g.Entries.Count < 2).ToList();
+        if (isolated.Count == 0)
+            return groups;
+
+        var isolatedIds = isolated.SelectMany(g => g.Entries.Select(e => e.ArticleId)).ToHashSet();
+        var embeddings = await dbContext.ArticleEmbeddings.AsNoTracking()
+            .Where(e => isolatedIds.Contains(e.ArticleId))
+            .ToDictionaryAsync(e => e.ArticleId, e => e.Vector, cancellationToken);
+
+        var result = groups.ToDictionary(kv => kv.Key, kv => kv.Value);
+
+        foreach (var single in isolated)
+        {
+            var vector = single.Entries
+                .Select(e => embeddings.GetValueOrDefault(e.ArticleId))
+                .FirstOrDefault(v => v is { Length: > 0 });
+            if (vector is null)
+                continue;
+
+            var best = result.Values
+                .Where(g => g != single && DebateEngine.HasOpposingStances(single.Entries.Concat(g.Entries)))
+                .Select(g => (Group: g, Sim: g.Entries.Max(e =>
+                    embeddings.GetValueOrDefault(e.ArticleId) is { } v && v.Length == vector.Length
+                        ? CosineSimilarity(vector, v)
+                        : 0f)))
+                .Where(x => x.Sim >= similarityThreshold)
+                .OrderByDescending(x => x.Sim)
+                .FirstOrDefault();
+
+            if (best.Group is not null)
+            {
+                foreach (var entry in single.Entries)
+                    best.Group.Entries.Add(entry);
+                result.Remove(single.Topic);
+            }
+        }
+
+        return result;
+    }
+
+    private static float CosineSimilarity(float[] a, float[] b)
+    {
+        float dot = 0f, normA = 0f, normB = 0f;
+        for (int i = 0; i < a.Length; i++)
+        {
+            dot += a[i] * b[i];
+            normA += a[i] * a[i];
+            normB += b[i] * b[i];
+        }
+        if (normA == 0f || normB == 0f)
+            return 0f;
+        return dot / (MathF.Sqrt(normA) * MathF.Sqrt(normB));
     }
 
     private async Task ProcessSourceAsync(Source source, Vigie24DbContext dbContext, CancellationToken cancellationToken)
@@ -404,8 +551,28 @@ public class Vigie24Worker : BackgroundService
             CategoryId = await GetOrCreateCategoryAsync(dbContext, aiResult, cancellationToken),
             IsPublished = aiResult.EditorialScore >= 60, // Seuil de publication
             PromptTokens = aiResult.PromptTokens > 0 ? aiResult.PromptTokens : null,
-            CompletionTokens = aiResult.CompletionTokens > 0 ? aiResult.CompletionTokens : null
+            CompletionTokens = aiResult.CompletionTokens > 0 ? aiResult.CompletionTokens : null,
+            Topic = string.IsNullOrWhiteSpace(aiResult.Topic) ? null : aiResult.Topic.Trim(),
+            Stance = string.IsNullOrWhiteSpace(aiResult.Stance) ? null : aiResult.Stance.Trim()
         };
+
+        // Vecteur sémantique (embeddings) pour le rapprochement des débats — non bloquant
+        try
+        {
+            var embedding = await _aiService.GetEmbeddingAsync($"{item.Title} — {aiResult.Summary}", cancellationToken);
+            if (embedding is { Length: > 0 })
+            {
+                dbContext.ArticleEmbeddings.Add(new ArticleEmbedding
+                {
+                    ArticleId = article.Id,
+                    Vector = embedding
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Embedding calculation failed for article {Title}", item.Title);
+        }
 
         // Calculer le score algorithmique (formules partagées dans Vigie24.Domain.ArticleScoring)
         article.AlgorithmicScore = ArticleScoring.CalculateAlgorithmicScore(article, recentArticles.Count);

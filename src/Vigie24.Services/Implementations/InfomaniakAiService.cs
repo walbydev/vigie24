@@ -92,6 +92,8 @@ Fournis ta réponse au format JSON suivant (sans markdown, juste le JSON brut):
   ""categories"": [""catégorie parente"", ""sous-catégorie""],
   ""themes"": [""liste"", ""de"", ""themes""],
   ""keywords"": [""liste"", ""de"", ""mots-clés""],
+  ""topic"": ""sujet précis du débat en 2-5 mots neutres sans opinion (ex: régulation IA Europe) — OU vide si l'article ne participe à aucun débat"",
+  ""stance"": ""position de l'article sur ce sujet : pour / contre / nuance / neutre — OU vide si pas de débat"",
   ""is_duplicate"": false
 }}
 
@@ -228,6 +230,45 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
         {
             _logger.LogError(ex, "Health check failed for Infomaniak AI");
             return false;
+        }
+    }
+
+    public async Task<float[]?> GetEmbeddingAsync(string text, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var request = new
+            {
+                model = _settings.EmbeddingModel,
+                input = new[] { Truncate(text, 8000) }
+            };
+
+            var jsonRequest = JsonSerializer.Serialize(request);
+            var httpContent = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync("embeddings", httpContent, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Embedding request failed: {StatusCode}", response.StatusCode);
+                return null;
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            using var doc = JsonDocument.Parse(responseContent);
+            if (doc.RootElement.TryGetProperty("data", out var data)
+                && data.GetArrayLength() > 0
+                && data[0].TryGetProperty("embedding", out var embedding))
+            {
+                return embedding.EnumerateArray().Select(e => e.GetSingle()).ToArray();
+            }
+
+            _logger.LogWarning("Embedding response without data");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Embedding request failed");
+            return null;
         }
     }
 

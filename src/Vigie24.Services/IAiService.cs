@@ -47,6 +47,19 @@ public class AiProcessingResult
 
     /// <summary>Tokens totaux consommés par l'API (usage.total_tokens)</summary>
     public int TotalTokens => PromptTokens + CompletionTokens;
+
+    /// <summary>
+    /// Sujet précis du débat (2-5 mots, neutre, sans opinion), ex: "régulation IA Europe".
+    /// Vide si l'article ne participe à aucun débat.
+    /// </summary>
+    [JsonPropertyName("topic")]
+    public string? Topic { get; set; }
+
+    /// <summary>
+    /// Position de l'article sur le sujet : "pour", "contre", "nuance", "neutre" ou "" (pas un débat).
+    /// </summary>
+    [JsonPropertyName("stance")]
+    public string? Stance { get; set; }
 }
 
 /// <summary>
@@ -99,4 +112,11 @@ public interface IAiService
     /// Vérifie si le service est disponible (health check)
     /// </summary>
     Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Calcule le vecteur sémantique d'un texte (embedding multilingue) —
+    /// utilisé pour rapprocher les articles traitant du même sujet de débat.
+    /// Retourne null si le fournisseur ne propose pas d'embeddings.
+    /// </summary>
+    Task<float[]?> GetEmbeddingAsync(string text, CancellationToken cancellationToken = default);
 }
