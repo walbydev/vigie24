@@ -604,6 +604,28 @@
             }
         };
     </script>
+
+    @* Données structurées JSON-LD (rich snippets Google) — WebSite + Organization globaux ;
+       le BreadcrumbList est généré par page (CategoryArticles) via <HeadContent>. *@
+    <script type="application/ld+json">
+    {
+      "@@context": "https://schema.org",
+      "@@type": "WebSite",
+      "name": "Vigie24",
+      "url": "https://vigie24.info/",
+      "description": "Veille technologique francophone : articles sélectionnés et analysés par IA.",
+      "inLanguage": "fr"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@@context": "https://schema.org",
+      "@@type": "Organization",
+      "name": "Walby Developments",
+      "url": "https://vigie24.info/",
+      "logo": "https://vigie24.info/apple-touch-icon.png"
+    }
+    </script>
 </head>
 <body>
     <component type="typeof(App)" render-mode="ServerPrerendered" />
