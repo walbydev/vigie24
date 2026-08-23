@@ -80,9 +80,10 @@ public class Vigie24Worker : BackgroundService
             return;
         }
 
-        // Récupérer les sources actives
+        // Récupérer les sources actives (trackées : le worker met à jour LastIngestedAt
+        // après chaque traitement — AsNoTracking empêcherait la persistance de ce champ)
         var activeSources = await dbContext.Sources
-            .Where(s => s.IsActive).AsNoTracking()
+            .Where(s => s.IsActive)
             .ToListAsync(cancellationToken);
 
         _logger.LogInformation("Processing {Count} active sources", activeSources.Count);
