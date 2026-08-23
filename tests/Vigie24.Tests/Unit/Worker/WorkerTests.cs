@@ -1,5 +1,6 @@
 namespace Vigie24.Tests.Unit.Worker;
 
+using System.ServiceModel.Syndication;
 using Vigie24.Worker;
 using Vigie24.Domain.Models;
 
@@ -350,5 +351,108 @@ public class CategoryTagTests
             Assert.NotEmpty(method);
             Assert.False(method.Contains(" "));
         }
+    }
+}
+
+/// <summary>
+/// Tests pour l'extraction d'illustration depuis les flux RSS (media:thumbnail,
+/// media:content, enclosure) — voir Worker.ExtractFeedImage.
+/// </summary>
+public class ExtractFeedImageTests
+{
+    private static SyndicationItem LoadFirstItem(string xml)
+    {
+        using var reader = System.Xml.XmlReader.Create(
+            new System.IO.StringReader(xml),
+            new System.Xml.XmlReaderSettings { DtdProcessing = System.Xml.DtdProcessing.Parse });
+        var feed = SyndicationFeed.Load(reader);
+        return feed.Items.First();
+    }
+
+    [Fact]
+    public void YoutubeFeed_ShouldExtractMediaThumbnailFromGroup()
+    {
+        // Arrange — structure réelle d'un flux YouTube feeds/videos.xml
+        const string xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"
+                  xmlns:media="http://search.yahoo.com/mrss/"
+                  xmlns="http://www.w3.org/2005/Atom">
+              <entry>
+                <id>yt:video:kw_7tYjZgLE</id>
+                <yt:videoId>kw_7tYjZgLE</yt:videoId>
+                <title>Test video</title>
+                <link rel="alternate" href="https://www.youtube.com/watch?v=kw_7tYjZgLE"/>
+                <media:group>
+                  <media:title>Test video</media:title>
+                  <media:content url="https://www.youtube.com/v/kw_7tYjZgLE?version=3"
+                                 type="application/x-shockwave-flash" width="640" height="390"/>
+                  <media:thumbnail url="https://i4.ytimg.com/vi/kw_7tYjZgLE/hqdefault.jpg"
+                                   width="480" height="360"/>
+                </media:group>
+              </entry>
+            </feed>
+            """;
+        var item = LoadFirstItem(xml);
+
+        // Act
+        var url = Vigie24.Worker.Vigie24Worker.ExtractFeedImage(item);
+
+        // Assert — la vignette, PAS l'URL du lecteur Flash
+        Assert.Equal("https://i4.ytimg.com/vi/kw_7tYjZgLE/hqdefault.jpg", url);
+    }
+
+    [Fact]
+    public void YoutubeFeed_ShouldIgnoreNonImageMediaContent()
+    {
+        // Arrange — media:content flash en premier (hors group), la vignette doit gagner
+        const string xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <feed xmlns:media="http://search.yahoo.com/mrss/"
+                  xmlns="http://www.w3.org/2005/Atom">
+              <entry>
+                <id>yt:video:abc123</id>
+                <title>Test</title>
+                <link rel="alternate" href="https://www.youtube.com/watch?v=abc123"/>
+                <media:content url="https://www.youtube.com/v/abc123?version=3"
+                               type="application/x-shockwave-flash"/>
+                <media:thumbnail url="https://i.ytimg.com/vi/abc123/hqdefault.jpg"/>
+              </entry>
+            </feed>
+            """;
+        var item = LoadFirstItem(xml);
+
+        // Act
+        var url = Vigie24.Worker.Vigie24Worker.ExtractFeedImage(item);
+
+        // Assert
+        Assert.Equal("https://i.ytimg.com/vi/abc123/hqdefault.jpg", url);
+    }
+
+    [Fact]
+    public void RssFeed_ShouldFallBackToImageEnclosure()
+    {
+        // Arrange — flux RSS 2.0 classique sans media:*, avec enclosure image
+        const string xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <rss version="2.0">
+              <channel>
+                <title>Test</title>
+                <item>
+                  <title>Article</title>
+                  <link>https://example.com/article</link>
+                  <enclosure url="https://example.com/img/photo.jpg"
+                             type="image/jpeg" length="12345"/>
+                </item>
+              </channel>
+            </rss>
+            """;
+        var item = LoadFirstItem(xml);
+
+        // Act
+        var url = Vigie24.Worker.Vigie24Worker.ExtractFeedImage(item);
+
+        // Assert
+        Assert.Equal("https://example.com/img/photo.jpg", url);
     }
 }

@@ -19,6 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Vigie24.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Vigie24.Domain\Vigie24.Domain.csproj" />
     <ProjectReference Include="..\Vigie24.Services\Vigie24.Services.csproj" />
     <ProjectReference Include="..\Vigie24.Infrastructure\Vigie24.Infrastructure.csproj" />

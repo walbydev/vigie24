@@ -854,7 +854,7 @@ public class Vigie24Worker : BackgroundService
     /// Extraction d'une illustration depuis le flux RSS :
     /// media:content / media:thumbnail (y compris dans media:group), puis <enclosure> image.
     /// </summary>
-    private static string? ExtractFeedImage(SyndicationItem item)
+    internal static string? ExtractFeedImage(SyndicationItem item)
     {
         const string mediaNs = "http://search.yahoo.com/mrss/";
         var media = XNamespace.Get(mediaNs);
@@ -866,20 +866,46 @@ public class Vigie24Worker : BackgroundService
 
             try
             {
+                // XNode.ReadFrom (pas XElement.Load) : le reader wrapper de GetReader()
+                // ne se termine pas à EOF (fin sur extensionWrapper) → Load levait une
+                // exception avalée par le catch → aucune image extraite des flux.
                 using var reader = ext.GetReader();
-                var el = XElement.Load(reader);
+                reader.MoveToContent();
+                var el = XNode.ReadFrom(reader) as XElement;
+                if (el is null) continue;
 
                 if (el.Name == media + "content" || el.Name == media + "thumbnail" || el.Name == media + "image")
                 {
-                    var url = (string?)el.Attribute("url");
-                    if (!string.IsNullOrEmpty(url)) return url;
+                    // media:content n'est une image que si son type est image/* (ex. YouTube
+                    // expose l'URL du lecteur Flash avec type=application/x-shockwave-flash).
+                    if (el.Name != media + "content")
+                    {
+                        var url = (string?)el.Attribute("url");
+                        if (!string.IsNullOrEmpty(url)) return url;
+                    }
+                    else
+                    {
+                        var type = (string?)el.Attribute("type") ?? "";
+                        var url = (string?)el.Attribute("url");
+                        if (type.StartsWith("image/", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(url))
+                            return url;
+                    }
                 }
                 else if (el.Name == media + "group")
                 {
-                    var child = el.Elements(media + "content").FirstOrDefault()
-                                ?? el.Elements(media + "thumbnail").FirstOrDefault();
-                    var url = (string?)child?.Attribute("url");
-                    if (!string.IsNullOrEmpty(url)) return url;
+                    // Priorité à la vignette (media:thumbnail) ; media:content seulement si image/*
+                    var thumb = el.Elements(media + "thumbnail").FirstOrDefault()
+                                ?? el.Elements(media + "image").FirstOrDefault();
+                    if (thumb != null)
+                    {
+                        var url = (string?)thumb.Attribute("url");
+                        if (!string.IsNullOrEmpty(url)) return url;
+                    }
+
+                    var content = el.Elements(media + "content").FirstOrDefault(c =>
+                        ((string?)c.Attribute("type") ?? "").StartsWith("image/", StringComparison.OrdinalIgnoreCase));
+                    var contentUrl = (string?)content?.Attribute("url");
+                    if (!string.IsNullOrEmpty(contentUrl)) return contentUrl;
                 }
             }
             catch
