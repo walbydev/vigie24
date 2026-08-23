@@ -6,4 +6,15 @@
 {$VIGIE24_DOMAIN} {
 	encode zstd gzip
 	reverse_proxy vigie24-web:8080
+
+	# Logs d'accès (analyse de fréquentation) — fichier + rotation
+	log {
+		output file /data/logs/access.log {
+			roll_size 10MiB
+			roll_keep 7
+			roll_keep_for 720h
+		}
+		format json
+		level INFO
+	}
 }
