@@ -26,6 +26,7 @@ public static class VigieTaxonomy
         new("Mobile", "dev-mobile", "developpement"),
         new("DevOps & Cloud", "dev-devops-cloud", "developpement"),
         new("Open Source", "dev-open-source", "developpement"),
+        new("Vulgarisation technique", "dev-vulgarisation-technique", "developpement"),
         // Cybersécurité
         new("Cybersécurité", "cybersecurite", null),
         new("Vulnérabilités", "cyber-vulnerabilites", "cybersecurite"),
@@ -36,11 +37,15 @@ public static class VigieTaxonomy
         new("Recherche", "science-recherche", "science"),
         new("Espace", "science-espace", "science"),
         new("Santé & Biotech", "science-sante-biotech", "science"),
+        new("Vulgarisation scientifique", "science-vulgarisation", "science"),
         // Hardware
         new("Hardware", "hardware", null),
         new("Composants", "hardware-composants", "hardware"),
         new("Électronique", "hardware-electronique", "hardware"),
-        new("Mobilité", "hardware-mobilite", "hardware")
+        new("Mobilité", "hardware-mobilite", "hardware"),
+        // Divertissements
+        new("Divertissements", "divertissements", null),
+        new("Gaming", "divertissements-gaming", "divertissements")
     };
 
     /// <summary>Slugify : minuscules, sans accents, tirets (ex: "Vision & Génératif" → "vision-generatif")</summary>
