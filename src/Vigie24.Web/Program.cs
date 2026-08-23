@@ -1,4 +1,6 @@
 using System.Net;
+using System.Text.Json;
+using System.Xml.Linq;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Vigie24.Domain;
@@ -239,6 +241,53 @@ app.MapGet("/categories/{slug}/feed", async (string slug, Vigie24DbContext db, H
         articles);
 
     return Results.Content(xml, "application/rss+xml; charset=utf-8");
+});
+
+// /sources.json → liste complète des sources au format JSON (pour développeurs)
+app.MapGet("/sources.json", async (Vigie24DbContext db) =>
+{
+    var sources = await db.Sources.AsNoTracking()
+        .OrderBy(s => s.SourceKind).ThenBy(s => s.Name)
+        .Select(s => new
+        {
+            s.Id,
+            s.Name,
+            Kind = s.SourceKind,
+            Ingestion = s.IngestionMethod,
+            s.CountryCode,
+            s.LanguageCode,
+            s.WebsiteUrl,
+            s.FeedUrl,
+            IsActive = s.IsActive,
+            s.LastIngestedAt
+        })
+        .ToListAsync();
+
+    return Results.Json(sources, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+});
+
+// /sources.xml → liste complète des sources au format XML (pour développeurs)
+app.MapGet("/sources.xml", async (Vigie24DbContext db) =>
+{
+    var sources = await db.Sources.AsNoTracking()
+        .OrderBy(s => s.SourceKind).ThenBy(s => s.Name)
+        .ToListAsync();
+
+    var doc = new XDocument(new XElement("sources",
+        sources.Select(s => new XElement("source",
+            new XAttribute("id", s.Id),
+            new XAttribute("name", s.Name),
+            new XAttribute("kind", s.SourceKind),
+            new XAttribute("ingestion", s.IngestionMethod),
+            new XAttribute("country", s.CountryCode ?? ""),
+            new XAttribute("language", s.LanguageCode),
+            new XAttribute("active", s.IsActive ? "true" : "false"),
+            new XElement("website", s.WebsiteUrl),
+            new XElement("feed", s.FeedUrl ?? ""),
+            new XElement("lastIngestedAt", s.LastIngestedAt?.ToString("O") ?? "")
+        ))));
+
+    return Results.Content(doc.ToString(), "application/xml; charset=utf-8");
 });
 
 app.Run();

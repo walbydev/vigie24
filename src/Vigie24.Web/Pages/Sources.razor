@@ -1,0 +1,166 @@
+@page "/sources"
+@using Vigie24.Domain
+@using Vigie24.Domain.Models
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
+@inject ILogger<Sources> Logger
+
+<PageTitle>Sources - Vigie24</PageTitle>
+
+<h1>Sources d'information</h1>
+<p class="muted">
+    Les @_sources.Count sources surveillées par Vigie24 — flux RSS/Atom, chaînes YouTube et subreddits,
+    analysées par IA à chaque publication.
+</p>
+
+<div class="status-card">
+    <div class="source-stats">
+        <span class="source-stat"><strong>@_sources.Count</strong> sources au total</span>
+        <span class="source-stat">✅ <strong>@_activeCount</strong> actives</span>
+        <span class="source-stat">⏸️ <strong>@_inactiveCount</strong> désactivées</span>
+        <span class="source-export">
+            <span class="muted">API pour développeurs :</span>
+            <a class="chip" href="/sources.json" download="vigie24-sources.json" title="Télécharger la liste des sources en JSON">⬇️ JSON</a>
+            <a class="chip" href="/sources.xml" download="vigie24-sources.xml" title="Télécharger la liste des sources en XML">⬇️ XML</a>
+        </span>
+    </div>
+</div>
+
+@foreach (var group in _groups)
+{
+    <div class="source-group-title">
+        <h2>@group.Emoji @group.Label</h2>
+        <span class="count">@group.Sources.Count</span>
+    </div>
+
+    <div class="source-grid">
+        @foreach (var source in group.Sources)
+        {
+            var favicon = SourceFavicon(source.WebsiteUrl);
+            <div class="source-card @(source.IsActive ? "" : "source-disabled")">
+                @if (!string.IsNullOrEmpty(favicon))
+                {
+                    <img src="@favicon" class="source-favicon" alt="" loading="lazy" onerror="this.remove()" />
+                }
+                <div class="source-body">
+                    <div class="source-name">
+                        @source.Name
+                        @if (!source.IsActive)
+                        {
+                            <span class="source-badge source-badge-off">⏸️ Désactivée</span>
+                        }
+                    </div>
+                    <div class="source-meta">
+                        @if (!string.IsNullOrEmpty(source.CountryCode))
+                        {
+                            <span>@CountryInfo.Display(source.CountryCode)</span>
+                            <span>·</span>
+                        }
+                        <span>@_langDisplay(source.LanguageCode)</span>
+                        <span>·</span>
+                        <span>@_kindDisplay(source.SourceKind)</span>
+                    </div>
+                    <div class="source-links">
+                        @if (!string.IsNullOrEmpty(source.WebsiteUrl))
+                        {
+                            <a href="@source.WebsiteUrl" target="_blank" rel="noopener">🌐 Site</a>
+                        }
+                        @if (!string.IsNullOrEmpty(source.FeedUrl))
+                        {
+                            <a href="@source.FeedUrl" target="_blank" rel="noopener">@_feedIcon(source.SourceKind) Flux</a>
+                        }
+                    </div>
+                    <div class="source-meta">
+                        @if (source.LastIngestedAt is { } last)
+                        {
+                            <span>Dernière ingestion : @RelativeTime(last)</span>
+                        }
+                        else
+                        {
+                            <span>Jamais ingérée</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Source> _sources = new();
+    private List<(string Emoji, string Label, List<Source> Sources)> _groups = new();
+    private int _activeCount;
+    private int _inactiveCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _sources = await DbContext.Sources.AsNoTracking()
+                .OrderBy(s => s.Name)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Impossible de charger les sources");
+        }
+
+        _activeCount = _sources.Count(s => s.IsActive);
+        _inactiveCount = _sources.Count - _activeCount;
+
+        _groups = new List<(string, string, List<Source>)>
+        {
+            ("📰", "Presse", _sources.Where(s => s.SourceKind == nameof(SourceKind.Press)).ToList()),
+            ("✍️", "Blogs", _sources.Where(s => s.SourceKind == nameof(SourceKind.BlogLab)).ToList()),
+            ("📺", "YouTube", _sources.Where(s => s.SourceKind == nameof(SourceKind.Youtube)).ToList()),
+            ("💬", "Reddit", _sources.Where(s => s.SourceKind == nameof(SourceKind.Reddit)).ToList()),
+            ("🗂", "Autres", _sources.Where(s => s.SourceKind == nameof(SourceKind.Other)).ToList()),
+        }.Where(g => g.Item3.Count > 0).Select(g => (g.Item1, g.Item2, g.Item3)).ToList();
+    }
+
+    private static string SourceFavicon(string websiteUrl)
+        => Uri.TryCreate(websiteUrl, UriKind.Absolute, out var site)
+            ? $"{site.Scheme}://{site.Host}/favicon.ico"
+            : "";
+
+    private static string _kindDisplay(string kind) => kind switch
+    {
+        nameof(SourceKind.Press) => "Presse · RSS/Atom",
+        nameof(SourceKind.BlogLab) => "Blog · RSS/Atom",
+        nameof(SourceKind.Youtube) => "YouTube · Atom",
+        nameof(SourceKind.Reddit) => "Reddit · RSS",
+        _ => kind
+    };
+
+    private static string _feedIcon(string kind) => kind switch
+    {
+        nameof(SourceKind.Youtube) => "📺",
+        nameof(SourceKind.Reddit) => "💬",
+        _ => "📡"
+    };
+
+    private static string _langDisplay(string code) => code.ToLowerInvariant() switch
+    {
+        "fr" => "Français",
+        "en" => "Anglais",
+        "de" => "Allemand",
+        "it" => "Italien",
+        "nl" => "Néerlandais",
+        "es" => "Espagnol",
+        _ => code
+    };
+
+    private static string RelativeTime(DateTime utc)
+    {
+        var delta = DateTime.UtcNow - utc;
+        return delta switch
+        {
+            { TotalMinutes: < 1 } => "à l'instant",
+            { TotalMinutes: < 60 } => $"il y a {(int)delta.TotalMinutes} min",
+            { TotalHours: < 24 } => $"il y a {(int)delta.TotalHours} h",
+            { TotalDays: < 30 } => $"il y a {(int)delta.TotalDays} j",
+            _ => utc.ToString("d MMM yyyy")
+        };
+    }
+}
