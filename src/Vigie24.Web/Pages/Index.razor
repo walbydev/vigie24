@@ -80,7 +80,7 @@ else
     private string FormatCost(decimal cost)
         => cost >= 0.01m
             ? cost.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))
-            : cost.ToString("0.000", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"));
+            : cost.ToString("0.0000", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"));
 
     /// <summary>Filtre de base : articles publiés (recherche/tri/pagination gérés par ArticleBrowser sur son propre contexte)</summary>
     private System.Linq.Expressions.Expression<Func<Article, bool>> BuildFilter() => a => a.IsPublished;
