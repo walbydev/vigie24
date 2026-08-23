@@ -1,6 +1,7 @@
 @page "/"
 @namespace Vigie24.Web.Pages
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@using Microsoft.AspNetCore.Components.Web
 @inject Microsoft.Extensions.Configuration.IConfiguration Config
 @{
     // Charte graphique « Mode Radar » (bleu pétrole / vert-sarcelle / ambre) :
@@ -12,7 +13,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vigie24 - Surveillance RSS</title>
+    @* Le <title> et les meta par page sont fournis par <PageTitle>/<HeadContent> (rendus ici pendant le prerender) *@
+    <HeadOutlet />
     <base href="~/" />
     <link rel="alternate" type="application/rss+xml" title="Vigie24 — Flux RSS complet" href="/feed" />
     @if (isRadarBranding)
@@ -596,7 +598,7 @@
     </script>
 </head>
 <body>
-    <component type="typeof(App)" render-mode="Server" />
+    <component type="typeof(App)" render-mode="ServerPrerendered" />
 
     <div id="blazor-error-ui">
         <environment include="Staging,Production">
