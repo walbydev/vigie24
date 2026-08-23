@@ -175,7 +175,7 @@ Test plus complet incluant un appel réel au modèle IA.
 
 **Prérequis :**
 - Variables d'environnement `INFOMANIAK_API_KEY` définies dans `.env`
-- Modèle spécifié (ex: `Qwen/Qwen3.5-122B-A10B-FP8`)
+- Modèle spécifié (ex: `google/gemma-4-31B-it`)
 
 ---
 

@@ -103,7 +103,7 @@ Configuration via environment variables ou appsettings :
     "Provider": "infomaniak",  // ou "deepseek"
     "ApiUrl": "https://api.infomaniak.com",
     "ApiKey": "xxx",
-    "Model": "Qwen/Qwen3.5-122B-A10B-FP8",
+    "Model": "google/gemma-4-31B-it",
     "TimeoutSeconds": 60,
     "Temperature": 0.3,
     "MaxTokens": 2048
