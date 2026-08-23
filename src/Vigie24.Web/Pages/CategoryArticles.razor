@@ -6,6 +6,18 @@
 @inject Vigie24DbContext DbContext
 
 <PageTitle>@_title - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="@_metaDescription" />
+    <link rel="canonical" href="https://vigie24.info/categories/@Slug" />
+    <meta property="og:title" content="@_title - Vigie24" />
+    <meta property="og:description" content="@_metaDescription" />
+    <meta property="og:url" content="https://vigie24.info/categories/@Slug" />
+    <meta property="og:type" content="website" />
+    @if (!string.IsNullOrEmpty(_breadcrumbJsonLd))
+    {
+        <script type="application/ld+json">@_breadcrumbJsonLd</script>
+    }
+</HeadContent>
 
 @if (_category == null)
 {
@@ -38,14 +50,23 @@ else
     private Category? _category;
     private Category? _parent;
     private string _title = "";
+    private string _metaDescription = "";
+    private string _breadcrumbJsonLd = "";
     private int _categoryCount;
 
     protected override async Task OnInitializedAsync()
     {
+        // Titre calculé SYNCHRONEMENT avant tout await → visible dans le HTML initial (prerender)
+        _title = VigieTaxonomy.DisplayName(Slug);
         _category = await DbContext.Categories.FirstOrDefaultAsync(c => c.Slug == Slug);
-        if (_category == null) return;
+        if (_category == null)
+        {
+            _title = "Catégorie introuvable";
+            _metaDescription = "Cette catégorie n'existe pas sur Vigie24.";
+            return;
+        }
 
-        _title = VigieTaxonomy.DisplayName(_category.Slug);
+        _metaDescription = $"Articles de la catégorie {_title} — veille technologique francophone Vigie24.";
         if (_category.ParentCategoryId is Guid parentId)
             _parent = await DbContext.Categories.FindAsync(parentId);
 
@@ -53,6 +74,29 @@ else
             .CountAsync(a => a.IsPublished &&
                 (a.CategoryId == _category.Id ||
                  (_category.ParentCategoryId == null && a.Category!.ParentCategoryId == _category.Id)));
+
+        BuildBreadcrumbJsonLd();
+    }
+
+    /// <summary>Données structurées BreadcrumbList (rich snippet Google) : Accueil › Catégories › [Parent ›] Catégorie</summary>
+    private void BuildBreadcrumbJsonLd()
+    {
+        var items = new List<object>
+        {
+            new { position = 1, name = "Accueil", item = "https://vigie24.info/" },
+            new { position = 2, name = "Catégories", item = "https://vigie24.info/categories" }
+        };
+        var pos = 3;
+        if (_parent != null)
+            items.Add(new { position = pos++, name = VigieTaxonomy.DisplayName(_parent.Slug), item = $"https://vigie24.info/categories/{_parent.Slug}" });
+        items.Add(new { position = pos, name = _title, item = $"https://vigie24.info/categories/{Slug}" });
+
+        _breadcrumbJsonLd = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "BreadcrumbList",
+            ["itemListElement"] = items
+        });
     }
 
     /// <summary>Filtre de base : articles publiés de la catégorie (recherche/tri/pagination gérés par ArticleBrowser)</summary>

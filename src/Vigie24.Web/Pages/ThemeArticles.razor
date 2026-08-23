@@ -6,6 +6,14 @@
 @inject Vigie24DbContext DbContext
 
 <PageTitle>@_title - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="@_metaDescription" />
+    <link rel="canonical" href="https://vigie24.info/themes/@Slug" />
+    <meta property="og:title" content="@_title - Vigie24" />
+    <meta property="og:description" content="@_metaDescription" />
+    <meta property="og:url" content="https://vigie24.info/themes/@Slug" />
+    <meta property="og:type" content="website" />
+</HeadContent>
 
 @if (_tag == null)
 {
@@ -32,14 +40,22 @@ else
 
     private Tag? _tag;
     private string _title = "";
+    private string _metaDescription = "";
     private int _tagCount;
 
     protected override async Task OnInitializedAsync()
     {
+        // Titre calculé SYNCHRONEMENT avant tout await → visible dans le HTML initial (prerender)
+        _title = VigieTaxonomy.DisplayName(Slug);
         _tag = await DbContext.Tags.FirstOrDefaultAsync(t => t.Slug == Slug);
-        if (_tag == null) return;
+        if (_tag == null)
+        {
+            _title = "Thématique introuvable";
+            _metaDescription = "Cette thématique n'existe pas sur Vigie24.";
+            return;
+        }
 
-        _title = VigieTaxonomy.DisplayName(_tag.Slug);
+        _metaDescription = $"Articles sur le thème {_title} — veille technologique francophone Vigie24.";
         _tagCount = await DbContext.Articles
             .CountAsync(a => a.IsPublished && a.Tags.Any(t => t.TagId == _tag.Id));
     }
