@@ -556,6 +556,11 @@ public class Vigie24Worker : BackgroundService
             Stance = string.IsNullOrWhiteSpace(aiResult.Stance) ? null : aiResult.Stance.Trim()
         };
 
+        // Ajouter l'article au contexte IMMÉDIATEMENT (avant l'embedding et les
+        // GetOrCreate* qui font des SaveChanges intermédiaires) — sinon l'embedding
+        // serait inséré avant l'article → violation de clé étrangère.
+        dbContext.Articles.Add(article);
+
         // Vecteur sémantique (embeddings) pour le rapprochement des débats — non bloquant
         try
         {
@@ -610,8 +615,6 @@ public class Vigie24Worker : BackgroundService
                 Article = article
             });
         }
-
-        dbContext.Articles.Add(article);
 
         // Ensure all DateTime.Kind are UTC to avoid Npgsql errors when saving timestamptz
         NormalizeArticleDates(article);
