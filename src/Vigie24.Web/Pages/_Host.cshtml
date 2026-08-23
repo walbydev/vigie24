@@ -13,8 +13,10 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    @* Le <title> et les meta par page sont fournis par <PageTitle>/<HeadContent> (rendus ici pendant le prerender) *@
-    <HeadOutlet />
+    @* Le <title> et les meta par page sont fournis par <PageTitle>/<HeadContent> (rendus ici pendant le prerender).
+       Dans une Razor Page, un composant se déclare via le tag helper <component> — ServerPrerendered pour
+       qu'il soit présent dans le HTML initial ET hydraté pour les navigations SPA. *@
+    <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
     <base href="~/" />
     <link rel="alternate" type="application/rss+xml" title="Vigie24 — Flux RSS complet" href="/feed" />
     @* Meta globaux invariants (Open Graph / Twitter). La description, le canonical et
