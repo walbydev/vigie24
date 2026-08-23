@@ -1,10 +1,17 @@
 @inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components.Routing
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
 
 <div class="page">
     <a class="skip-link" href="#main-content">Aller au contenu</a>
     <nav class="topnav" aria-label="Navigation principale">
-        <a class="brand" href="/">Vigie<span>24</span></a>
+        <a class="brand" href="/">
+            @if (IsRadarBranding)
+            {
+                <img src="/favicon-radar-32.png" alt="" class="brand-logo" width="26" height="26" />
+            }
+            Vigie<span>24</span>
+        </a>
         <button class="nav-toggle" @onclick="ToggleMenu"
                 aria-expanded="@_menuOpen" aria-controls="nav-links"
                 aria-label="@(_menuOpen ? "Fermer le menu" : "Ouvrir le menu")">
@@ -54,6 +61,9 @@
 
 @code {
     private bool _menuOpen;
+
+    private bool IsRadarBranding =>
+        string.Equals(Config["Branding:Theme"], "radar", StringComparison.OrdinalIgnoreCase);
 
     private void ToggleMenu() => _menuOpen = !_menuOpen;
 
