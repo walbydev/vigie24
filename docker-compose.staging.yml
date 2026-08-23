@@ -50,6 +50,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Staging
       - DOTNET_ENVIRONMENT=Staging
+      - Branding__Theme=radar
       - AiService__Provider=${AI_PROVIDER:-infomaniak}
       - AiService__ApiUrl=${INFOMANIAK_API_URL:-https://api.infomaniak.com}
       - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
