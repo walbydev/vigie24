@@ -5,9 +5,11 @@
 @using Vigie24.Infrastructure.Queries
 @using Vigie24.Web.Services
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject IDbContextFactory<Vigie24DbContext> DbFactory
 @inject IEngagementService Engagement
 @inject NavigationManager Nav
+@inject ProtectedLocalStorage Storage
 @inject ILogger<ArticleBrowser> Logger
 
 @* Navigation d'articles : recherche plein-texte, pays, tri, plage de dates, pagination.
@@ -96,6 +98,7 @@
             </div>
         </div>
         <button class="af-reset" @onclick="ResetFiltersAsync">✕ Réinitialiser les filtres</button>
+        <div class="af-note muted">✓ Filtres mémorisés sur cet appareil et restaurés à votre prochaine visite</div>
     </div>
 }
 
@@ -153,6 +156,7 @@ else
     private bool _urlHadFilters;                        // l'URL portait des filtres explicites
 
     private CancellationTokenSource? _searchCts;
+    private CancellationTokenSource? _saveCts;
     private int _loadVersion;
     private readonly SemaphoreSlim _loadLock = new(1, 1);
     private bool _initialized;
@@ -178,6 +182,67 @@ else
             _page = 1;
             await LoadContextAsync();
             await LoadAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Restauration locale UNIQUEMENT après le premier rendu interactif : pendant le
+        // prerender, ProtectedLocalStorage est indisponible et le HTML initial doit rester
+        // identique client/serveur. Une URL explicite prime sur la sauvegarde.
+        if (!firstRender || _urlHadFilters)
+            return;
+        await RestoreSavedFiltersAsync();
+    }
+
+    /// <summary>Restaure les derniers filtres mémorisés sur cet appareil (ProtectedLocalStorage).</summary>
+    private async Task RestoreSavedFiltersAsync()
+    {
+        try
+        {
+            var saved = await Storage.GetAsync<string>("vigie24.filters");
+            if (!saved.Success || string.IsNullOrEmpty(saved.Value))
+                return;
+            var criteria = FilterCriteria.FromJson(saved.Value);
+            if (criteria is null || criteria.IsEmpty)
+                return;
+            ApplyCriteria(criteria);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Impossible de restaurer les filtres sauvegardés localement");
+        }
+    }
+
+    /// <summary>Planifie une sauvegarde locale debouncée (1 s après le dernier changement).</summary>
+    private void ScheduleFilterSave()
+    {
+        _saveCts?.Cancel();
+        _saveCts = new CancellationTokenSource();
+        _ = SaveFiltersDebouncedAsync(_saveCts.Token);
+    }
+
+    private async Task SaveFiltersDebouncedAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(1000, token);
+            var criteria = BuildCriteria();
+            if (criteria.IsEmpty)
+            {
+                await Storage.DeleteAsync("vigie24.filters");
+                return;
+            }
+            await Storage.SetAsync("vigie24.filters", criteria.ToJson());
+        }
+        catch (OperationCanceledException)
+        {
+            // un changement plus récent a pris la main
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Impossible de sauvegarder les filtres localement");
         }
     }
 
@@ -240,7 +305,13 @@ else
         var uri = Nav.ToAbsoluteUri(Nav.Uri);
         if (!FilterCriteria.TryParse(uri.Query, out var criteria) || criteria.IsEmpty)
             return;
+        ApplyCriteria(criteria);
+        _urlHadFilters = true;
+    }
 
+    /// <summary>Hydrate l'état du composant depuis des critères (URL ou sauvegarde locale).</summary>
+    private void ApplyCriteria(FilterCriteria criteria)
+    {
         SearchText = criteria.SearchText ?? "";
         _country = criteria.CountryCode ?? "";
         _sourceKind = criteria.SourceKind ?? "";
@@ -252,7 +323,6 @@ else
         _range = (criteria.RangeFrom, criteria.RangeTo);
         SortField = criteria.SortField;
         PageSize = criteria.PageSize;
-        _urlHadFilters = true;
     }
 
     private static IQueryable<Article> ApplySort(IQueryable<Article> q, string sortField) => sortField switch
@@ -282,18 +352,21 @@ else
         }
         _page = 1;
         await LoadAsync();
+        ScheduleFilterSave();
     }
 
     private async Task OnFilterChanged()
     {
         _page = 1;
         await LoadAsync();
+        ScheduleFilterSave();
     }
 
     private async Task OnCountryChanged()
     {
         _page = 1;
         await LoadAsync();
+        ScheduleFilterSave();
     }
 
     private async Task OnRangeChanged((DateTime? From, DateTime? To)? range)
@@ -301,6 +374,7 @@ else
         _range = range;
         _page = 1;
         await LoadAsync();
+        ScheduleFilterSave();
     }
 
     private async Task GoToPageAsync(int page)
@@ -321,6 +395,7 @@ else
         if (!_selectedSources.Add(name)) _selectedSources.Remove(name);
         _page = 1;
         await LoadAsync();
+        ScheduleFilterSave();
     }
 
     private async Task SetMinRatingAsync(int rating)
@@ -328,6 +403,7 @@ else
         _minRating = rating == _minRating ? 0 : rating;
         _page = 1;
         await LoadAsync();
+        ScheduleFilterSave();
     }
 
     private async Task ResetFiltersAsync()
@@ -342,6 +418,14 @@ else
         _range = null;
         _page = 1;
         await LoadAsync();
+        try
+        {
+            await Storage.DeleteAsync("vigie24.filters");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Impossible d'effacer les filtres sauvegardés localement");
+        }
     }
 
     private async Task LoadAsync()
