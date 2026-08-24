@@ -294,8 +294,6 @@
         .chip-tag:hover { filter: brightness(0.94); }
         .chip-sep { color: var(--chip-sep); }
         .chip-icon { margin-right: 3px; }
-        /* Accent ambre des cartes de la page Catégories : renforce l'identité « catégorie = ambre » */
-        .tree-card { border-left: 4px solid var(--chip-cat-border); }
 
         /* ===== Timeline ===== */
         .timeline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
@@ -390,6 +388,8 @@
         /* ===== Arborescence catégories ===== */
         .tree { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 10px; }
         .tree-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+        /* Accent ambre : renforce l'identité « catégorie = ambre » (déclarée après la règle de base) */
+        .tree-card { border-left: 4px solid var(--chip-cat-border); }
         .tree-card h3 { margin: 0 0 8px; font-size: 1.05rem; }
         .tree-card h3 a { color: var(--text); text-decoration: none; }
         .tree-card h3 a:hover { color: var(--accent); }

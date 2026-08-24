@@ -28,7 +28,7 @@ else
         @foreach (var theme in _themes)
         {
             <a class="chip chip-tag" style="font-size:0.9rem;padding:6px 14px;" href="/themes/@theme.Slug">
-                @VigieTaxonomy.DisplayName(theme.Slug) <span class="count-badge">@theme.Count</span>
+                <span class="chip-icon" aria-hidden="true">🏷</span>@VigieTaxonomy.DisplayName(theme.Slug) <span class="count-badge">@theme.Count</span>
             </a>
         }
     </div>
