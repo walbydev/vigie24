@@ -555,7 +555,9 @@ public class Vigie24Worker : BackgroundService
             PromptTokens = aiResult.PromptTokens > 0 ? aiResult.PromptTokens : null,
             CompletionTokens = aiResult.CompletionTokens > 0 ? aiResult.CompletionTokens : null,
             Topic = string.IsNullOrWhiteSpace(aiResult.Topic) ? null : aiResult.Topic.Trim(),
-            Stance = string.IsNullOrWhiteSpace(aiResult.Stance) ? null : aiResult.Stance.Trim()
+            Stance = string.IsNullOrWhiteSpace(aiResult.Stance) ? null : aiResult.Stance.Trim(),
+            // Guard: out-of-range values from the model are stored as null rather than invalid data
+            AnxietyScore = aiResult.AnxietyScore is >= 0 and <= 10 ? aiResult.AnxietyScore : null
         };
 
         // Add the article to the context IMMEDIATELY (before the embedding and the
