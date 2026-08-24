@@ -7,6 +7,7 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<Vigie24DbContext> DbFactory
 @inject IEngagementService Engagement
+@inject NavigationManager Nav
 @inject ILogger<ArticleBrowser> Logger
 
 @* Navigation d'articles : recherche plein-texte, pays, tri, plage de dates, pagination.
@@ -149,6 +150,7 @@ else
     private readonly HashSet<string> _selectedSources = new();
     private int _minScore;                              // 0 = aucun filtre
     private int _minRating;                             // 0 = aucune note minimale
+    private bool _urlHadFilters;                        // l'URL portait des filtres explicites
 
     private CancellationTokenSource? _searchCts;
     private int _loadVersion;
@@ -160,6 +162,7 @@ else
     {
         _initialized = true;
         _lastFilter = Filter; // le premier jeu de paramètres est traité ici
+        ApplyUrlFilters();    // une URL explicite (?q=…&country=…) prime sur tout
         await LoadContextAsync();
         await LoadAsync();
     }
@@ -227,6 +230,30 @@ else
         SortField = SortField,
         PageSize = PageSize
     };
+
+    /// <summary>
+    /// Applique les filtres portés par la query string de l'URL (lien partagé / bookmark).
+    /// Une query mal formée est ignorée (l'UI reste tolérante, contrairement au RSS qui répond 400).
+    /// </summary>
+    private void ApplyUrlFilters()
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        if (!FilterCriteria.TryParse(uri.Query, out var criteria) || criteria.IsEmpty)
+            return;
+
+        SearchText = criteria.SearchText ?? "";
+        _country = criteria.CountryCode ?? "";
+        _sourceKind = criteria.SourceKind ?? "";
+        _selectedSources.Clear();
+        foreach (var s in criteria.SelectedSources)
+            _selectedSources.Add(s);
+        _minScore = criteria.MinScore;
+        _minRating = criteria.MinRating;
+        _range = (criteria.RangeFrom, criteria.RangeTo);
+        SortField = criteria.SortField;
+        PageSize = criteria.PageSize;
+        _urlHadFilters = true;
+    }
 
     private static IQueryable<Article> ApplySort(IQueryable<Article> q, string sortField) => sortField switch
     {
