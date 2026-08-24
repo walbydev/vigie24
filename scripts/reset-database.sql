@@ -35,14 +35,14 @@ DELETE FROM sources;
 -- Note: Les noms de colonnes utilisent PascalCase
 
 INSERT INTO categories ("Slug", "DisplayOrder", "IsActive") VALUES
-('technologie', 1, true),
-('securite', 2, true),
-('open-source', 3, true),
-('cloud-devops', 4, true),
-('data-ia', 5, true),
-('programmation', 6, true),
-('hardware', 7, true),
-('startups', 8, true);
+('ia', 1, true),
+('developpement', 2, true),
+('cybersecurite', 3, true),
+('science', 4, true),
+('hardware', 5, true),
+('divertissements', 6, true),
+('musiques', 7, true),
+('arts-graphiques', 8, true);
 
 -- ============================================
 -- 3. Insert reference tags

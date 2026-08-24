@@ -45,7 +45,23 @@ public static class VigieTaxonomy
         new("Mobilité", "hardware-mobilite", "hardware"),
         // Entertainment
         new("Divertissements", "divertissements", null),
-        new("Gaming", "divertissements-gaming", "divertissements")
+        new("Gaming", "divertissements-gaming", "divertissements"),
+        new("Cinéma & Séries", "divertissements-cinema-series", "divertissements"),
+        new("Streaming", "divertissements-streaming", "divertissements"),
+        new("Culture & Médias", "divertissements-culture-medias", "divertissements"),
+        // Music
+        new("Musiques", "musiques", null),
+        new("Électronique & Techno", "musiques-electronique-techno", "musiques"),
+        new("Métal & Philharmonique", "musiques-metal-philharmonique", "musiques"),
+        new("Jazz & Blues", "musiques-jazz-blues", "musiques"),
+        new("Hip-Hop & R&B", "musiques-hiphop-rnb", "musiques"),
+        new("Pop & Variété", "musiques-pop-variete", "musiques"),
+        // Visual arts
+        new("Arts graphiques", "arts-graphiques", null),
+        new("Manga & Animé", "arts-graphiques-manga-anime", "arts-graphiques"),
+        new("Infographie 2D/3D", "arts-graphiques-infographie-2d-3d", "arts-graphiques"),
+        new("Illustration & BD", "arts-graphiques-illustration-bd", "arts-graphiques"),
+        new("Design & UI/UX", "arts-graphiques-design-ui-ux", "arts-graphiques")
     };
 
     /// <summary>Slugify: lowercase, no diacritics, hyphens (ex: "Vision & Generative" → "vision-generative")</summary>
