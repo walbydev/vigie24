@@ -3,89 +3,89 @@ using System.Text.Json.Serialization;
 namespace Vigie24.Services.Interfaces;
 
 /// <summary>
-/// Résultat du traitement d'un article par l'IA
-/// Les [JsonPropertyName] matchent le format JSON renvoyé par les modèles
-/// (snake_case), System.Text.Json étant sensible à la casse par défaut.
+/// Result of AI processing of an article
+/// The [JsonPropertyName] attributes match the JSON format returned by the models
+/// (snake_case), since System.Text.Json is case-sensitive by default.
 /// </summary>
 public class AiProcessingResult
 {
-    /// <summary>Résumé de l'article en français</summary>
+    /// <summary>Article summary in French</summary>
     [JsonPropertyName("summary")]
     public string Summary { get; set; } = string.Empty;
     
-    /// <summary>Score éditorial (0-100)</summary>
+    /// <summary>Editorial score (0-100)</summary>
     [JsonPropertyName("editorial_score")]
     public decimal EditorialScore { get; set; }
     
-    /// <summary>Liste des thèmes/catégories détectés</summary>
+    /// <summary>List of detected themes/categories</summary>
     [JsonPropertyName("themes")]
     public List<string> DetectedThemes { get; set; } = new();
     
     /// <summary>
-    /// Hiérarchie de catégories détectée : [catégorie parente, sous-catégorie].
-    /// Ex: ["IA", "Modèles LLM"]
+    /// Detected category hierarchy: [parent category, sub-category].
+    /// Ex: ["IA", "LLM Models"]
     /// </summary>
     [JsonPropertyName("categories")]
     public List<string> DetectedCategories { get; set; } = new();
     
-    /// <summary>Indique si cet article est un doublon d'un article existant</summary>
+    /// <summary>Indicates whether this article is a duplicate of an existing article</summary>
     [JsonPropertyName("is_duplicate")]
     public bool IsDuplicate { get; set; }
     
-    /// <summary>ID de l'article doublon (si applicable)</summary>
+    /// <summary>ID of the duplicated article (if applicable)</summary>
     public Guid? DuplicateOf { get; set; }
     
-    /// <summary>Liste des mots-clés extraits</summary>
+    /// <summary>List of extracted keywords</summary>
     [JsonPropertyName("keywords")]
     public List<string> Keywords { get; set; } = new();
 
-    /// <summary>Tokens d'entrée consommés par l'API (usage.prompt_tokens) — rempli par le service IA</summary>
+    /// <summary>Input tokens consumed by the API (usage.prompt_tokens) — filled in by the AI service</summary>
     public int PromptTokens { get; set; }
 
-    /// <summary>Tokens de sortie consommés par l'API (usage.completion_tokens) — rempli par le service IA</summary>
+    /// <summary>Output tokens consumed by the API (usage.completion_tokens) — filled in by the AI service</summary>
     public int CompletionTokens { get; set; }
 
-    /// <summary>Tokens totaux consommés par l'API (usage.total_tokens)</summary>
+    /// <summary>Total tokens consumed by the API (usage.total_tokens)</summary>
     public int TotalTokens => PromptTokens + CompletionTokens;
 
     /// <summary>
-    /// Sujet précis du débat (2-5 mots, neutre, sans opinion), ex: "régulation IA Europe".
-    /// Vide si l'article ne participe à aucun débat.
+    /// Precise debate topic (2-5 words, neutral, no opinion), e.g. "AI regulation in Europe".
+    /// Empty if the article does not take part in any debate.
     /// </summary>
     [JsonPropertyName("topic")]
     public string? Topic { get; set; }
 
     /// <summary>
-    /// Position de l'article sur le sujet : "pour", "contre", "nuance", "neutre" ou "" (pas un débat).
+    /// Article stance on the topic: "pour", "contre", "nuance", "neutre" (for/against/nuanced/neutral) or "" (not a debate).
     /// </summary>
     [JsonPropertyName("stance")]
     public string? Stance { get; set; }
 }
 
 /// <summary>
-/// Interface pour les services d'IA externes
-/// Permet de basculer facilement entre Infomaniak, DeepSeek, ou autres fournisseurs
+/// Interface for external AI services
+/// Makes it easy to switch between Infomaniak, DeepSeek, or other providers
 /// </summary>
 public interface IAiService
 {
     /// <summary>
-    /// Nom du fournisseur IA (pour logging et monitoring)
+    /// AI provider name (for logging and monitoring)
     /// </summary>
     string ProviderName { get; }
     
     /// <summary>
-    /// Modèle LLM utilisé (nom + version, ex: "Qwen/Qwen3.5-122B-A10B-FP8")
+    /// LLM model in use (name + version, e.g. "Qwen/Qwen3.5-122B-A10B-FP8")
     /// </summary>
     string ModelName { get; }
     
     /// <summary>
-    /// Traite un article : génère un résumé, attribue un score, détecte les thèmes
+    /// Processes an article: generates a summary, assigns a score, detects themes
     /// </summary>
-    /// <param name="title">Titre de l'article</param>
-    /// <param name="content">Contenu de l'article (HTML ou texte brut)</param>
-    /// <param name="sourceUrl">URL de la source originale</param>
-    /// <param name="cancellationToken">Token d'annulation</param>
-    /// <returns>Résultat du traitement IA</returns>
+    /// <param name="title">Article title</param>
+    /// <param name="content">Article content (HTML or plain text)</param>
+    /// <param name="sourceUrl">URL of the original source</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>AI processing result</returns>
     Task<AiProcessingResult> ProcessArticleAsync(
         string title,
         string content,
@@ -93,14 +93,14 @@ public interface IAiService
         CancellationToken cancellationToken = default);
     
     /// <summary>
-    /// Détecte si deux articles traitent du même sujet
+    /// Detects whether two articles cover the same topic
     /// </summary>
-    /// <param name="article1Title">Titre du premier article</param>
-    /// <param name="article1Content">Contenu du premier article</param>
-    /// <param name="article2Title">Titre du deuxième article</param>
-    /// <param name="article2Content">Contenu du deuxième article</param>
-    /// <param name="cancellationToken">Token d'annulation</param>
-    /// <returns>True si les articles sont des doublons, false sinon</returns>
+    /// <param name="article1Title">Title of the first article</param>
+    /// <param name="article1Content">Content of the first article</param>
+    /// <param name="article2Title">Title of the second article</param>
+    /// <param name="article2Content">Content of the second article</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if the articles are duplicates, false otherwise</returns>
     Task<bool> IsDuplicateAsync(
         string article1Title,
         string article1Content,
@@ -109,14 +109,14 @@ public interface IAiService
         CancellationToken cancellationToken = default);
     
     /// <summary>
-    /// Vérifie si le service est disponible (health check)
+    /// Checks whether the service is available (health check)
     /// </summary>
     Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Calcule le vecteur sémantique d'un texte (embedding multilingue) —
-    /// utilisé pour rapprocher les articles traitant du même sujet de débat.
-    /// Retourne null si le fournisseur ne propose pas d'embeddings.
+    /// Computes the semantic vector of a text (multilingual embedding) —
+    /// used to match articles covering the same debate topic.
+    /// Returns null if the provider does not offer embeddings.
     /// </summary>
     Task<float[]?> GetEmbeddingAsync(string text, CancellationToken cancellationToken = default);
 }

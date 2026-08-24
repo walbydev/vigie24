@@ -19,7 +19,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpContextAccessor();
 
-// Engagement des lecteurs (votes 0-5, clics) — accès DB direct dans le circuit
+// Reader engagement (votes 0-5, clicks) — direct DB access in the circuit
 builder.Services.AddScoped<IEngagementService, EngagementService>();
 builder.Services.AddScoped<IHealthCheckService, HealthCheckService>();
 builder.Services.Configure<HealthCheckOptions>(builder.Configuration.GetSection("HealthCheck"));
@@ -28,17 +28,17 @@ builder.Services.Configure<HealthCheckOptions>(builder.Configuration.GetSection(
 builder.Services.AddDbContext<Vigie24DbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Database")));
 
-// Contexte dédié pour les composants qui requêtent en arrière-plan (ArticleBrowser) :
-// en Blazor Server, le DbContext scoped du circuit est partagé entre le parent et ses
-// enfants — leurs OnInitializedAsync s'exécutent en parallèle. La factory évite la
-// concurrence sur un même contexte.
+// Dedicated context for components that query in the background (ArticleBrowser):
+// in Blazor Server, the circuit's scoped DbContext is shared between the parent and its
+// children — their OnInitializedAsync run in parallel. The factory avoids
+// concurrency on a single context.
 builder.Services.AddDbContextFactory<Vigie24DbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Database")));
 
 // HTTP Client
 builder.Services.AddHttpClient();
 
-// AI Service - Factory pattern pour basculer entre Infomaniak et DeepSeek
+// AI Service - Factory pattern to switch between Infomaniak and DeepSeek
 // Register as factory to avoid initialization issues at startup
 builder.Services.AddSingleton<AiServiceSettings>(sp => {
     var settings = builder.Configuration.GetSection("AiService").Get<AiServiceSettings>() 
@@ -68,13 +68,13 @@ builder.Services.AddSingleton<IAiService>(sp => {
 
 var app = builder.Build();
 
-// Derrière le reverse proxy (Caddy en production) : préserver le schéma HTTPS
-// (X-Forwarded-Proto) pour que la redirection HTTPS et les liens soient corrects.
+// Behind the reverse proxy (Caddy in production): preserve the HTTPS scheme
+// (X-Forwarded-Proto) so HTTPS redirection and links are correct.
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-    // Caddy tourne dans le réseau Docker bridge (172.16.0.0/12) — on n'accepte
-    // les en-têtes de proxy que depuis ce réseau.
+    // Caddy runs on the Docker bridge network (172.16.0.0/12) — we only accept
+    // proxy headers from that network.
     KnownIPNetworks = { new System.Net.IPNetwork(IPAddress.Parse("172.16.0.0"), 12) }
 });
 
@@ -92,9 +92,9 @@ app.UseRouting();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
-// ===== Engagement : votes (0-5) et suivi des clics vers la source =====
+// ===== Engagement: votes (0-5) and click tracking to the source =====
 
-// GET /api/articles/{id}/vote — état du vote pour l'UI : mon vote (cookie) + agrégats
+// GET /api/articles/{id}/vote — vote state for the UI: my vote (cookie) + aggregates
 app.MapGet("/api/articles/{id:guid}/vote", async (Guid id, Vigie24DbContext db, HttpContext http) =>
 {
     var article = await db.Articles.FirstOrDefaultAsync(a => a.Id == id);
@@ -118,8 +118,8 @@ app.MapGet("/api/articles/{id:guid}/vote", async (Guid id, Vigie24DbContext db, 
     });
 });
 
-// POST /api/articles/{id}/vote — vote anonyme (cookie voter_id), échelle 0-5.
-// Recalcule VoteCount/VoteAverage et le score de classement (engagement inclus).
+// POST /api/articles/{id}/vote — anonymous vote (voter_id cookie), scale 0-5.
+// Recomputes VoteCount/VoteAverage and the ranking score (engagement included).
 app.MapPost("/api/articles/{id:guid}/vote", async (Guid id, VoteRequest request, Vigie24DbContext db, HttpContext http) =>
 {
     if (request.Value < 0 || request.Value > 5)
@@ -128,7 +128,7 @@ app.MapPost("/api/articles/{id:guid}/vote", async (Guid id, VoteRequest request,
     var article = await db.Articles.FirstOrDefaultAsync(a => a.Id == id);
     if (article is null) return Results.NotFound();
 
-    // Identifiant de votant anonyme persistant (cookie)
+    // Persistent anonymous voter identifier (cookie)
     var voterKey = http.Request.Cookies["voter_id"];
     if (string.IsNullOrEmpty(voterKey))
     {
@@ -153,7 +153,7 @@ app.MapPost("/api/articles/{id:guid}/vote", async (Guid id, VoteRequest request,
     }
     await db.SaveChangesAsync();
 
-    // Agrégats + score de classement avec engagement
+    // Aggregates + ranking score including engagement
     var votes = await db.ArticleVotes.Where(v => v.ArticleId == id).ToListAsync();
     article.VoteCount = votes.Count;
     article.VoteAverage = votes.Count > 0 ? votes.Average(v => (decimal)v.VoteValue) : 0;
@@ -172,8 +172,8 @@ app.MapPost("/api/articles/{id:guid}/vote", async (Guid id, VoteRequest request,
     });
 });
 
-// GET /api/articles/{id}/track — incrémente le compteur de clics, recalcule le score,
-// puis redirige (302) vers l'article original sur le site de la source.
+// GET /api/articles/{id}/track — increments the click counter, recomputes the score,
+// then redirects (302) to the original article on the source site.
 app.MapGet("/api/articles/{id:guid}/track", async (Guid id, Vigie24DbContext db) =>
 {
     var article = await db.Articles
@@ -193,13 +193,13 @@ app.MapGet("/api/articles/{id:guid}/track", async (Guid id, Vigie24DbContext db)
     return string.IsNullOrWhiteSpace(target) ? Results.NotFound() : Results.Redirect(target);
 });
 
-// ===== Flux RSS 2.0 (abonnement) =====
-// /feed                     → les 50 derniers articles publiés, toutes catégories
-// /categories/{slug}/feed   → les 50 derniers articles publiés de la catégorie (et ses sous-catégories)
-// Les deux acceptent les query params des filtres (mêmes critères que l'UI ArticleBrowser) :
-// q, country, kind, sources, minScore, minRating, from, to. Une query mal formée → 400.
-// Le canal "link" utilise le schéma détecté (https derrière Caddy grâce à UseForwardedHeaders).
-// La construction des flux (filtres + tri + limite) est partagée via RssFeedService.
+// ===== RSS 2.0 feeds (subscription) =====
+// /feed                     → the 50 most recently published articles, all categories
+// /categories/{slug}/feed   → the 50 most recently published articles of the category (and its subcategories)
+// Both accept the filter query params (same criteria as the ArticleBrowser UI):
+// q, country, kind, sources, minScore, minRating, from, to. A malformed query → 400.
+// The channel "link" uses the detected scheme (https behind Caddy thanks to UseForwardedHeaders).
+// Feed construction (filters + ordering + limit) is shared via RssFeedService.
 
 app.MapGet("/feed", async (Vigie24DbContext db, HttpContext http) =>
 {
@@ -241,7 +241,7 @@ app.MapGet("/categories/{slug}/feed", async (string slug, Vigie24DbContext db, H
     return Results.Content(xml, "application/rss+xml; charset=utf-8");
 });
 
-// /sources.json → liste complète des sources au format JSON (pour développeurs)
+// /sources.json → complete list of sources as JSON (for developers)
 app.MapGet("/sources.json", async (Vigie24DbContext db) =>
 {
     var sources = await db.Sources.AsNoTracking()
@@ -264,7 +264,7 @@ app.MapGet("/sources.json", async (Vigie24DbContext db) =>
     return Results.Json(sources, new JsonSerializerOptions(JsonSerializerDefaults.Web));
 });
 
-// /sources.xml → liste complète des sources au format XML (pour développeurs)
+// /sources.xml → complete list of sources as XML (for developers)
 app.MapGet("/sources.xml", async (Vigie24DbContext db) =>
 {
     var sources = await db.Sources.AsNoTracking()
@@ -288,8 +288,8 @@ app.MapGet("/sources.xml", async (Vigie24DbContext db) =>
     return Results.Content(doc.ToString(), "application/xml; charset=utf-8");
 });
 
-// /sitemap.xml → sitemap XML (SEO) : pages statiques + catégories actives + thèmes liés à
-// des articles publiés. N'inclut pas /articles/{id} (301 vers la source) ni /feed (flux).
+// /sitemap.xml → XML sitemap (SEO): static pages + active categories + themes linked to
+// published articles. Does not include /articles/{id} (301 to the source) nor /feed (feeds).
 app.MapGet("/sitemap.xml", async (Vigie24DbContext db) =>
 {
     const string baseUrl = "https://vigie24.info";
@@ -300,7 +300,7 @@ app.MapGet("/sitemap.xml", async (Vigie24DbContext db) =>
         .Select(c => c.Slug)
         .ToListAsync();
 
-    // Thèmes = tags rattachés à au moins un article publié (même logique que la page /themes)
+    // Themes = tags attached to at least one published article (same logic as the /themes page)
     var themeSlugs = await db.Articles.AsNoTracking()
         .Where(a => a.IsPublished)
         .SelectMany(a => a.Tags.Select(t => t.Tag!.Slug))
@@ -308,7 +308,7 @@ app.MapGet("/sitemap.xml", async (Vigie24DbContext db) =>
         .OrderBy(s => s)
         .ToListAsync();
 
-    // lastmod = date du dernier article publié (une seule requête, partagée par toutes les URLs)
+    // lastmod = date of the most recently published article (single query, shared by all URLs)
     var lastMod = await db.Articles.AsNoTracking()
         .Where(a => a.IsPublished)
         .MaxAsync(a => (DateTime?)a.PublishedAt);
@@ -319,8 +319,8 @@ app.MapGet("/sitemap.xml", async (Vigie24DbContext db) =>
 
 app.Run();
 
-/// <summary>Corps de requête du vote : { value: 0..5 }</summary>
+/// <summary>Vote request body: { value: 0..5 }</summary>
 public record VoteRequest(int Value);
 
-/// <summary>Point d'entrée exposé pour WebApplicationFactory (tests d'intégration HTTP).</summary>
+/// <summary>Entry point exposed for WebApplicationFactory (HTTP integration tests).</summary>
 public partial class Program;

@@ -1,6 +1,6 @@
--- Ajout des sources YouTube (chaînes validées) et Reddit (subreddits francophones).
+-- Adds YouTube sources (validated channels) and Reddit (French-speaking subreddits).
 -- Idempotent : ON CONFLICT DO NOTHING (contraintes uniques WebsiteUrl/FeedUrl).
--- CountryCode mis à 'FR' par défaut (contenu francophone) — ajustable.
+-- CountryCode set to 'FR' by default (French-speaking content) — adjustable.
 INSERT INTO sources ("Id", "Name", "WebsiteUrl", "FeedUrl", "CountryCode", "LanguageCode", "SourceKind", "IngestionMethod", "IsActive", "CreatedAt", "UpdatedAt") VALUES
 (gen_random_uuid(), 'Dr Firas', 'https://www.youtube.com/channel/UCriIQI8uaoEro5FEnOpeidQ', 'https://www.youtube.com/feeds/videos.xml?channel_id=UCriIQI8uaoEro5FEnOpeidQ', 'TN', 'fr', 'Youtube', 'Rss', true, now(), now()),
 (gen_random_uuid(), 'Nico Decode', 'https://www.youtube.com/channel/UCmHtQ8dnZA8JgMcl2GW2Xfw', 'https://www.youtube.com/feeds/videos.xml?channel_id=UCmHtQ8dnZA8JgMcl2GW2Xfw', 'FR', 'fr', 'Youtube', 'Rss', true, now(), now()),

@@ -111,16 +111,16 @@ def main():
     prod_tags = {r[1]: r[0] for r in export(SSH_PROD, 'SELECT "Id","Slug" FROM tags')}
     prod_urls = {r[0] for r in export(SSH_PROD, 'SELECT "CanonicalUrl" FROM articles')}
     prod_article_ids = {r[0] for r in export(SSH_PROD, 'SELECT "Id" FROM articles')}
-    # Sources : mapping par FeedUrl (identifiant naturel) — les Ids peuvent différer
-    # entre staging et prod si le worker prod a créé lui-même des sources.
+    # Sources: mapping by FeedUrl (natural identifier) — Ids may differ
+    # between staging and prod if the prod worker created sources itself.
     prod_sources_feed = {r[1]: r[0] for r in export(SSH_PROD, 'SELECT "Id","FeedUrl" FROM sources')}
-    # Liens article→source déjà présents en prod (déduplication par article + FeedUrl)
+    # article→source links already present in prod (dedupe by article + FeedUrl)
     prod_link_feeds = {(r[0], r[1]) for r in export(
         SSH_PROD, 'SELECT a_s."ArticleId", s."FeedUrl" FROM article_sources a_s '
                   'JOIN sources s ON s."Id" = a_s."SourceId"')}
     prod_author_names = {r[1]: r[0] for r in export(SSH_PROD, 'SELECT "Id","Name" FROM authors')}
 
-    # ---- 3. Mapping catégories (par slug) ----
+    # ---- 3. Category mapping (by slug) ----
     cat_map = {}            # id cat staging -> id cat prod
     cats_to_insert = []     # (id, slug, parent_mapped, display_order, is_active)
     for cid, slug, parent, disp, active in cat_rows:
@@ -151,19 +151,19 @@ def main():
         else:
             to_insert.append(row)
 
-    # Appliquer le mapping des catégories (Id staging -> Id production)
+    # Apply the category mapping (staging Id -> production Id)
     for row in to_insert:
         cid = row["CategoryId"]
         if cid != "__NULL__":
             row["CategoryId"] = cat_map.get(cid, cid)
 
-    # ---- 6. Liens article_tags des articles importés ----
+    # ---- 6. article_tags links of imported articles ----
     art_ids_new = {r["Id"] for r in to_insert}
     slug_to_tagid = {slug: tid for tid, slug, _, _ in tag_rows}
     tagid_prod_by_slug = {slug: tag_map[slug_to_tagid[slug]] for slug in slug_to_tagid}
     links = [(aid, tagid_prod_by_slug[slug]) for aid, slug in at_rows if aid in art_ids_new]
 
-    # ---- 7. Liens article → source (pour TOUS les articles présents en prod) ----
+    # ---- 7. article → source links (for ALL articles present in prod) ----
     # Mapping du SourceId staging → prod via le FeedUrl de la source.
     src_links = []
     for r in src_rows:
@@ -176,7 +176,7 @@ def main():
         prod_sid = prod_sources_feed.get(feed)
         if prod_sid is None:
             continue
-        # Déjà lié en prod (même article + même source) ? → ignorer, quel que soit l'Id.
+        # Already linked in prod (same article + same source)? → skip, whatever the Id.
         if (row["ArticleId"], feed) in prod_link_feeds:
             continue
         row["SourceId"] = prod_sid
@@ -216,7 +216,7 @@ def main():
             print("\nRien à importer : tout est déjà synchronisé.")
         return
 
-    # ---- 10. Génération du SQL d'import (transactionnel) ----
+    # ---- 10. Generate the import SQL (transactional) ----
     sql = ["BEGIN;"]
 
     if cats_to_insert:
@@ -280,11 +280,11 @@ def main():
 
     sql.append("COMMIT;")
 
-    # ---- 11. Exécution ----
+    # ---- 11. Execution ----
     print("\n3) Import en production…")
     psql(SSH_PROD, "\n".join(sql))
 
-    # Comptages finaux de contrôle
+    # Final control counts
     n = psql(SSH_PROD, 'SELECT count(*) FROM articles;').strip()
     dup = psql(SSH_PROD,
                'SELECT count(*) FROM (SELECT "CanonicalUrl" FROM articles '

@@ -1,36 +1,36 @@
 -- ============================================
--- Script de réinitialisation complète de Vigie24
+-- Complete reset script for Vigie24
 -- Date: 2026-08-18
--- Description: Supprime toutes les données et réinsère les sources de base
+-- Description: Deletes all data and re-inserts the base sources
 -- ============================================
 
 -- Commencer une transaction
 BEGIN;
 
 -- ============================================
--- 1. Suppression de toutes les données (dans l'ordre des dépendances)
+-- 1. Delete all data (in dependency order)
 -- ============================================
 
--- Supprimer les données des tables de liaison d'abord
+-- Delete junction table data first
 DELETE FROM article_votes;
 DELETE FROM article_tags;
 DELETE FROM article_sources;
 DELETE FROM article_authors;
 
--- Supprimer les données des tables principales (sauf sources, categories, tags)
+-- Delete main table data (except sources, categories, tags)
 DELETE FROM articles;
 DELETE FROM authors;
 DELETE FROM users;
 
--- Supprimer les tags et catégories
+-- Delete tags and categories
 DELETE FROM tags;
 DELETE FROM categories;
 
--- Supprimer les sources (réinitialisation complète)
+-- Delete sources (full reset)
 DELETE FROM sources;
 
 -- ============================================
--- 2. Insertion des catégories de référence
+-- 2. Insert reference categories
 -- ============================================
 -- Note: Les noms de colonnes utilisent PascalCase
 
@@ -45,7 +45,7 @@ INSERT INTO categories ("Slug", "DisplayOrder", "IsActive") VALUES
 ('startups', 8, true);
 
 -- ============================================
--- 3. Insertion des tags de référence
+-- 3. Insert reference tags
 -- ============================================
 
 INSERT INTO tags ("Slug") VALUES
@@ -69,14 +69,14 @@ INSERT INTO tags ("Slug") VALUES
 -- 4. Insertion des sources RSS de base
 -- ============================================
 
--- Sources françaises technologiques
+-- French technology sources
 INSERT INTO sources ("Name", "FeedUrl", "WebsiteUrl", "SourceKind", "IngestionMethod", "IsActive") VALUES
--- Actualités générales
+-- General news
 ('01net', 'https://www.01net.com/feed/', 'https://www.01net.com/', 'Press', 'Rss', true),
 ('Numerama', 'https://www.numerama.com/feed/', 'https://www.numerama.com/', 'Press', 'Rss', true),
 ('Journal du Net', 'https://www.journaldunet.com/feed/', 'https://www.journaldunet.com/', 'Press', 'Rss', true),
 
--- Sécurité
+-- Security
 ('SecurityWeek', 'https://www.securityweek.com/feed/', 'https://www.securityweek.com/', 'Press', 'Rss', true),
 ('The Hacker News', 'https://thehackernews.com/feeds/posts/default', 'https://thehackernews.com/', 'Press', 'Rss', true),
 
@@ -102,10 +102,10 @@ INSERT INTO sources ("Name", "FeedUrl", "WebsiteUrl", "SourceKind", "IngestionMe
 ('Tom''s Hardware', 'https://www.tomshardware.com/feeds/all', 'https://www.tomshardware.com/', 'Press', 'Rss', true);
 
 -- ============================================
--- 5. Vérification
+-- 5. Verification
 -- ============================================
 
--- Afficher le nombre d'éléments insérés
+-- Show the number of inserted items
 SELECT 
     'Sources' as table_name, COUNT(*) as count FROM sources
 UNION ALL
@@ -115,7 +115,7 @@ UNION ALL
 SELECT 
     'Tags', COUNT(*) FROM tags;
 
--- Afficher les catégories
+-- Show the categories
 SELECT "Slug", "DisplayOrder", "IsActive" FROM categories ORDER BY "DisplayOrder";
 
 -- Afficher les sources actives

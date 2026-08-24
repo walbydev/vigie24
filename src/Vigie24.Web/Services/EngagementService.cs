@@ -6,9 +6,9 @@ using Vigie24.Infrastructure.Data;
 namespace Vigie24.Web.Services;
 
 /// <summary>
-/// Engagement des lecteurs (votes 0-5, clics) en accès direct à la base.
-/// Exécuté dans le circuit Blazor Server : pas de HttpClient ni d'URL relative,
-/// donc pas de requête HTTP serveur→serveur ni d'échec silencieux.
+/// Reader engagement (votes 0-5, clicks) with direct database access.
+/// Runs inside the Blazor Server circuit: no HttpClient and no relative URL,
+/// so no server-to-server HTTP request and no silent failures.
 /// </summary>
 public interface IEngagementService
 {
@@ -61,7 +61,7 @@ public sealed class EngagementService(Vigie24DbContext db, IHttpContextAccessor 
     }
 
     /// <summary>
-    /// Votes du visiteur courant pour une liste d'articles (une seule requête pour toute une page).
+    /// Votes of the current visitor for a list of articles (a single query for a whole page).
     /// </summary>
     public async Task<Dictionary<Guid, int>> GetMyVotesAsync(IReadOnlyList<Guid> articleIds, CancellationToken ct = default)
     {
@@ -96,7 +96,7 @@ public sealed class EngagementService(Vigie24DbContext db, IHttpContextAccessor 
         }
         await db.SaveChangesAsync(ct);
 
-        // Agrégats + score de classement avec engagement
+        // Aggregates + ranking score including engagement
         var votes = await db.ArticleVotes.Where(v => v.ArticleId == articleId).ToListAsync(ct);
         article.VoteCount = votes.Count;
         article.VoteAverage = votes.Count > 0 ? votes.Average(v => (decimal)v.VoteValue) : 0;

@@ -8,8 +8,8 @@ using Vigie24.Services.Interfaces;
 namespace Vigie24.Services.Implementations;
 
 /// <summary>
-/// Service IA pour DeepSeek API
-/// Excellent rapport qualité/prix, spécialisé dans le code et la technique
+/// AI service for the DeepSeek API
+/// Excellent value for money, specialised in code and technical content
 /// </summary>
 public class DeepSeekAiService : IAiService
 {
@@ -30,8 +30,8 @@ public class DeepSeekAiService : IAiService
         _settings = settings;
         _logger = logger;
         
-        // IMPORTANT: BaseAddress doit se terminer par "/" pour que les requêtes relatives
-        // ("chat/completions") se combinent en préservant le chemin complet de l'URL.
+        // IMPORTANT: BaseAddress must end with "/" so that relative requests
+        // ("chat/completions") combine while preserving the full URL path.
         _httpClient.BaseAddress = new Uri(settings.ApiUrl.TrimEnd('/') + "/");
         _httpClient.DefaultRequestHeaders.Authorization = 
             new AuthenticationHeaderValue("Bearer", settings.ApiKey);
@@ -108,7 +108,7 @@ IMPORTANT: Ne retourne QUE le JSON, sans texte supplémentaire.";
         
         result.EditorialScore = Math.Min(result.EditorialScore, 100);
 
-        // Consommation en tokens rapportée par l'API (usage) — pour le suivi de coût par article
+        // Token usage reported by the API (usage) — for per-article cost tracking
         if (apiResponse?.Usage is { } usage)
         {
             result.PromptTokens = usage.PromptTokens;
@@ -185,8 +185,8 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
         cts.CancelAfter(TimeSpan.FromSeconds(8));
         try
         {
-            // GET /models : valide la clé API et l'endpoint SANS consommer de tokens
-            // (contrairement à un chat/completions, même avec max_tokens=1).
+            // GET /models: validates the API key and endpoint WITHOUT consuming tokens
+            // (unlike a chat/completions call, even with max_tokens=1).
             var response = await _httpClient.GetAsync("models", cts.Token);
             return response.IsSuccessStatusCode;
         }
@@ -197,7 +197,7 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
         }
     }
 
-    /// <summary>Le fallback DeepSeek ne fournit pas d'embeddings — pas de rapprochement sémantique.</summary>
+    /// <summary>The DeepSeek fallback does not provide embeddings — no semantic matching.</summary>
     public Task<float[]?> GetEmbeddingAsync(string text, CancellationToken cancellationToken = default)
         => Task.FromResult<float[]?>(null);
 
@@ -230,7 +230,7 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
         public Usage? Usage { get; set; }
     }
 
-    /// <summary>Consommation en tokens rapportée par l'API OpenAI-compatible</summary>
+    /// <summary>Token usage reported by the OpenAI-compatible API</summary>
     private class Usage
     {
         [System.Text.Json.Serialization.JsonPropertyName("prompt_tokens")]

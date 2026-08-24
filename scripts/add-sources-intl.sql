@@ -1,7 +1,7 @@
 -- ============================================================
 -- Vigie24 — Ajout de sources RSS francophones hors France
--- Suisse (CH), Belgique (BE), Canada/Québec (CA), Luxembourg (LU)
--- Flux vérifiés (HTTP 200, RSS/Atom valide, dates parsables) le 2026-08-22.
+-- Switzerland (CH), Belgium (BE), Canada/Quebec (CA), Luxembourg (LU)
+-- Feeds verified (HTTP 200, valid RSS/Atom, parseable dates) on 2026-08-22.
 -- Idempotent : ON CONFLICT ("WebsiteUrl") DO NOTHING
 -- ============================================================
 
@@ -17,7 +17,7 @@ INSERT INTO sources ("Id", "Name", "WebsiteUrl", "FeedUrl", "CountryCode", "Lang
 (gen_random_uuid(), '7sur7',               'https://www.7sur7.be',            'https://www.7sur7.be/home/rss.xml',                         'BE', 'fr', 'Press',    'Rss', true, now(), now()),
 (gen_random_uuid(), 'Le Vif',              'https://www.levif.be',            'https://www.levif.be/feed/',                                'BE', 'fr', 'Press',    'Rss', true, now(), now()),
 (gen_random_uuid(), 'DataNews',            'https://datanews.levif.be',       'https://datanews.levif.be/feed/',                           'BE', 'fr', 'Press',    'Rss', true, now(), now()),
--- Canada / Québec
+-- Canada / Quebec
 (gen_random_uuid(), 'La Presse',           'https://www.lapresse.ca',         'https://www.lapresse.ca/actualites/rss',                    'CA', 'fr', 'Press',    'Rss', true, now(), now()),
 (gen_random_uuid(), 'Journal de Montréal', 'https://www.journaldemontreal.com','https://www.journaldemontreal.com/rss.xml',               'CA', 'fr', 'Press',    'Rss', true, now(), now()),
 (gen_random_uuid(), 'Journal de Québec',   'https://www.journaldequebec.com', 'https://www.journaldequebec.com/rss.xml',                   'CA', 'fr', 'Press',    'Rss', true, now(), now()),
@@ -29,6 +29,6 @@ INSERT INTO sources ("Id", "Name", "WebsiteUrl", "FeedUrl", "CountryCode", "Lang
 (gen_random_uuid(), 'L''essentiel',        'https://www.lessentiel.lu',       'https://partner-feeds.lessentiel.lu/rss/lessentiel-fr',      'LU', 'fr', 'Press',    'Rss', true, now(), now())
 ON CONFLICT ("WebsiteUrl") DO NOTHING;
 
--- Vérifications
+-- Checks
 SELECT "CountryCode", count(*) AS sources FROM sources WHERE "IsActive" = true GROUP BY "CountryCode" ORDER BY "CountryCode";
 SELECT "Name", "CountryCode", "FeedUrl" FROM sources WHERE "CountryCode" <> 'FR' ORDER BY "CountryCode", "Name";

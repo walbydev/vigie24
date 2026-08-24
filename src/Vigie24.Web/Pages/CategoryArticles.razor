@@ -56,7 +56,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Titre calculé SYNCHRONEMENT avant tout await → visible dans le HTML initial (prerender)
+        // Title computed SYNCHRONOUSLY before any await → visible in the initial HTML (prerender)
         _title = VigieTaxonomy.DisplayName(Slug);
         _category = await DbContext.Categories.FirstOrDefaultAsync(c => c.Slug == Slug);
         if (_category == null)
@@ -78,7 +78,7 @@ else
         BuildBreadcrumbJsonLd();
     }
 
-    /// <summary>Données structurées BreadcrumbList (rich snippet Google) : Accueil › Catégories › [Parent ›] Catégorie</summary>
+    /// <summary>Structured BreadcrumbList data (Google rich snippet): Home › Categories › [Parent ›] Category</summary>
     private void BuildBreadcrumbJsonLd()
     {
         var items = new List<object>
@@ -99,7 +99,7 @@ else
         });
     }
 
-    /// <summary>Filtre de base : articles publiés de la catégorie (recherche/tri/pagination gérés par ArticleBrowser)</summary>
+    /// <summary>Base filter: published articles of the category (search/sort/pagination handled by ArticleBrowser)</summary>
     private System.Linq.Expressions.Expression<Func<Article, bool>> BuildFilter() =>
         a => a.IsPublished &&
              (a.CategoryId == _category!.Id ||

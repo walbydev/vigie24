@@ -9,8 +9,8 @@ using Vigie24.Services.Interfaces;
 namespace Vigie24.Services.Implementations;
 
 /// <summary>
-/// Service IA pour Infomaniak API
-/// Excellent rapport qualité/prix, spécialisé dans le code et la technique
+/// AI service for the Infomaniak API
+/// Excellent value for money, specialised in code and technical content
 /// </summary>
 public class InfomaniakAiService : IAiService
 {
@@ -31,16 +31,16 @@ public class InfomaniakAiService : IAiService
         _settings = settings;
         _logger = logger;
         
-        // IMPORTANT: BaseAddress doit se terminer par "/" pour que les requêtes relatives
-        // ("chat/completions") se combinent en préservant le chemin complet de l'URL.
+        // IMPORTANT: BaseAddress must end with "/" so that relative requests
+        // ("chat/completions") combine while preserving the full URL path.
         _httpClient.BaseAddress = new Uri(settings.ApiUrl.TrimEnd('/') + "/");
         _httpClient.DefaultRequestHeaders.Authorization = 
             new AuthenticationHeaderValue("Bearer", settings.ApiKey);
     }
 
     /// <summary>
-    /// POST /chat/completions avec retry sur rate-limit (429) :
-    /// 3 tentatives max, backoff exponentiel (5s puis 10s).
+    /// POST /chat/completions with retry on rate-limit (429):
+    /// 3 attempts max, exponential backoff (5s then 10s).
     /// </summary>
     private async Task<HttpResponseMessage> PostChatCompletionsAsync(
         string jsonRequest,
@@ -144,7 +144,7 @@ IMPORTANT: Ne retourne QUE le JSON, sans texte supplémentaire.";
         
         result.EditorialScore = Math.Min(result.EditorialScore, 100);
 
-        // Consommation en tokens rapportée par l'API (usage) — pour le suivi de coût par article
+        // Token usage reported by the API (usage) — for per-article cost tracking
         if (apiResponse?.Usage is { } usage)
         {
             result.PromptTokens = usage.PromptTokens;
@@ -221,8 +221,8 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
         cts.CancelAfter(TimeSpan.FromSeconds(8));
         try
         {
-            // GET /models : valide la clé API et l'endpoint SANS consommer de tokens
-            // (contrairement à un chat/completions, même avec max_tokens=1).
+            // GET /models: validates the API key and endpoint WITHOUT consuming tokens
+            // (unlike a chat/completions call, even with max_tokens=1).
             var response = await _httpClient.GetAsync("models", cts.Token);
             return response.IsSuccessStatusCode;
         }
@@ -294,11 +294,11 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
     }
 
     /// <summary>
-    /// Extrait le JSON de la réponse du modèle.
-    /// Les modèles de raisonnement (Qwen3.x) mettent le raisonnement dans
-    /// <c>reasoning</c> et le JSON final dans <c>content</c> — mais si la
-    /// génération est tronquée (max_tokens atteint), content peut être vide :
-    /// on retombe alors sur le JSON présent à la fin du raisonnement.
+    /// Extracts the JSON from the model response.
+    /// Reasoning models (Qwen3.x) put the reasoning in
+    /// <c>reasoning</c> and the final JSON in <c>content</c> — but if the
+    /// generation is truncated (max_tokens reached), content can be empty:
+    /// we then fall back to the JSON present at the end of the reasoning.
     /// </summary>
     private static string? ExtractJsonFromMessage(Message? message)
     {
@@ -309,7 +309,7 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
         if (string.IsNullOrWhiteSpace(text))
             return null;
 
-        // Prendre le premier '{' jusqu'au dernier '}' (le JSON est souvent précédé/suivi de texte)
+        // Take from the first '{' to the last '}' (the JSON is often surrounded by text)
         var firstBrace = text.IndexOf('{');
         var lastBrace = text.LastIndexOf('}');
         if (firstBrace >= 0 && lastBrace > firstBrace)
@@ -327,7 +327,7 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
         public Usage? Usage { get; set; }
     }
 
-    /// <summary>Consommation en tokens rapportée par l'API OpenAI-compatible</summary>
+    /// <summary>Token usage reported by the OpenAI-compatible API</summary>
     private class Usage
     {
         [JsonPropertyName("prompt_tokens")]
@@ -351,7 +351,7 @@ Réponds UNIQUEMENT par JSON: {{ ""is_duplicate"": true/false, ""confidence"": 0
         [JsonPropertyName("content")]
         public string? Content { get; set; }
 
-        /// <summary>Raisonnement du modèle (modèles de raisonnement type Qwen3)</summary>
+        /// <summary>Model reasoning (reasoning models like Qwen3)</summary>
         [JsonPropertyName("reasoning")]
         public string? Reasoning { get; set; }
     }

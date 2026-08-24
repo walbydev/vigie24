@@ -1,8 +1,8 @@
--- Ajout chaînes YouTube demandées par Philippe (cocoadmin, b21, SKY BIDOU, Koinsky)
--- + sélection gaming/devops/homelab francophones. channel_id résolus via canonical
--- link et vérifiés sur le feed feeds/videos.xml (août 2026). Idempotent.
+-- YouTube channels requested by Philippe (cocoadmin, b21, SKY BIDOU, Koinsky)
+-- + French-speaking gaming/devops/homelab selection. channel_id resolved via canonical
+-- link and verified on the feeds/videos.xml feed (August 2026). Idempotent.
 INSERT INTO sources ("Id", "Name", "WebsiteUrl", "FeedUrl", "CountryCode", "LanguageCode", "SourceKind", "IngestionMethod", "IsActive", "CreatedAt", "UpdatedAt") VALUES
--- Chaînes demandées par Philippe
+-- Channels requested by Philippe
 (gen_random_uuid(), 'cocoadmin', 'https://www.youtube.com/channel/UCIxwXQzgefPtQCkvL9eOzxg', 'https://www.youtube.com/feeds/videos.xml?channel_id=UCIxwXQzgefPtQCkvL9eOzxg', 'FR', 'fr', 'Youtube', 'Rss', true, now(), now()),
 (gen_random_uuid(), 'B21', 'https://www.youtube.com/channel/UCS8ESog1SAy-BfXuJv5kGUg', 'https://www.youtube.com/feeds/videos.xml?channel_id=UCS8ESog1SAy-BfXuJv5kGUg', 'FR', 'fr', 'Youtube', 'Rss', true, now(), now()),
 (gen_random_uuid(), 'SKY BIDOU', 'https://www.youtube.com/channel/UCCauNMRaGxJE95HauLjq0bg', 'https://www.youtube.com/feeds/videos.xml?channel_id=UCCauNMRaGxJE95HauLjq0bg', 'FR', 'fr', 'Youtube', 'Rss', true, now(), now()),

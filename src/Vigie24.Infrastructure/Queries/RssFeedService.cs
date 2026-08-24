@@ -6,9 +6,9 @@ using Vigie24.Infrastructure.Data;
 namespace Vigie24.Infrastructure.Queries;
 
 /// <summary>
-/// Construction des flux RSS 2.0 : requête partagée entre /feed et /categories/{slug}/feed.
-/// Applique les critères de filtres (mêmes que l'UI ArticleBrowser), trie par date
-/// décroissante et borne à <see cref="RssFeedSize"/> articles.
+/// Builds RSS 2.0 feeds: query shared between /feed and /categories/{slug}/feed.
+/// Applies the same filter criteria as the ArticleBrowser UI, sorts by date
+/// descending, and caps the result at <see cref="RssFeedSize"/> articles.
 /// </summary>
 public static class RssFeedService
 {

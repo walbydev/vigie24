@@ -5,13 +5,13 @@ using Vigie24.Services.Interfaces;
 namespace Vigie24.Services;
 
 /// <summary>
-/// Factory pour créer le service IA approprié selon la configuration
-/// Permet de basculer facilement entre Infomaniak et DeepSeek
+/// Factory for creating the appropriate AI service based on the configuration
+/// Makes it easy to switch between Infomaniak and DeepSeek
 /// </summary>
 public static class AiServiceFactory
 {
     /// <summary>
-    /// Crée le service IA configuré
+    /// Creates the configured AI service
     /// </summary>
     public static IAiService Create(AiServiceSettings settings, ILoggerFactory loggerFactory)
     {

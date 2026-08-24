@@ -6,20 +6,20 @@ using Vigie24.Services.Interfaces;
 
 namespace Vigie24.Web.Services;
 
-/// <summary>Options du health-check (section "HealthCheck" d'appsettings).</summary>
+/// <summary>Health-check options ("HealthCheck" section of appsettings).</summary>
 public sealed class HealthCheckOptions
 {
-    /// <summary>Âge max de la dernière ingestion pour rester « Opérationnel » (minutes).</summary>
+    /// <summary>Max age of the last ingestion to remain "Operational" (minutes).</summary>
     public int IngestionOkMinutes { get; set; } = 30;
 
-    /// <summary>Âge max de la dernière ingestion avant « Hors ligne » (minutes).</summary>
+    /// <summary>Max age of the last ingestion before going "Offline" (minutes).</summary>
     public int IngestionDegradedMinutes { get; set; } = 120;
 
-    /// <summary>Intervalle minimum entre deux pings du fournisseur IA (minutes).</summary>
+    /// <summary>Minimum interval between two AI provider pings (minutes).</summary>
     public int ProviderPingMinutes { get; set; } = 10;
 }
 
-/// <summary>Résultat du health-check affiché sur la page d'accueil.</summary>
+/// <summary>Health-check result displayed on the home page.</summary>
 public sealed class HealthStatus
 {
     public HealthLevel Level { get; set; }
@@ -47,10 +47,10 @@ public interface IHealthCheckService
 }
 
 /// <summary>
-/// Health-check basé sur l'état réel du système :
-/// fraîcheur de la dernière ingestion (base) + disponibilité du fournisseur IA.
-/// Le ping du fournisseur est mis en cache (ProviderPingMinutes) pour ne pas
-/// consommer de tokens ni de latence à chaque chargement de page.
+/// Health-check based on the actual state of the system:
+/// freshness of the last ingestion (database) + AI provider availability.
+/// The provider ping is cached (ProviderPingMinutes) to avoid
+/// consuming tokens or latency on every page load.
 /// </summary>
 public sealed class HealthCheckService(
     Vigie24DbContext db,
@@ -65,10 +65,10 @@ public sealed class HealthCheckService(
 
     public async Task<HealthStatus> GetStatusAsync(CancellationToken ct = default)
     {
-        // 1. Fraîcheur de l'ingestion : date du dernier article vu par le worker.
+        // 1. Ingestion freshness: date of the last article seen by the worker.
         var last = await db.Articles.MaxAsync(a => (DateTime?)a.FirstSeenAt, ct);
 
-        // 2. Disponibilité du fournisseur IA (ping léger, mis en cache).
+        // 2. AI provider availability (light ping, cached).
         var (pingOk, pingError) = await PingProviderCachedAsync(ct);
 
         var level = HealthEvaluator.Evaluate(

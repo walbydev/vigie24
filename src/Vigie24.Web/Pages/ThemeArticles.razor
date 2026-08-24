@@ -45,7 +45,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Titre calculé SYNCHRONEMENT avant tout await → visible dans le HTML initial (prerender)
+        // Title computed SYNCHRONOUSLY before any await → visible in the initial HTML (prerender)
         _title = VigieTaxonomy.DisplayName(Slug);
         _tag = await DbContext.Tags.FirstOrDefaultAsync(t => t.Slug == Slug);
         if (_tag == null)
@@ -60,7 +60,7 @@ else
             .CountAsync(a => a.IsPublished && a.Tags.Any(t => t.TagId == _tag.Id));
     }
 
-    /// <summary>Filtre de base : articles publiés de la thématique (recherche/tri/pagination gérés par ArticleBrowser)</summary>
+    /// <summary>Base filter: published articles of the theme (search/sort/pagination handled by ArticleBrowser)</summary>
     private System.Linq.Expressions.Expression<Func<Article, bool>> BuildFilter() =>
         a => a.IsPublished && a.Tags.Any(t => t.TagId == _tag!.Id);
 }

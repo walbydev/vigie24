@@ -25,11 +25,11 @@
 }
 
 @code {
-    /// <summary>Dates de publication des articles du contexte courant (permet de compter les créneaux)</summary>
+    /// <summary>Publication dates of the current context's articles (used to count the slots)</summary>
     [Parameter]
     public IReadOnlyList<DateTime> Dates { get; set; } = Array.Empty<DateTime>();
 
-    /// <summary>Sélection courante : (From, To) en UTC, null = aucun filtre</summary>
+    /// <summary>Current selection: (From, To) in UTC, null = no filter</summary>
     [Parameter]
     public (DateTime? From, DateTime? To)? Range { get; set; }
 
@@ -51,8 +51,8 @@
         var today = DateTime.UtcNow.Date;
         var buckets = new List<Bucket>();
 
-        // Créneaux réduits : aujourd'hui, cette semaine, ce mois, cette année
-        // (l'intervalle précis reste disponible via le sélecteur de dates).
+        // Reduced slots: today, this week, this month, this year
+        // (the precise range remains available via the date picker).
         AddBucket(buckets, dates, "aujourd'hui", today, today.AddDays(1));
 
         var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
@@ -64,7 +64,7 @@
         var yearStart = new DateTime(today.Year, 1, 1);
         AddBucket(buckets, dates, "cette année", yearStart, yearStart.AddYears(1));
 
-        // Tout ce qui précède l'année courante (fil d'archives).
+        // Everything before the current year (archive feed).
         AddBucket(buckets, dates, "années précédentes", DateTime.MinValue, yearStart);
 
         _buckets = buckets.OrderByDescending(b => b.From ?? DateTime.MinValue).ToList();

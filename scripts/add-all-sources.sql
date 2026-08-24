@@ -1,14 +1,14 @@
 -- ============================================
 -- Script d'ajout de 200+ sources RSS
 -- Date: 2026-08-18
--- Description: Ajoute une large sélection de sources RSS technologiques
---              françaises et internationales
+-- Description: Adds a broad selection of technology RSS sources
+--              (French and international)
 -- ============================================
 
 BEGIN;
 
 -- ============================================
--- CATÉGORIE: Actualités Générales (France)
+-- CATEGORY: General News (France)
 -- ============================================
 INSERT INTO sources ("Name", "FeedUrl", "WebsiteUrl", "SourceKind", "IngestionMethod", "IsActive") VALUES
 ('01net', 'https://www.01net.com/feed/', 'https://www.01net.com/', 'Press', 'Rss', true),
@@ -24,7 +24,7 @@ INSERT INTO sources ("Name", "FeedUrl", "WebsiteUrl", "SourceKind", "IngestionMe
 ;
 
 -- ============================================
--- CATÉGORIE: Sécurité Informatique
+-- CATEGORY: IT Security
 -- ============================================
 INSERT INTO sources ("Name", "FeedUrl", "WebsiteUrl", "SourceKind", "IngestionMethod", "IsActive") VALUES
 ('SecurityWeek', 'https://www.securityweek.com/feed/', 'https://www.securityweek.com/', 'Press', 'Rss', true),
@@ -301,16 +301,16 @@ INSERT INTO sources ("Name", "FeedUrl", "WebsiteUrl", "SourceKind", "IngestionMe
 -- VÉRIFICATION
 -- ============================================
 
--- Afficher le nombre total de sources insérées
+-- Show the total number of inserted sources
 SELECT COUNT(*) as total_sources FROM sources WHERE "IsActive" = true;
 
--- Afficher la répartition par SourceKind
+-- Show the breakdown by SourceKind
 SELECT "SourceKind", COUNT(*) as count FROM sources WHERE "IsActive" = true GROUP BY "SourceKind" ORDER BY count DESC;
 
--- Afficher la répartition par IngestionMethod
+-- Show the breakdown by IngestionMethod
 SELECT "IngestionMethod", COUNT(*) as count FROM sources WHERE "IsActive" = true GROUP BY "IngestionMethod" ORDER BY count DESC;
 
--- Afficher les 10 premières sources
+-- Show the first 10 sources
 SELECT "Name", "WebsiteUrl", "SourceKind" FROM sources WHERE "IsActive" = true ORDER BY "Name" LIMIT 10;
 
 -- Commit de la transaction

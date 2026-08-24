@@ -5,11 +5,11 @@
 # Usage: ./scripts/add-all-sources.sh
 #
 # Ce script ajoute plus de 200 sources RSS technologiques
-# françaises et internationales à la base de données.
+# French and international sources to the database.
 #
-# Catégories incluses :
-# - Actualités Générales (France)
-# - Sécurité Informatique
+# Included categories:
+# - General News (France)
+# - IT Security
 # - Open Source
 # - DevOps & Cloud
 # - IA & Data
@@ -20,7 +20,7 @@
 # - Blockchain & Crypto
 # - Podcasts Tech
 # - Newsletters Tech
-# - Recherche & Académique
+# - Research & Academic
 # - YouTube Tech Channels
 #
 # Total: 200+ sources
@@ -36,20 +36,20 @@ echo "  Vigie24 - Ajout de 200+ sources RSS"
 echo "========================================"
 echo ""
 
-# Vérifier que le fichier SQL existe
+# Check that the SQL file exists
 if [ ! -f "$SCRIPT_DIR/add-all-sources.sql" ]; then
     echo "ERREUR: fichier SQL introuvable."
     echo "   Attendu: $SCRIPT_DIR/add-all-sources.sql"
     exit 1
 fi
 
-# Vérifier que Docker Compose est disponible
+# Check that Docker Compose is available
 if ! command -v docker compose &> /dev/null; then
     echo "❌ Erreur: docker compose non trouvé"
     exit 1
 fi
 
-# Vérifier que les conteneurs sont en ligne
+# Check that the containers are running
 echo "🔍 Vérification des conteneurs..."
 cd "$PROJECT_ROOT"
 if ! docker compose ps | grep -q "Up"; then
@@ -61,7 +61,7 @@ fi
 echo "✅ Conteneurs en ligne"
 echo ""
 
-# Exécuter le script SQL
+# Run the SQL script
 echo "📝 Exécution du script SQL..."
 cat "$SCRIPT_DIR/add-all-sources.sql" | docker compose exec -e PGPASSWORD=postgres postgres psql -U postgres -d vigie24
 
@@ -71,7 +71,7 @@ echo "  ✅ Ajout terminé avec succès !"
 echo "========================================"
 echo ""
 
-# Afficher le résumé
+# Show the summary
 echo "📊 Résumé des sources ajoutées :"
 echo ""
 docker compose exec postgres psql -U postgres -d vigie24 -c "

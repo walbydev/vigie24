@@ -1,8 +1,8 @@
--- Ajout des chaînes YouTube de vulgarisation (scientifique, tech, graphisme, homelab).
--- Tous les channel_id ont été résolus via le <link rel="canonical"> de la page chaîne
--- ET vérifiés avec le flux feeds/videos.xml (titre du feed = chaîne attendue), août 2026.
+-- Adds science-communication YouTube channels (science, tech, design, homelab).
+-- All channel_id values were resolved via the <link rel="canonical"> of the channel page
+-- AND verified with the feeds/videos.xml feed (feed title = expected channel), August 2026.
 -- Idempotent : ON CONFLICT DO NOTHING (contraintes uniques WebsiteUrl/FeedUrl).
--- CountryCode : 'FR' pour les chaînes francophones, 'US' pour les anglophones (homelab).
+-- CountryCode: 'FR' for French-speaking channels, 'US' for English-speaking ones (homelab).
 INSERT INTO sources ("Id", "Name", "WebsiteUrl", "FeedUrl", "CountryCode", "LanguageCode", "SourceKind", "IngestionMethod", "IsActive", "CreatedAt", "UpdatedAt") VALUES
 -- Vulgarisation scientifique (FR)
 (gen_random_uuid(), 'ScienceEtonnante', 'https://www.youtube.com/channel/UCaNlbnghtwlsGF-KzAFThqA', 'https://www.youtube.com/feeds/videos.xml?channel_id=UCaNlbnghtwlsGF-KzAFThqA', 'FR', 'fr', 'Youtube', 'Rss', true, now(), now()),
