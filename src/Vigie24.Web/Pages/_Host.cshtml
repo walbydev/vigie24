@@ -68,6 +68,10 @@
             --chip-tag-ink: #14532d;
             --chip-tag-border: #16a34a;
             --chip-sep: #64748b;
+            --stance-pour: #16a34a;
+            --stance-contre: #dc2626;
+            --stance-nuance: #d97706;
+            --stance-neutre: #64748b;
             --vote-bad: #dc2626;
             --vote-good: #16a34a;
             --vote-ink: #ffffff;
@@ -106,6 +110,10 @@
             --chip-tag-ink: #bbf7d0;
             --chip-tag-border: #4ade80;
             --chip-sep: #94a3b8;
+            --stance-pour: #4ade80;
+            --stance-contre: #f87171;
+            --stance-nuance: #fbbf24;
+            --stance-neutre: #94a3b8;
             --vote-bad: #f87171;
             --vote-good: #4ade80;
             --vote-ink: #0f172a;
@@ -341,6 +349,19 @@
         .chip-tag:hover { filter: brightness(0.94); }
         .chip-sep { color: var(--chip-sep); }
         .chip-icon { margin-right: 3px; }
+        /* Badge de position (débats) : fond teinté + bordure teintée + icône — contraste texte ≥ 4.5:1
+           (encre = 55 % teinte + 45 % texte), bordure ≥ 3:1. La teinte suit le thème (variable --c locale). */
+        .chip-stance {
+            background: color-mix(in srgb, var(--c) 16%, var(--surface));
+            color: color-mix(in srgb, var(--c) 55%, var(--text));
+            border: 1.5px solid var(--c);
+            border-radius: 6px; font-weight: 600;
+        }
+        .chip-stance-pour { --c: var(--stance-pour); }
+        .chip-stance-contre { --c: var(--stance-contre); }
+        .chip-stance-nuance { --c: var(--stance-nuance); }
+        .chip-stance-neutre { --c: var(--stance-neutre); }
+        [data-theme$="-hc"] .chip-stance { color: var(--text); background: var(--surface); }
 
         /* ===== Timeline ===== */
         .timeline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
@@ -592,6 +613,10 @@
                 --chip-tag-ink: #0f4a3c;
                 --chip-tag-border: #2c6e5f;
                 --chip-sep: #64748b;
+                --stance-pour: #2c6e5f;
+                --stance-contre: #c4634a;
+                --stance-nuance: #a16207;
+                --stance-neutre: #64748b;
                 --vote-bad: #c4634a;
                 --vote-good: #5fb5a3;
                 --vote-ink: #ffffff;
@@ -630,6 +655,10 @@
                 --chip-tag-ink: #7fd4c0;
                 --chip-tag-border: #6ccbb4;
                 --chip-sep: #64748b;
+                --stance-pour: #6ccbb4;
+                --stance-contre: #d9765e;
+                --stance-nuance: #f2b755;
+                --stance-neutre: #94a3b8;
                 --vote-bad: #d9765e;
                 --vote-good: #6ccbb4;
                 --vote-ink: #0d2027;

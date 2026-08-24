@@ -32,6 +32,18 @@
             {
                 <a class="chip chip-debate" href="/debats" title="Cet article participe à un débat — voir les positions opposées">🥊 Débat</a>
             }
+            @if (ShowStance && !string.IsNullOrEmpty(Article.Topic) && !string.IsNullOrEmpty(Article.Stance))
+            {
+                var stance = Article.Stance.ToLowerInvariant();
+                var (icon, label) = stance switch
+                {
+                    "pour" => ("🟢", "Pour"),
+                    "contre" => ("🔴", "Contre"),
+                    "nuance" => ("🟡", "Nuancé"),
+                    _ => ("⚪", "Neutre")
+                };
+                <span class="chip chip-stance chip-stance-@stance" title="Position de l'article sur son sujet : @label">@icon @label</span>
+            }
             @if (Article.Category != null)
             {
                 @if (Article.Category.ParentCategory != null)
@@ -131,6 +143,10 @@
     /// <summary>Vote du visiteur courant pour cet article (fourni en lot par ArticleBrowser — une seule requête par page)</summary>
     [Parameter]
     public int? MyVote { get; set; }
+
+    /// <summary>Affiche le badge de position (pour/contre/nuancé/neutre) — utilisé par la vue candidats débats.</summary>
+    [Parameter]
+    public bool ShowStance { get; set; }
 
     private bool _showHint;
     private string _hint = "";

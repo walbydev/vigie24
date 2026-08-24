@@ -21,69 +21,114 @@
     chaque débat regroupe des articles traitant du même sujet avec des positions opposées.
 </p>
 
-@if (_debates.Count == 0)
+@if (_allDebates.Count == 0)
 {
     <div class="status-card">
         <p class="muted">Aucun débat détecté pour le moment. Dès que deux sources publieront des positions opposées sur un même sujet, elles apparaîtront ici.</p>
     </div>
 }
-
-@foreach (var debate in _debates)
+else
 {
-    var camps = new[]
-    {
-        ("pour", "🟢 Pour"),
-        ("contre", "🔴 Contre"),
-        ("nuance", "🟡 Nuancé"),
-        ("neutre", "⚪ Neutre")
-    };
+    <div class="browser-toolbar">
+        <input type="search" class="search-input"
+               placeholder="🔍 Rechercher un débat (sujet)…"
+               aria-label="Rechercher un débat"
+               value="@_search" @oninput="OnSearch" />
+        <select @bind="_camp" aria-label="Filtrer les débats par camp">
+            <option value="">Tous les camps</option>
+            <option value="pour">🟢 Pour</option>
+            <option value="contre">🔴 Contre</option>
+            <option value="nuance">🟡 Nuancé</option>
+            <option value="neutre">⚪ Neutre</option>
+        </select>
+        <a class="chip chip-tag" href="/debats/candidats" style="font-size:0.85rem;padding:6px 12px;">🎯 Articles candidats →</a>
+        <span class="result-count">@Filtered.Count débat(s)</span>
+    </div>
 
-    <div class="debate-card">
-        <div class="debate-head">
-            <h2>🥊 @debate.DisplayTopic</h2>
-            <span class="count">@debate.Articles.Count articles</span>
-        </div>
-        <div class="debate-camps">
-            @foreach (var camp in camps)
+    if (Filtered.Count == 0)
+    {
+        <div class="alert alert-warning" role="alert">Aucun débat ne correspond à cette recherche. Modifiez les critères ou <a href="/debats/candidats">parcourez les articles candidats</a>.</div>
+    }
+    else
+    {
+        @foreach (var debate in Filtered)
+        {
+            var camps = new[]
             {
-                var articles = debate.Articles
-                    .Where(a => string.Equals(a.Stance, camp.Item1, StringComparison.OrdinalIgnoreCase))
-                    .OrderByDescending(a => a.Article.PublishedAt)
-                    .ToList();
-                if (articles.Count == 0)
-                {
-                    continue;
-                }
-                <div class="debate-camp debate-camp-@camp.Item1">
-                    <h3>@camp.Item2 <span class="count">@articles.Count</span></h3>
-                    @foreach (var link in articles)
+                ("pour", "🟢 Pour"),
+                ("contre", "🔴 Contre"),
+                ("nuance", "🟡 Nuancé"),
+                ("neutre", "⚪ Neutre")
+            };
+
+            <div class="debate-card">
+                <div class="debate-head">
+                    <h2>🥊 @debate.DisplayTopic</h2>
+                    <span class="count">@debate.Articles.Count articles</span>
+                </div>
+                <div class="debate-camps">
+                    @foreach (var camp in camps)
                     {
-                        var sourceName = link.Article.Sources.FirstOrDefault()?.Source.Name;
-                        <div class="debate-article">
-                            <a href="/api/articles/@link.ArticleId/track" target="_blank" rel="noopener">@link.Article.Title</a>
-                            <span class="muted">
-                                @link.Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy")
-                                @if (!string.IsNullOrEmpty(sourceName))
-                                {
-                                    <text>· via @sourceName</text>
-                                }
-                            </span>
+                        var articles = debate.Articles
+                            .Where(a => string.Equals(a.Stance, camp.Item1, StringComparison.OrdinalIgnoreCase))
+                            .OrderByDescending(a => a.Article.PublishedAt)
+                            .ToList();
+                        if (articles.Count == 0)
+                        {
+                            continue;
+                        }
+                        <div class="debate-camp debate-camp-@camp.Item1">
+                            <h3>@camp.Item2 <span class="count">@articles.Count</span></h3>
+                            @foreach (var link in articles)
+                            {
+                                var sourceName = link.Article.Sources.FirstOrDefault()?.Source.Name;
+                                <div class="debate-article">
+                                    <a href="/api/articles/@link.ArticleId/track" target="_blank" rel="noopener">@link.Article.Title</a>
+                                    <span class="muted">
+                                        @link.Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy")
+                                        @if (!string.IsNullOrEmpty(sourceName))
+                                        {
+                                            <text>· via @sourceName</text>
+                                        }
+                                    </span>
+                                </div>
+                            }
                         </div>
                     }
                 </div>
-            }
-        </div>
-    </div>
+            </div>
+        }
+    }
 }
 
 @code {
-    private List<Debate> _debates = new();
+    private List<Debate> _allDebates = new();
+    private string _search = "";
+    private string _camp = "";
+
+    /// <summary>Débats filtrés par texte (sujet) et par camp — calcul en mémoire, liste 30 jours petite.</summary>
+    private List<Debate> Filtered
+    {
+        get
+        {
+            var term = _search.Trim();
+            return _allDebates
+                .Where(d => string.IsNullOrEmpty(term)
+                    || d.DisplayTopic.Contains(term, StringComparison.OrdinalIgnoreCase))
+                .Where(d => string.IsNullOrEmpty(_camp)
+                    || d.Articles.Any(a => string.Equals(a.Stance, _camp, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        }
+    }
+
+    private void OnSearch(ChangeEventArgs e)
+        => _search = e.Value?.ToString() ?? "";
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _debates = await DbContext.Debates.AsNoTracking()
+            _allDebates = await DbContext.Debates.AsNoTracking()
                 .Where(d => d.UpdatedAt >= DateTime.UtcNow.AddDays(-30))
                 .OrderByDescending(d => d.UpdatedAt)
                 .Include(d => d.Articles)

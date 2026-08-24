@@ -1,0 +1,52 @@
+@page "/debats/candidats"
+@using System.Linq.Expressions
+@using Vigie24.Domain.Models
+
+<PageTitle>Articles candidats aux débats - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="Tous les articles analysés avec un sujet et une position (pour, contre, nuancé, neutre) — candidats à la section débats de Vigie24." />
+    @* Outil de recherche, pas une page de contenu : pas d'indexation *@
+    <meta name="robots" content="noindex, follow" />
+    <meta property="og:title" content="Articles candidats aux débats - Vigie24" />
+    <meta property="og:description" content="Parcourez les articles analysés par sujet et position pour alimenter la section débats." />
+    <meta property="og:type" content="website" />
+</HeadContent>
+
+<div class="page-head">
+    <h1>Articles candidats aux débats</h1>
+    <a class="chip chip-tag" href="/debats">← Retour aux débats</a>
+</div>
+<p class="muted">
+    Tous les articles analysés avec un <strong>sujet</strong> et une <strong>position</strong>
+    (🟢 pour, 🔴 contre, 🟡 nuancé, ⚪ neutre) — y compris ceux déjà regroupés en débat
+    (badge 🥊). Filtrez par position ou cherchez un sujet : la recherche plein-texte,
+    le tri et la pagination habituels s'appliquent.
+</p>
+
+<div class="browser-toolbar">
+    <select @bind="_camp" aria-label="Filtrer les articles par position">
+        <option value="">Tous les camps</option>
+        <option value="pour">🟢 Pour</option>
+        <option value="contre">🔴 Contre</option>
+        <option value="nuance">🟡 Nuancé</option>
+        <option value="neutre">⚪ Neutre</option>
+    </select>
+</div>
+
+<ArticleBrowser Filter="@(() => BuildFilter())" ShowStance="true" />
+
+@code {
+    private string _camp = "";
+
+    /// <summary>
+    /// Articles analysés avec un sujet et une position (candidats aux débats, en débat ou non).
+    /// Le camp est capturé dans une variable locale pour un prédicat EF propre.
+    /// </summary>
+    private Expression<Func<Article, bool>> BuildFilter()
+    {
+        var camp = _camp;
+        return a => a.IsPublished
+            && a.Topic != null && a.Topic != ""
+            && (string.IsNullOrEmpty(camp) || a.Stance == camp);
+    }
+}

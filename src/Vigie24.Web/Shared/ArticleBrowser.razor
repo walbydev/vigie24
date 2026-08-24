@@ -126,7 +126,7 @@ else
     <div class="article-grid">
         @foreach (var article in _articles)
         {
-            <ArticleCard Article="@article" MyVote="@(_myVotes.TryGetValue(article.Id, out var myVote) ? myVote : (int?)null)" />
+            <ArticleCard Article="@article" MyVote="@(_myVotes.TryGetValue(article.Id, out var myVote) ? myVote : (int?)null)" ShowStance="ShowStance" />
         }
     </div>
 
@@ -149,6 +149,10 @@ else
     /// <summary>Chemin du flux RSS de ce contexte (ex. "/feed", "/categories/ia/feed").</summary>
     [Parameter]
     public string RssPath { get; set; } = "/feed";
+
+    /// <summary>Transmet l'affichage du badge de position aux cartes (vue candidats débats).</summary>
+    [Parameter]
+    public bool ShowStance { get; set; }
 
     private List<Article> _articles = new();
     private List<DateTime> _dates = new();
