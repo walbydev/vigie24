@@ -122,3 +122,7 @@ Thumbs.db
 Makefile.env
 backups/
 .hermes/
+
+# Python
+__pycache__/
+*.py[cod]
