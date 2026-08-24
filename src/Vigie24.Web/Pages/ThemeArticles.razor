@@ -22,7 +22,7 @@
 else
 {
     <div class="breadcrumb">
-        <a href="/themes">Thématiques</a>
+        <a href="/themes">‹ Toutes les thématiques</a>
         <text> › <strong>@_title</strong></text>
     </div>
 
@@ -30,6 +30,19 @@ else
         <h1>@_title</h1>
         <span class="muted">@_tagCount article(s)</span>
     </div>
+
+    @if (_related.Any())
+    {
+        <div class="related-themes" style="margin:0.5rem 0 1rem;">
+            <span class="muted">Voir aussi :</span>
+            @foreach (var (slug, count) in _related)
+            {
+                <a class="chip chip-tag" style="font-size:0.85rem;padding:4px 10px;" href="/themes/@slug">
+                    @VigieTaxonomy.DisplayName(slug) <span class="count-badge">@count</span>
+                </a>
+            }
+        </div>
+    }
 
     <ArticleBrowser Filter="@BuildFilter" />
 }
@@ -42,6 +55,7 @@ else
     private string _title = "";
     private string _metaDescription = "";
     private int _tagCount;
+    private List<(string Slug, int Count)> _related = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -58,6 +72,18 @@ else
         _metaDescription = $"Articles sur le thème {_title} — veille technologique francophone Vigie24.";
         _tagCount = await DbContext.Articles
             .CountAsync(a => a.IsPublished && a.Tags.Any(t => t.TagId == _tag.Id));
+
+        // Related themes: other tags co-occurring on the articles of this theme (top 8)
+        var related = await DbContext.ArticleTags.AsNoTracking()
+            .Where(at => at.Article.IsPublished
+                      && at.Article.Tags.Any(t => t.TagId == _tag.Id)
+                      && at.TagId != _tag.Id)
+            .GroupBy(at => at.Tag!.Slug)
+            .Select(g => new { Slug = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .Take(8)
+            .ToListAsync();
+        _related = related.Select(x => (x.Slug, x.Count)).ToList();
     }
 
     /// <summary>Base filter: published articles of the theme (search/sort/pagination handled by ArticleBrowser)</summary>
