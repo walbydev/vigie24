@@ -400,10 +400,14 @@
             border: 1px solid var(--border-strong); border-radius: 20px; padding: 8px 16px; font-size: 0.9rem;
             background: var(--surface); color: var(--text);
         }
-        .browser-toolbar select {
+        .browser-toolbar select, .advanced-filters select {
             border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 10px; font-size: 0.9rem;
             background: var(--surface); color: var(--text);
         }
+        /* Réglette d'anxiété (barre d'outils principale, version compacte) */
+        .toolbar-slider { display: flex; align-items: center; gap: 8px; }
+        .toolbar-slider label { font-size: 0.85rem; color: var(--text); white-space: nowrap; }
+        .toolbar-slider input[type=range] { width: 110px; accent-color: var(--accent); }
         .result-count { font-size: 0.85rem; color: var(--text-muted); margin-left: auto; white-space: nowrap; }
 
         /* ===== Filtres avancés ===== */

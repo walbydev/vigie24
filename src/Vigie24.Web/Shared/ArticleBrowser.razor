@@ -14,8 +14,8 @@
 @inject IJSRuntime JS
 @inject ILogger<ArticleBrowser> Logger
 
-@* Navigation d'articles : recherche plein-texte, pays, tri, plage de dates, pagination.
-   Filtres avancés (sources, score min, note min) dans un panneau dépliable.
+@* Navigation d'articles : recherche plein-texte, tri, réglette d'anxiété, plage de dates, pagination.
+   Filtres avancés (pays, score min, note min) dans un panneau dépliable.
    Les requêtes sont exécutées en base (EF Core) sur un contexte dédié. *@
 
 <div class="browser-toolbar">
@@ -23,13 +23,6 @@
            placeholder="🔍 Rechercher : titre, résumé, source, thème…"
            aria-label="Rechercher dans les articles"
            value="@SearchText" @oninput="OnSearchInput" />
-    <select @bind="_country" @bind:after="OnCountryChanged" aria-label="Filtrer par pays d'origine">
-        <option value="">🌍 Tous les pays</option>
-        @foreach (var c in _availableCountries)
-        {
-            <option value="@c">@CountryInfo.Display(c)</option>
-        }
-    </select>
     <select @bind="SortField" @bind:after="OnFilterChanged" aria-label="Trier les articles">
         <option value="date">Tri : plus récents</option>
         <option value="dateAsc">Tri : plus anciens</option>
@@ -49,6 +42,10 @@
         <option value="50">50 / page</option>
         <option value="100">100 / page</option>
     </select>
+    <div class="toolbar-slider" title="Plafonner le score d'anxiété des articles (0 = non anxiogène uniquement, 10 = aucun filtre)">
+        <label for="max-anxiety">Anxiété max : <span class="af-value">@(_maxAnxiety < 10 ? _maxAnxiety.ToString() : "—")</span></label>
+        <input id="max-anxiety" type="range" min="0" max="10" step="1" @bind="_maxAnxiety" @bind:after="OnFilterChanged" />
+    </div>
     <button class="btn-toggle @(_advancedOpen ? "open" : "")" @onclick="ToggleAdvanced"
             aria-expanded="@_advancedOpen" aria-controls="advanced-filters">
         @(_advancedOpen ? "▲ Filtres avancés" : "▼ Filtres avancés")
@@ -71,28 +68,20 @@
 {
     <div id="advanced-filters" class="advanced-filters">
         <div class="af-group">
-            <label id="lbl-sources">Sources</label>
-            <div class="af-chips" role="group" aria-labelledby="lbl-sources">
-                @foreach (var s in _availableSources)
+            <label id="lbl-country" for="country-select">Pays d'origine</label>
+            <select id="country-select" @bind="_country" @bind:after="OnCountryChanged" aria-labelledby="lbl-country">
+                <option value="">🌍 Tous les pays</option>
+                @foreach (var c in _availableCountries)
                 {
-                    <button class="af-chip @(_selectedSources.Contains(s) ? "active" : "")"
-                            @onclick="() => ToggleSourceAsync(s)"
-                            aria-pressed="@(_selectedSources.Contains(s))">@s</button>
+                    <option value="@c">@CountryInfo.Display(c)</option>
                 }
-            </div>
+            </select>
         </div>
         <div class="af-group">
             <label for="min-score">Score minimum : <span class="af-value">@(_minScore > 0 ? _minScore.ToString() : "—")</span></label>
             <div class="af-range">
                 <input id="min-score" type="range" min="0" max="100" step="5" @bind="_minScore" @bind:after="OnFilterChanged" />
                 <span class="muted">0 = aucun filtre</span>
-            </div>
-        </div>
-        <div class="af-group">
-            <label for="max-anxiety">Anxiété max : <span class="af-value">@(_maxAnxiety < 10 ? _maxAnxiety.ToString() : "—")</span></label>
-            <div class="af-range">
-                <input id="max-anxiety" type="range" min="0" max="10" step="1" @bind="_maxAnxiety" @bind:after="OnFilterChanged" />
-                <span class="muted">10 = aucun filtre · 0 = non anxiogène uniquement</span>
             </div>
         </div>
         <div class="af-group">
@@ -165,7 +154,6 @@ else
     private List<DateTime> _dates = new();
     private Dictionary<Guid, int> _myVotes = new();
     private List<string> _availableCountries = new();
-    private List<string> _availableSources = new();
     private int _totalCount;
     private int _totalPages = 1;
     private int _page = 1;
@@ -178,6 +166,8 @@ else
     private bool _advancedOpen;
     private string _country = "";                       // "" = tous les pays
     private string _sourceKind = "";                    // "" = tous ; youtube | reddit | press | bloglab
+    // Conservé pour la compatibilité des liens partagés/RSS (?source=…) — plus d'UI associée depuis
+    // le retrait du bloc « Sources » des filtres avancés.
     private readonly HashSet<string> _selectedSources = new();
     private int _minScore;                              // 0 = aucun filtre
     private int _minRating;                             // 0 = aucune note minimale
@@ -275,7 +265,7 @@ else
         }
     }
 
-    /// <summary>Lists of countries and sources available for the current (category / theme) context</summary>
+    /// <summary>List of countries available for the current (category / theme) context</summary>
     private async Task LoadContextAsync()
     {
         try
@@ -290,17 +280,10 @@ else
                 .Distinct()
                 .OrderBy(c => c)
                 .ToListAsync();
-
-            _availableSources = await db.Articles.AsNoTracking().Where(filter)
-                .SelectMany(a => a.Sources)
-                .Select(s => s.Source.Name)
-                .Distinct()
-                .OrderBy(n => n)
-                .ToListAsync();
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Impossible de charger les pays/sources disponibles");
+            Logger.LogWarning(ex, "Impossible de charger les pays disponibles");
         }
     }
 
@@ -419,14 +402,6 @@ else
     {
         _advancedOpen = !_advancedOpen;
         return Task.CompletedTask;
-    }
-
-    private async Task ToggleSourceAsync(string name)
-    {
-        if (!_selectedSources.Add(name)) _selectedSources.Remove(name);
-        _page = 1;
-        await LoadAsync();
-        ScheduleFilterSave();
     }
 
     private async Task SetMinRatingAsync(int rating)
