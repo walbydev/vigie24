@@ -199,7 +199,7 @@ app.MapGet("/api/articles/{id:guid}/track", async (Guid id, Vigie24DbContext db)
 // Les deux acceptent les query params des filtres (mêmes critères que l'UI ArticleBrowser) :
 // q, country, kind, sources, minScore, minRating, from, to. Une query mal formée → 400.
 // Le canal "link" utilise le schéma détecté (https derrière Caddy grâce à UseForwardedHeaders).
-const int RssFeedSize = 50;
+// La construction des flux (filtres + tri + limite) est partagée via RssFeedService.
 
 app.MapGet("/feed", async (Vigie24DbContext db, HttpContext http) =>
 {
@@ -207,13 +207,7 @@ app.MapGet("/feed", async (Vigie24DbContext db, HttpContext http) =>
         return Results.BadRequest(new { error = "Query string de filtres invalide." });
 
     var baseUrl = $"{http.Request.Scheme}://{http.Request.Host}";
-    var articles = await db.Articles
-        .Where(a => a.IsPublished)
-        .ApplyFilterCriteria(criteria)
-        .OrderByDescending(a => a.PublishedAt)
-        .Take(RssFeedSize)
-        .Select(a => new RssItem(a.Title, a.CanonicalUrl, a.Summary, a.PublishedAt, a.CanonicalUrl))
-        .ToListAsync();
+    var articles = await RssFeedService.GetItemsAsync(db, criteria);
 
     var xml = RssFeedBuilder.Build(
         "Vigie24 — Surveillance RSS et analyse IA",
@@ -235,16 +229,7 @@ app.MapGet("/categories/{slug}/feed", async (string slug, Vigie24DbContext db, H
         return Results.BadRequest(new { error = "Query string de filtres invalide." });
 
     var baseUrl = $"{http.Request.Scheme}://{http.Request.Host}";
-    var articles = await db.Articles
-        .Where(a => a.IsPublished
-                    && a.Category != null
-                    && (a.Category.Slug == slug
-                        || (a.Category.ParentCategory != null && a.Category.ParentCategory.Slug == slug)))
-        .ApplyFilterCriteria(criteria)
-        .OrderByDescending(a => a.PublishedAt)
-        .Take(RssFeedSize)
-        .Select(a => new RssItem(a.Title, a.CanonicalUrl, a.Summary, a.PublishedAt, a.CanonicalUrl))
-        .ToListAsync();
+    var articles = await RssFeedService.GetItemsAsync(db, criteria, slug);
 
     var xml = RssFeedBuilder.Build(
         $"Vigie24 — {VigieTaxonomy.DisplayName(slug)}",
