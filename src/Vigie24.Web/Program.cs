@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Vigie24.Domain;
 using Vigie24.Domain.Models;
 using Vigie24.Infrastructure.Data;
+using Vigie24.Infrastructure.Queries;
 using Vigie24.Services;
 using Vigie24.Services.Implementations;
 using Vigie24.Services.Interfaces;
@@ -195,14 +196,20 @@ app.MapGet("/api/articles/{id:guid}/track", async (Guid id, Vigie24DbContext db)
 // ===== Flux RSS 2.0 (abonnement) =====
 // /feed                     → les 50 derniers articles publiés, toutes catégories
 // /categories/{slug}/feed   → les 50 derniers articles publiés de la catégorie (et ses sous-catégories)
+// Les deux acceptent les query params des filtres (mêmes critères que l'UI ArticleBrowser) :
+// q, country, kind, sources, minScore, minRating, from, to. Une query mal formée → 400.
 // Le canal "link" utilise le schéma détecté (https derrière Caddy grâce à UseForwardedHeaders).
 const int RssFeedSize = 50;
 
 app.MapGet("/feed", async (Vigie24DbContext db, HttpContext http) =>
 {
+    if (!FilterCriteria.TryParse(http.Request.QueryString.Value, out var criteria))
+        return Results.BadRequest(new { error = "Query string de filtres invalide." });
+
     var baseUrl = $"{http.Request.Scheme}://{http.Request.Host}";
     var articles = await db.Articles
         .Where(a => a.IsPublished)
+        .ApplyFilterCriteria(criteria)
         .OrderByDescending(a => a.PublishedAt)
         .Take(RssFeedSize)
         .Select(a => new RssItem(a.Title, a.CanonicalUrl, a.Summary, a.PublishedAt, a.CanonicalUrl))
@@ -214,6 +221,7 @@ app.MapGet("/feed", async (Vigie24DbContext db, HttpContext http) =>
         "Veille technologique francophone (France, Suisse, Belgique, Québec, Luxembourg) — articles sélectionnés et analysés par IA.",
         articles);
 
+    http.Response.Headers.CacheControl = "public, max-age=300";
     return Results.Content(xml, "application/rss+xml; charset=utf-8");
 });
 
@@ -223,12 +231,16 @@ app.MapGet("/categories/{slug}/feed", async (string slug, Vigie24DbContext db, H
     if (category is null)
         return Results.NotFound();
 
+    if (!FilterCriteria.TryParse(http.Request.QueryString.Value, out var criteria))
+        return Results.BadRequest(new { error = "Query string de filtres invalide." });
+
     var baseUrl = $"{http.Request.Scheme}://{http.Request.Host}";
     var articles = await db.Articles
         .Where(a => a.IsPublished
                     && a.Category != null
                     && (a.Category.Slug == slug
                         || (a.Category.ParentCategory != null && a.Category.ParentCategory.Slug == slug)))
+        .ApplyFilterCriteria(criteria)
         .OrderByDescending(a => a.PublishedAt)
         .Take(RssFeedSize)
         .Select(a => new RssItem(a.Title, a.CanonicalUrl, a.Summary, a.PublishedAt, a.CanonicalUrl))
@@ -240,6 +252,7 @@ app.MapGet("/categories/{slug}/feed", async (string slug, Vigie24DbContext db, H
         $"Vigie24 — articles de la catégorie {VigieTaxonomy.DisplayName(slug)}.",
         articles);
 
+    http.Response.Headers.CacheControl = "public, max-age=300";
     return Results.Content(xml, "application/rss+xml; charset=utf-8");
 });
 
@@ -323,3 +336,6 @@ app.Run();
 
 /// <summary>Corps de requête du vote : { value: 0..5 }</summary>
 public record VoteRequest(int Value);
+
+/// <summary>Point d'entrée exposé pour WebApplicationFactory (tests d'intégration HTTP).</summary>
+public partial class Program;
