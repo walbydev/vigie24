@@ -20,11 +20,11 @@ services:
 
   vigie24-worker:
     build:
-      context: .
+      context: ../..
       dockerfile: src/Vigie24.Worker/Dockerfile
       target: final
     container_name: vigie24-worker-staging
-    env_file: .env.staging
+    env_file: .env
     environment:
       - ASPNETCORE_ENVIRONMENT=Staging
       - DOTNET_ENVIRONMENT=Staging
@@ -33,6 +33,8 @@ services:
       - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
       - AiService__Model=${AI_MODEL:-llama-3.1-70b}
       - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_staging};Username=${DB_USER:-postgres_staging};Password=${DB_PASSWORD}
+    volumes:
+      - ./appsettings.Staging.json:/app/appsettings.Staging.json:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,11 +44,11 @@ services:
 
   vigie24-web:
     build:
-      context: .
+      context: ../..
       dockerfile: src/Vigie24.Web/Dockerfile
       target: final
     container_name: vigie24-web-staging
-    env_file: .env.staging
+    env_file: .env
     environment:
       - ASPNETCORE_ENVIRONMENT=Staging
       - DOTNET_ENVIRONMENT=Staging
@@ -56,6 +58,8 @@ services:
       - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
       - AiService__Model=${AI_MODEL:-llama-3.1-70b}
       - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_staging};Username=${DB_USER:-postgres_staging};Password=${DB_PASSWORD}
+    volumes:
+      - ./appsettings.Staging.json:/app/appsettings.Staging.json:ro
     ports:
       - "80:8080"
     depends_on:

@@ -1,9 +1,8 @@
-
-# Override configuration for debugging
+# Override configuration for debugging (docker compose -f docker-compose.yml -f docker-compose.debug.yml)
 services:
   vigie24-web:
     build:
-      context: .
+      context: ../..
       dockerfile: src/Vigie24.Web/Dockerfile.Debug
     container_name: vigie24-web-debug
     environment:
@@ -14,6 +13,8 @@ services:
       - AiService__Provider=infomaniak
       - AiService__ApiUrl=https://api.infomaniak.com
       # - AiService__ApiKey= (empty = use MockAiService for dev)
+    volumes:
+      - ./appsettings.Development.json:/app/appsettings.Development.json:ro
     ports:
       - "5000:8080"
       - "55555:8000"  # Debug port
@@ -28,7 +29,7 @@ services:
 
   vigie24-worker:
     build:
-      context: .
+      context: ../..
       dockerfile: src/Vigie24.Worker/Dockerfile.Debug
     container_name: vigie24-worker-debug
     environment:
@@ -38,9 +39,11 @@ services:
       - AiService__Provider=infomaniak
       - AiService__ApiUrl=https://api.infomaniak.com
       # - AiService__ApiKey= (empty = use MockAiService for dev)
-      - FeedReader__PollingIntervalMinutes=60  # 60 min pour éviter le rate limiting
-      - FeedReader__HttpTimeoutSeconds=30  # Timeout plus long pour les flux lents
-      - FeedReader__ExcludeDomains=youtube.com,youtu.be  # Exclure YouTube en dev
+      - FeedReader__PollingIntervalMinutes=60  # 60 min to avoid rate limiting
+      - FeedReader__HttpTimeoutSeconds=30  # Longer timeout for slow feeds
+      - FeedReader__ExcludeDomains=youtube.com,youtu.be  # Exclude YouTube in dev
+    volumes:
+      - ./appsettings.Development.json:/app/appsettings.Development.json:ro
     depends_on:
       postgres:
         condition: service_healthy
