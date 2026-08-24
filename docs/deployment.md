@@ -44,3 +44,12 @@ Useful targets: `make prod-ps`, `make prod-logs`, `make prod-down`, `make prod-b
 - [ ] `make staging-pub` → `curl` the site (200)
 - [ ] Logs clean (`docker compose logs` — no `A second operation` Blazor concurrency bursts; reload the page 3-4× before concluding)
 - [ ] `libgssapi_krb5.so.2` warnings in container logs are benign (Kerberos probe) — check `RestartCount` and the site instead
+
+## Known pitfall: tar deploys never delete removed files
+
+The tar-based deploy overlays files but **never removes files that were deleted/renamed in git**. After a rename or delete in the repo, the stale file stays on the remote host and can break the build (e.g. a renamed `.razor` page caused an ambiguous-route 500). Fix once on the remote host:
+
+```bash
+ssh <STAGING_HOST> "find ~/vigie24 -name '<OldFileName>' -delete"
+make staging-pub
+```
