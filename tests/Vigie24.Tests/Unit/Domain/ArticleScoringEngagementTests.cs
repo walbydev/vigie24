@@ -3,7 +3,7 @@ using Vigie24.Domain;
 namespace Vigie24.Tests.Unit.Domain;
 
 /// <summary>
-/// Tests unitaires du score d'engagement (votes 0-5 + clics) et de son intégration
+/// Unit tests for the engagement score (0-5 votes + clicks) and its integration
 /// dans le score de classement (Vigie24.Domain.ArticleScoring).
 /// </summary>
 public class ArticleScoringEngagementTests
@@ -17,7 +17,7 @@ public class ArticleScoringEngagementTests
     [Fact]
     public void VotesOnly_PerfectAverage_ShouldReturnSixty()
     {
-        // 5 votes à 5/5 → composante vote 100 × 0,6 = 60
+        // 5 votes at 5/5 → vote component 100 × 0.6 = 60
         Assert.Equal(60m, ArticleScoring.CalculateEngagementScore(5, 5m, 0));
     }
 

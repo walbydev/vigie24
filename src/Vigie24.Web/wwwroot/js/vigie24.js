@@ -1,7 +1,7 @@
-// Vigie24 — helpers navigateur partagés.
+// Vigie24 — shared browser helpers.
 window.vigie24 = window.vigie24 || {
-    // Copie du texte dans le presse-papiers, avec repli pour les contextes non sécurisés
-    // (http:// sur le staging) où navigator.clipboard n'existe pas.
+    // Copies text to the clipboard, with a fallback for non-secure contexts
+    // (http:// on staging) where navigator.clipboard does not exist.
     copyText: async function (text) {
         try {
             if (navigator.clipboard && window.isSecureContext) {

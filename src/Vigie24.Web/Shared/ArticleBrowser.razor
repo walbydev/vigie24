@@ -139,8 +139,8 @@ else
 
 @code {
     /// <summary>
-    /// Prédicat de base fourni par la page (articles publiés, catégorie, thème).
-    /// ArticleBrowser exécute ses requêtes sur son propre DbContext (factory) pour
+    /// Base predicate provided by the page (published articles, category, theme).
+    /// ArticleBrowser runs its queries on its own DbContext (factory) to
     /// ne jamais entrer en concurrence avec le contexte scoped de la page parente.
     /// </summary>
     [Parameter]
@@ -150,7 +150,7 @@ else
     [Parameter]
     public string RssPath { get; set; } = "/feed";
 
-    /// <summary>Transmet l'affichage du badge de position aux cartes (vue candidats débats).</summary>
+    /// <summary>Forwards the stance badge display to the cards (debate candidates view).</summary>
     [Parameter]
     public bool ShowStance { get; set; }
 
@@ -194,8 +194,8 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        // Recharge uniquement si le filtre (catégorie / thème) change réellement
-        // (le premier jeu de paramètres est couvert par OnInitializedAsync).
+        // Reload only when the filter (category / theme) actually changes
+        // (the first parameter set is covered by OnInitializedAsync).
         if (!_initialized) return;
         if (!ReferenceEquals(Filter, _lastFilter))
         {
@@ -208,7 +208,7 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Restauration locale UNIQUEMENT après le premier rendu interactif : pendant le
+        // Local restore ONLY after the first interactive render: during
         // prerender, ProtectedLocalStorage est indisponible et le HTML initial doit rester
         // identique client/serveur. Une URL explicite prime sur la sauvegarde.
         if (!firstRender || _urlHadFilters)
@@ -216,7 +216,7 @@ else
         await RestoreSavedFiltersAsync();
     }
 
-    /// <summary>Restaure les derniers filtres mémorisés sur cet appareil (ProtectedLocalStorage).</summary>
+    /// <summary>Restores the last filters remembered on this device (ProtectedLocalStorage).</summary>
     private async Task RestoreSavedFiltersAsync()
     {
         try
@@ -236,7 +236,7 @@ else
         }
     }
 
-    /// <summary>Planifie une sauvegarde locale debouncée (1 s après le dernier changement).</summary>
+    /// <summary>Schedules a debounced local save (1 s after the last change).</summary>
     private void ScheduleFilterSave()
     {
         _saveCts?.Cancel();
@@ -259,7 +259,7 @@ else
         }
         catch (OperationCanceledException)
         {
-            // un changement plus récent a pris la main
+            // a more recent change took over
         }
         catch (Exception ex)
         {
@@ -267,7 +267,7 @@ else
         }
     }
 
-    /// <summary>Listes des pays et sources disponibles pour le contexte (catégorie / thème) courant</summary>
+    /// <summary>Lists of countries and sources available for the current (category / theme) context</summary>
     private async Task LoadContextAsync()
     {
         try
@@ -300,7 +300,7 @@ else
         => q.ApplyFilterCriteria(BuildCriteria());
 
     /// <summary>
-    /// Critères courants du composant, source de vérité partagée avec les flux RSS.
+    /// Current component criteria, single source of truth shared with RSS feeds.
     /// Le tri et la pagination restent propres au composant (le RSS trie par date).
     /// </summary>
     private FilterCriteria BuildCriteria() => new()
@@ -318,8 +318,8 @@ else
     };
 
     /// <summary>
-    /// Applique les filtres portés par la query string de l'URL (lien partagé / bookmark).
-    /// Une query mal formée est ignorée (l'UI reste tolérante, contrairement au RSS qui répond 400).
+    /// Applies the filters carried by the URL query string (shared link / bookmark).
+    /// A malformed query is ignored (the UI stays tolerant, unlike the RSS which answers 400).
     /// </summary>
     private void ApplyUrlFilters()
     {
@@ -330,7 +330,7 @@ else
         _urlHadFilters = true;
     }
 
-    /// <summary>Hydrate l'état du composant depuis des critères (URL ou sauvegarde locale).</summary>
+    /// <summary>Hydrates the component state from criteria (URL or local save).</summary>
     private void ApplyCriteria(FilterCriteria criteria)
     {
         SearchText = criteria.SearchText ?? "";
@@ -359,7 +359,7 @@ else
     {
         SearchText = e.Value?.ToString() ?? "";
 
-        // Debounce 400 ms pour ne pas marteler la base à chaque frappe
+        // 400 ms debounce to avoid hammering the database on every keystroke
         _searchCts?.Cancel();
         _searchCts = new CancellationTokenSource();
         var cts = _searchCts;
@@ -473,13 +473,13 @@ else
 
     private async Task LoadAsync()
     {
-        // Sémaphore : un seul chargement à la fois sur le DbContext dédié,
-        // même pendant le prerender où les continuations s'exécutent sur le pool.
+        // Semaphore: only one load at a time on the dedicated DbContext,
+        // even during prerender when continuations run on the pool.
         await _loadLock.WaitAsync();
         var version = ++_loadVersion;
         try
         {
-            // Contexte dédié : aucune concurrence avec le DbContext scoped de la page.
+            // Dedicated context: no concurrency with the page's scoped DbContext.
             await using var db = await DbFactory.CreateDbContextAsync();
 
             var filtered = ApplyFilters(db.Articles.Where(Filter()));
@@ -507,7 +507,7 @@ else
             var articles = await pageQuery.ToListAsync();
             if (version != _loadVersion) return;
 
-            // Votes du visiteur pour la page affichée (une seule requête groupée)
+            // Visitor's votes for the displayed page (one batched query)
             var myVotes = await Engagement.GetMyVotesAsync(articles.Select(a => a.Id).ToList());
             if (version != _loadVersion) return;
 

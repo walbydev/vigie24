@@ -117,3 +117,12 @@ Thumbs.db
 .env.production
 .env.mock
 .env.staging
+
+# Local deployment config + backups
+Makefile.env
+backups/
+.hermes/
+
+# Python
+__pycache__/
+*.py[cod]

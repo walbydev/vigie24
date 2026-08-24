@@ -1,42 +1,42 @@
 namespace Vigie24.Domain;
 
-/// <summary>Niveau de santé global du système.</summary>
+/// <summary>Overall system health level.</summary>
 public enum HealthLevel
 {
-    /// <summary>Tout fonctionne : ingestion récente et fournisseur IA joignable.</summary>
+    /// <summary>Everything works: recent ingestion and reachable AI provider.</summary>
     Ok,
 
-    /// <summary>Fonctionnement dégradé : ingestion ancienne (mais pas critique).</summary>
+    /// <summary>Degraded: stale ingestion (but not critical).</summary>
     Degraded,
 
-    /// <summary>Hors ligne : pas d'ingestion depuis longtemps ou fournisseur IA injoignable.</summary>
+    /// <summary>Offline: no ingestion for a long time or unreachable AI provider.</summary>
     Offline,
 }
 
 /// <summary>
-/// Logique pure d'évaluation de l'état de santé (sans infrastructure, testable).
+/// Pure health evaluation logic (no infrastructure, testable).
 /// </summary>
 public static class HealthEvaluator
 {
     /// <summary>
-    /// Évalue le niveau de santé à partir de la fraîcheur de l'ingestion et de
-    /// la disponibilité du fournisseur IA.
+    /// Evaluates the health level from the freshness of ingestion and
+    /// the availability of the AI provider.
     /// </summary>
-    /// <param name="lastIngestionUtc">Date UTC du dernier article ingéré (null = aucun).</param>
-    /// <param name="providerHealthy">Le fournisseur IA répond-il ?</param>
-    /// <param name="okThreshold">Âge max pour un état « Opérationnel ».</param>
-    /// <param name="degradedThreshold">Âge max pour un état « Dégradé » (au-delà : hors ligne).</param>
+    /// <param name="lastIngestionUtc">UTC date of the last ingested article (null = none).</param>
+    /// <param name="providerHealthy">Is the AI provider responding?</param>
+    /// <param name="okThreshold">Max age for an "Operational" state.</param>
+    /// <param name="degradedThreshold">Max age for a "Degraded" state (beyond: offline).</param>
     public static HealthLevel Evaluate(
         DateTime? lastIngestionUtc,
         bool providerHealthy,
         TimeSpan okThreshold,
         TimeSpan degradedThreshold)
     {
-        // Fournisseur injoignable → hors ligne, quelle que soit la fraîcheur des données.
+        // Unreachable provider → offline, regardless of data freshness.
         if (!providerHealthy)
             return HealthLevel.Offline;
 
-        // Aucun article jamais ingéré → rien ne prouve que le système fonctionne.
+        // No article ever ingested → nothing proves the system works.
         if (lastIngestionUtc is not { } last)
             return HealthLevel.Offline;
 
@@ -48,7 +48,7 @@ public static class HealthEvaluator
         return HealthLevel.Ok;
     }
 
-    /// <summary>Formate un âge en français : « il y a 12 min », « il y a 3 h 05 », « il y a 2 j ».</summary>
+    /// <summary>Formats an age in French: "il y a 12 min", "il y a 3 h 05", "il y a 2 j".</summary>
     public static string FormatAge(TimeSpan age)
     {
         if (age < TimeSpan.FromMinutes(1))

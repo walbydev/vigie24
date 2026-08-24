@@ -1,7 +1,7 @@
 namespace Vigie24.Tests.Unit.Domain;
 
 /// <summary>
-/// Tests unitaires pour les modèles du domaine
+/// Unit tests for the domain models
 /// </summary>
 public class ArticleTests
 {
@@ -58,7 +58,7 @@ public class ArticleTests
 }
 
 /// <summary>
-/// Tests pour le modèle Source
+/// Tests for the Source model
 /// </summary>
 public class SourceTests
 {
@@ -107,7 +107,7 @@ public class SourceTests
 }
 
 /// <summary>
-/// Tests pour le modèle Category
+/// Tests for the Category model
 /// </summary>
 public class CategoryTests
 {
@@ -149,7 +149,7 @@ public class CategoryTests
 }
 
 /// <summary>
-/// Tests pour le modèle Tag
+/// Tests for the Tag model
 /// </summary>
 public class TagTests
 {

@@ -91,7 +91,7 @@ else
     {
         try
         {
-            // Les trois périodes sont préchargées une fois ; le sélecteur ne fait que re-rendre.
+            // All three periods are preloaded once; the selector only re-renders.
             _reports[7] = await CostReportService.GetAsync(
                 DbContext, 7, CostGrouping.Daily,
                 AiSettings.InputPricePerMillionTokens, AiSettings.OutputPricePerMillionTokens);
@@ -114,7 +114,7 @@ else
     private MarkupString BuildCostChart(IReadOnlyList<CostPoint> points)
         => BuildBarChart(points, p => p.CostChf, "chf", "Coût en CHF");
 
-    /// <summary>Graphique en barres SVG pur (aucune dépendance JS/CDN), stylé par les variables de thème.</summary>
+    /// <summary>Pure SVG bar chart (no JS/CDN dependency), styled by theme variables.</summary>
     private MarkupString BuildBarChart(IReadOnlyList<CostPoint> points, Func<CostPoint, decimal> value, string cssClass, string ariaLabel)
     {
         var sb = new StringBuilder();
@@ -145,7 +145,7 @@ else
             sb.Append("</rect>");
         }
 
-        // Étiquettes de dates : première, médiane, dernière (évite l'encombrement)
+        // Date labels: first, median, last (avoids clutter)
         var labelIndexes = new[] { 0, points.Count / 2, points.Count - 1 }.Distinct().ToArray();
         foreach (var i in labelIndexes)
         {
@@ -163,7 +163,7 @@ else
     private static string FormatCost(decimal cost)
         => cost >= 0.01m ? cost.ToString("0.00", Culture) : cost.ToString("0.0000", Culture);
 
-    /// <summary>Valeur max compacte : 12,4 k / 1,2 M (barre de référence de l'axe).</summary>
+    /// <summary>Compact max value: 12.4 k / 1.2 M (axis reference bar).</summary>
     private static string FormatCompact(decimal v)
         => v >= 1_000_000m
             ? (v / 1_000_000m).ToString("0.0", Culture) + " M"

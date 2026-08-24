@@ -1,37 +1,37 @@
 namespace Vigie24.Services.Interfaces;
 
 /// <summary>
-/// Configuration du service IA
+/// AI service configuration
 /// </summary>
 public class AiServiceSettings
 {
-    /// <summary>Fournisseur IA à utiliser : "infomaniak" ou "deepseek"</summary>
+    /// <summary>AI provider to use: "infomaniak" or "deepseek"</summary>
     public string Provider { get; set; } = "infomaniak";
     
-    /// <summary>URL de l'API IA</summary>
+    /// <summary>AI API URL</summary>
     public string ApiUrl { get; set; } = "https://api.infomaniak.com";
     
-    /// <summary>Clé API</summary>
+    /// <summary>API key</summary>
     public string ApiKey { get; set; } = string.Empty;
     
-    /// <summary>Modèle à utiliser (ex: "gpt-4o-mini", "deepseek-v3", "llama-3.1-70b")</summary>
+    /// <summary>Model to use (e.g. "gpt-4o-mini", "deepseek-v3", "llama-3.1-70b")</summary>
     public string Model { get; set; } = string.Empty;
     
-    /// <summary>Timeout en secondes pour les appels API</summary>
+    /// <summary>Timeout in seconds for API calls</summary>
     public int TimeoutSeconds { get; set; } = 30;
     
-    /// <summary>Température pour la génération (0 = précis, 1 = créatif)</summary>
+    /// <summary>Temperature for generation (0 = precise, 1 = creative)</summary>
     public decimal Temperature { get; set; } = 0.3m;
     
-    /// <summary>Nombre maximum de tokens dans la réponse</summary>
+    /// <summary>Maximum number of tokens in the response</summary>
     public int MaxTokens { get; set; } = 1024;
 
-    /// <summary>Prix d'entrée en CHF par million de tokens (pour l'estimation du coût quotidien)</summary>
+    /// <summary>Input price in CHF per million tokens (for daily cost estimation)</summary>
     public decimal InputPricePerMillionTokens { get; set; } = 0.20m;
 
-    /// <summary>Prix de sortie en CHF par million de tokens (pour l'estimation du coût quotidien)</summary>
+    /// <summary>Output price in CHF per million tokens (for daily cost estimation)</summary>
     public decimal OutputPricePerMillionTokens { get; set; } = 0.40m;
 
-    /// <summary>Modèle d'embedding pour le rapprochement sémantique (débats)</summary>
+    /// <summary>Embedding model for semantic matching (debates)</summary>
     public string EmbeddingModel { get; set; } = "bge_multilingual_gemma2";
 }

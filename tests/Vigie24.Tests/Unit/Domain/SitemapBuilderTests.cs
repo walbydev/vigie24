@@ -5,7 +5,7 @@ namespace Vigie24.Tests.Unit.Domain;
 
 /// <summary>
 /// Tests du SitemapBuilder : couverture des slugs (taxonomie + pages statiques),
-/// exclusion des URL non indexables, priorités et lastmod.
+/// exclusion of non-indexable URLs, priorities and lastmod.
 /// </summary>
 public class SitemapBuilderTests
 {

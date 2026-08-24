@@ -128,7 +128,7 @@ public class AiServiceSettingsTests
     [InlineData(-1)]
     public void AiServiceSettings_WithInvalidTimeout_ShouldAcceptButMayFailLater(int timeout)
     {
-        // Note: La validation peut être ajoutée si nécessaire
+        // Note: validation can be added if needed
         var settings = new AiServiceSettings
         {
             TimeoutSeconds = timeout

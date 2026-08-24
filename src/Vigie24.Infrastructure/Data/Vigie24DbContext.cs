@@ -74,7 +74,7 @@ public class Vigie24DbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
-        // Configure Debate (mise en parallèle d'articles contradictoires)
+        // Configure Debate (parallel presentation of conflicting articles)
         modelBuilder.Entity<Debate>(entity =>
         {
             entity.ToTable("debates");
@@ -102,7 +102,7 @@ public class Vigie24DbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Configure ArticleEmbedding (vecteur sémantique, table dédiée pour ne pas alourdir articles)
+        // Configure ArticleEmbedding (semantic vector, dedicated table to keep articles lightweight)
         modelBuilder.Entity<ArticleEmbedding>(entity =>
         {
             entity.ToTable("article_embeddings");

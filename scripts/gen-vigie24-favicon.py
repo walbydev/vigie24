@@ -38,7 +38,7 @@ def radar_arc(d, center, radius, width, color, start=40, end=320, steps=220):
         x = center[0] + radius * math.cos(a)
         y = center[1] + radius * math.sin(a)
         pts.append((x, y))
-    # segments courts avec alpha décroissant vers la fin du balayage
+    # short segments with decreasing alpha toward the end of the sweep
     for i in range(len(pts) - 1):
         t = i / (len(pts) - 1)
         alpha = int(255 * (0.35 + 0.65 * (1 - t)))
@@ -50,7 +50,7 @@ def main():
 
     cx, cy = SIZE // 2, SIZE // 2 - 6
 
-    # --- Vagues radar : 3 arcs concentriques (vert-sarcelle, opacité décroissante) ---
+    # --- Radar waves: 3 concentric arcs (teal, decreasing opacity) ---
     for r, w, col in [(132, 10, TEAL_DIM), (172, 9, TEAL_DIM), (212, 8, TEAL_DIM)]:
         radar_arc(d, (cx, cy), r, w, col)
 
@@ -60,10 +60,10 @@ def main():
     sy = cy + 212 * math.sin(sweep)
     d.line([(cx, cy), (sx, sy)], fill=AMBER + (200,), width=6)
 
-    # --- Loupe (vigie) : anneau + manche, blanc cassé ---
+    # --- Magnifying glass (vigie): ring + handle, off-white ---
     lens_r = 78
     ring_w = 20
-    # manche (trait épais incliné à 45° vers bas-droite)
+    # handle (thick stroke tilted 45° toward bottom-right)
     handle_w = 26
     hx1, hy1 = cx + lens_r + 8, cy + lens_r + 8
     hx2, hy2 = hx1 + 92, hy1 + 92
@@ -73,7 +73,7 @@ def main():
     d.ellipse([cx - lens_r, cy - lens_r, cx + lens_r, cy + lens_r],
               outline=CREAM + (255,), width=ring_w)
 
-    # verre légèrement teinté
+    # slightly tinted lens
     glass_r = lens_r - ring_w + 4
     d.ellipse([cx - glass_r, cy - glass_r, cx + glass_r, cy + glass_r],
               fill=(111, 203, 180, 26))

@@ -4,9 +4,9 @@ using Vigie24.Domain.Models;
 namespace Vigie24.Infrastructure.Queries;
 
 /// <summary>
-/// Application des critères de filtrage (FilterCriteria) à une requête d'articles.
-/// Source unique du filtrage : utilisée par l'UI (ArticleBrowser) et les flux RSS
-/// (traduction Npgsql, y compris ILike pour la recherche plein-texte).
+/// Applies the filtering criteria (FilterCriteria) to an article query.
+/// Single source of filtering: used by the UI (ArticleBrowser) and the RSS feeds
+/// (Npgsql translation, including ILike for full-text search).
 /// </summary>
 public static class ArticleFiltering
 {
@@ -22,13 +22,13 @@ public static class ArticleFiltering
                 || a.Sources.Any(s => EF.Functions.ILike(s.Source.Name, pattern)));
         }
 
-        // Le pays affiché est celui de la source primaire
+        // The displayed country is that of the primary source
         if (!string.IsNullOrEmpty(c.CountryCode))
         {
             q = q.Where(a => a.Sources.Any(s => s.IsPrimary && s.Source.CountryCode == c.CountryCode));
         }
 
-        // Type de source : YouTube, Reddit, Presse, Blogs (insensible à la casse)
+        // Source type: YouTube, Reddit, Press, Blogs (case-insensitive)
         if (!string.IsNullOrEmpty(c.SourceKind))
         {
             q = q.Where(a => a.Sources.Any(s => s.Source.SourceKind.ToLower() == c.SourceKind));

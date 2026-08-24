@@ -1,8 +1,8 @@
 namespace Vigie24.Domain;
 
 /// <summary>
-/// Noms de pays en français + drapeau (emoji) à partir d'un code ISO 3166-1 alpha-2
-/// (champ Source.CountryCode). Les codes inconnus affichent 🌐 + le code brut.
+/// Country names in French + flag (emoji) from an ISO 3166-1 alpha-2 code
+/// (Source.CountryCode field). Unknown codes display 🌐 + the raw code.
 /// </summary>
 public static class CountryInfo
 {
@@ -25,7 +25,7 @@ public static class CountryInfo
         ["KE"] = "Kenya", ["NG"] = "Nigéria", ["GH"] = "Ghana"
     };
 
-    /// <summary>Drapeau emoji depuis le code ISO (regional indicators), 🌐 si inconnu</summary>
+    /// <summary>Emoji flag from the ISO code (regional indicators), 🌐 if unknown</summary>
     public static string Flag(string? countryCode)
     {
         if (string.IsNullOrWhiteSpace(countryCode) || countryCode.Length != 2)
@@ -37,11 +37,11 @@ public static class CountryInfo
         return sb.ToString();
     }
 
-    /// <summary>Nom français du pays, sinon le code brut</summary>
+    /// <summary>French country name, otherwise the raw code</summary>
     public static string Name(string? countryCode)
         => countryCode != null && Names.TryGetValue(countryCode, out var name) ? name : countryCode ?? "";
 
-    /// <summary>« 🇫🇷 France » — vide si aucun code</summary>
+    /// <summary>"🇫🇷 France" — empty if no code</summary>
     public static string Display(string? countryCode)
         => string.IsNullOrWhiteSpace(countryCode) ? "" : $"{Flag(countryCode)} {Name(countryCode)}";
 }

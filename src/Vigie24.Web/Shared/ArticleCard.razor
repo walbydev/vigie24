@@ -140,11 +140,11 @@
     [Parameter]
     public Article Article { get; set; } = null!;
 
-    /// <summary>Vote du visiteur courant pour cet article (fourni en lot par ArticleBrowser — une seule requête par page)</summary>
+    /// <summary>Current visitor's vote for this article (batched by ArticleBrowser — one query per page)</summary>
     [Parameter]
     public int? MyVote { get; set; }
 
-    /// <summary>Affiche le badge de position (pour/contre/nuancé/neutre) — utilisé par la vue candidats débats.</summary>
+    /// <summary>Shows the stance badge (for/against/nuanced/neutral) — used by the debate candidates view.</summary>
     [Parameter]
     public bool ShowStance { get; set; }
 
@@ -163,12 +163,12 @@
         ("hardware", "#d97706", "#dc2626"), ("", "#475569", "#64748b")
     };
 
-    // État engagement : agrégats issus de l'entité (déjà chargée) + mon vote fourni par la page
+    // Engagement state: aggregates from the entity (already loaded) + my vote provided by the page
     private EngagementState _state = new(null, 0, 0, 0, 0);
 
     protected override void OnParametersSet()
     {
-        // Illustration de secours : dégradé coloré selon la catégorie + initiale du titre
+        // Fallback illustration: colored gradient by category + title initial
         var catSlug = Article.Category?.Slug ?? "";
         var palette = _palettes.FirstOrDefault(p => catSlug.StartsWith(p.Prefix));
         if (palette.Prefix.Length == 0)
@@ -195,7 +195,7 @@
 
     private void RebuildHint()
     {
-        // Hint « calcul précis » : mêmes formules que le Worker (Vigie24.Domain.ArticleScoring)
+        // "precise score" hint: same formulas as the Worker (Vigie24.Domain.ArticleScoring)
         var rec = ArticleScoring.CalculateRecencyScore(Article.PublishedAt);
         var con = ArticleScoring.CalculateContentScore(Article.Summary);
         var algo = Article.AlgorithmicScore;

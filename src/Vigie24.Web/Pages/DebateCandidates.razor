@@ -39,8 +39,8 @@
     private string _camp = "";
 
     /// <summary>
-    /// Articles analysés avec un sujet et une position (candidats aux débats, en débat ou non).
-    /// Le camp est capturé dans une variable locale pour un prédicat EF propre.
+    /// Analyzed articles with a topic and a stance (debate candidates, in a debate or not).
+    /// The stance is captured in a local variable for a clean EF predicate.
     /// </summary>
     private Expression<Func<Article, bool>> BuildFilter()
     {

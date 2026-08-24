@@ -1,11 +1,11 @@
 #!/bin/bash
 # ============================================
-# Script de réinitialisation complète de Vigie24
+# Complete reset script for Vigie24
 # ============================================
 # Usage: ./scripts/reset-db.sh
 #
-# Ce script supprime toutes les données de la base de données
-# et réinsère les catégories, tags et sources de base.
+# This script deletes all database data
+# and re-inserts the base categories, tags and sources.
 # ============================================
 
 set -e
@@ -17,19 +17,19 @@ SQL_FILE="$SCRIPT_DIR/reset-database.sql"
 echo "🔄 Réinitialisation de la base de données Vigie24..."
 echo ""
 
-# Vérifier que le fichier SQL existe
+# Check that the SQL file exists
 if [ ! -f "$SQL_FILE" ]; then
     echo "❌ Erreur: Fichier SQL non trouvé: $SQL_FILE"
     exit 1
 fi
 
-# Vérifier que Docker Compose est disponible
+# Check that Docker Compose is available
 if ! command -v docker compose &> /dev/null; then
     echo "❌ Erreur: docker compose n'est pas disponible"
     exit 1
 fi
 
-# Exécuter le script SQL
+# Run the SQL script
 cd "$PROJECT_ROOT"
 echo "📝 Exécution du script SQL..."
 cat "$SQL_FILE" | docker compose exec -e PGPASSWORD=postgres postgres psql -U postgres -d vigie24

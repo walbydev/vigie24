@@ -58,7 +58,7 @@ else
             p => p.Id,
             p => all.Where(c => c.ParentCategoryId == p.Id).OrderBy(c => c.Slug).ToList());
 
-        // Compteurs : article classé dans la catégorie OU (catégorie parente) dans une de ses sous-catégories
+        // Counts: article categorized in the category OR (parent category) in one of its subcategories
         var articles = await (
             from a in DbContext.Articles
             join c in DbContext.Categories on a.CategoryId equals c.Id into cj

@@ -8,8 +8,8 @@ Ce document décrit les 4 environnements disponibles pour le projet Vigie24.
 |--------------|-------------|-----|----------|---------|
 | **Development** | Développement actif avec IA réelles | ✅ Réelles | 5000 | 5432 |
 | **Mock** | Tests & démonstration sans APIs | ❌ Mockées | 5001 | 5433 |
-| **Staging** | Préproduction (serveur Debian 192.168.30.160) | ✅ Réelles | 80 | interne |
-| **Production** | Déploiement VPS (futur) | ✅ Réelles | 443 (HTTPS) | interne |
+| **Staging** | Préproduction (serveur Debian <STAGING_HOST>) | ✅ Réelles | 80 | interne |
+| **Production** | VPS public — [vigie24.info](https://vigie24.info) | ✅ Réelles | 443 (HTTPS) | interne |
 
 ---
 
@@ -19,9 +19,9 @@ Ce document décrit les 4 environnements disponibles pour le projet Vigie24.
 Développement actif avec les vraies APIs IA (Infomaniak/DeepSeek) et débogage complet.
 
 ### Fichiers de configuration
-- `.env.development` - Variables d'environnement (secrets, gitignoré)
+- `environments/development/.env` - Variables d'environnement (secrets, gitignoré ; template : `environments/development/.env.example`)
 - `appsettings.Development.json` - Configuration .NET
-- `docker-compose.dev.yml` - Configuration Docker
+- `docker-compose.yml` - Configuration Docker
 
 ### Lancement
 ```bash
@@ -42,12 +42,12 @@ make dev-debug    # avant-plan (logs live)
 ## 🧪 2. Environnement MOCK
 
 ### Objectif
-Tests & démonstration sans aucun appel aux APIs IA — génération d'articles factices (Bogus).
+Tests & démonstration sans aucun appel aux APIs IA — génération d'articles factices (MockAiService).
 
 ### Fichiers de configuration
-- `.env.mock` - Variables d'environnement (pas de secrets requis)
+- `environments/mock/.env` - Variables d'environnement (pas de secrets requis)
 - `appsettings.Mock.json` - Configuration .NET
-- `docker-compose.mock.yml` - Configuration Docker
+- `docker-compose.yml` - Configuration Docker
 
 ### Lancement
 ```bash
@@ -56,7 +56,7 @@ make mock-debug    # avant-plan (logs live)
 ```
 
 ### Caractéristiques
-- **IA**: Mockées (Bogus) — aucun appel réseau
+- **IA**: Mockées (MockAiService) — aucun appel réseau
 - **Logging**: Information
 - **Polling RSS**: 15 minutes
 - **Temperature IA**: 0.5
@@ -68,20 +68,20 @@ make mock-debug    # avant-plan (logs live)
 ## 🟡 3. Environnement STAGING (préproduction)
 
 ### Objectif
-Préproduction sur un serveur dédié du réseau local (Debian, 192.168.30.160) — valide le déploiement Docker complet avant la production. IA réelles, base de données isolée.
+Préproduction sur un serveur dédié du réseau local (Debian, <STAGING_HOST>) — valide le déploiement Docker complet avant la production. IA réelles, base de données isolée.
 
 ### Fichiers de configuration
-- `.env.staging` - Variables d'environnement (secrets, gitignoré ; template : `.env.staging.example`)
+- `environments/staging/.env` - Variables d'environnement (secrets, gitignoré ; template : `environments/staging/.env.example`)
 - `appsettings.Staging.json` - Configuration .NET
-- `docker-compose.staging.yml` - Configuration Docker
+- `docker-compose.yml` - Configuration Docker
 
 ### Publication
 ```bash
-make staging-pub   # rsync de la solution + build + démarrage Docker sur 192.168.30.160
+make staging-pub   # rsync de la solution + build + démarrage Docker sur <STAGING_HOST>
 ```
 
 Prérequis : compte de déploiement (`vigie24deploy`) créé sur le serveur, clé SSH
-installée, alias `vigie24-staging` dans `~/.ssh/config` (voir `docs/plan` ou README).
+installée, alias `vigie24-staging` dans `~/.ssh/config` (voir `docs/deployment.fr.md` ou le README racine).
 
 ### Opérations
 ```bash
@@ -95,7 +95,7 @@ make staging-down    # arrêt de la stack
 - **Logging**: Information
 - **Polling RSS**: 15 minutes
 - **Temperature IA**: 0.4
-- **URL**: http://192.168.30.160 (port 80 → 8080 interne)
+- **URL**: http://<STAGING_HOST> (port 80 → 8080 interne)
 - **Port PostgreSQL**: interne (réseau Docker uniquement)
 - **Base**: `vigie24_staging` (volume dédié)
 
@@ -104,12 +104,12 @@ make staging-down    # arrêt de la stack
 ## 🔴 4. Environnement PRODUCTION
 
 ### Objectif
-Déploiement final sur VPS (futur), HTTPS.
+Déploiement final sur VPS public, HTTPS — le site vigie24.info est en production.
 
 ### Fichiers de configuration
-- `.env.production` - Variables d'environnement (secrets, gitignoré ; template : `.env.production.example`)
+- `environments/production/.env` - Variables d'environnement (secrets, gitignoré ; template : `environments/production/.env.example`)
 - `appsettings.Production.json` - Configuration .NET
-- `docker-compose.prod.yml` - Configuration Docker
+- `docker-compose.yml` - Configuration Docker
 
 ### Caractéristiques
 - **IA**: Réelles (Infomaniak)

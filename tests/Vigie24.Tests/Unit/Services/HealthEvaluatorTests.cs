@@ -2,7 +2,7 @@ namespace Vigie24.Tests.Unit.Services;
 
 using Vigie24.Domain;
 
-/// <summary>Tests unitaires pour la logique d'évaluation du health-check.</summary>
+/// <summary>Unit tests for the health-check evaluation logic.</summary>
 public class HealthEvaluatorTests
 {
     private static readonly TimeSpan OkThreshold = TimeSpan.FromMinutes(30);

@@ -1,16 +1,16 @@
 -- ============================================================
--- Vigie24 — Réconciliation de la taxonomie (idempotent)
--- 1) Reclassement des articles des catégories « parallèles » (créées
---    librement par l'IA) vers les catégories officielles de la taxonomie.
+-- Vigie24 — Taxonomy reconciliation (idempotent)
+-- 1) Reclassify articles from "parallel" categories (created
+--    freely by the AI) into the official taxonomy categories.
 -- 2) Tags : normalisation des slugs (minuscules, sans accents, tirets)
---    + fusion des doublons (cybersecurite/cybersécurité, promotion/promotions…).
+--    + merge duplicates (ex: cybersecurite/cybersécurité, promotion/promotions...).
 --
--- À exécuter une fois après déploiement du code corrigé :
+-- Run once after deploying the fixed code:
 --   cat scripts/reconcile-taxonomy.sql | docker exec -i vigie24-db-staging \
 --     psql -U postgres_staging -d vigie24_staging
 -- ============================================================
 
--- 1) Catégories parallèles → officielles
+-- 1) Parallel categories -> official
 DO $$
 DECLARE m record;
 BEGIN
@@ -32,14 +32,14 @@ BEGIN
   END LOOP;
 END $$;
 
--- 2) Tags — fonction de slugification (équivalent de VigieTaxonomy.Slugify)
+-- 2) Tags — slugification function (equivalent of VigieTaxonomy.Slugify)
 CREATE OR REPLACE FUNCTION vigie_slugify(t text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
   SELECT btrim(regexp_replace(
     translate(lower($1), 'àâäáãåæçèéêëìíîïñòóôöõùúûüýÿ', 'aaaaaaaceeeeiiiinooooouuuuyy'),
     '[^a-z0-9]+', '-', 'g'), '-');
 $$;
 
--- 2a) Fusion des doublons créés par la normalisation (ex: cybersecurite / cybersécurité)
+-- 2a) Merge duplicates created by normalization (ex: cybersecurite / cybersécurité)
 DO $$
 DECLARE g record; k uuid; i int; dup uuid;
 BEGIN
@@ -62,7 +62,7 @@ END $$;
 -- 2b) Normalisation des slugs existants (retrait des accents, casse, ponctuation)
 UPDATE tags SET "Slug" = vigie_slugify("Slug") WHERE "Slug" <> vigie_slugify("Slug");
 
--- 2c) Fusions sémantiques singulier/pluriel (vers le pluriel, sauf fuite-de-donnees)
+-- 2c) Semantic singular/plural merges (toward the plural, except fuite-de-donnees)
 DO $$
 DECLARE m record;
 BEGIN
@@ -82,7 +82,7 @@ BEGIN
   END LOOP;
 END $$;
 
--- Vérifications
+-- Checks
 SELECT '--- catégories restantes (parallèles attendues à 0) ---' AS info;
 SELECT "Slug" FROM categories WHERE "Slug" NOT IN
   (SELECT "Slug" FROM (VALUES ('ia'),('ia-agents'),('ia-modeles-llm'),('ia-vision-generatif'),('ia-outils-applications'),

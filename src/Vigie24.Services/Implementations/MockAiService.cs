@@ -74,10 +74,10 @@ public class MockAiService : IAiService
             DetectedThemes = detectedThemes,
             DetectedCategories = new List<string> { category.Parent, category.Sub },
             IsDuplicate = false,
-            // Simulation réaliste de la consommation (le Mock n'appelle pas d'API)
+            // Realistic simulation of token consumption (the Mock makes no API calls)
             PromptTokens = 1200 + _random.Next(0, 600),
             CompletionTokens = 150 + _random.Next(0, 120),
-            // Le Mock simule parfois un sujet de débat avec une position
+            // The Mock sometimes simulates a debate topic with a stance
             Topic = _random.Next(4) == 0 ? "régulation IA Europe" : null,
             Stance = _random.Next(4) == 0 ? new[] { "pour", "contre", "nuance" }[_random.Next(3)] : null
         };
@@ -102,8 +102,8 @@ public class MockAiService : IAiService
         return Task.FromResult(true);
     }
 
-    /// <summary>Embedding simulé : vecteur déterministe (3584 dims) dérivé du hash du texte,
-    /// afin que deux textes identiques produisent le même vecteur en mock.</summary>
+    /// <summary>Simulated embedding: deterministic vector (3584 dims) derived from the text hash,
+    /// so that two identical texts produce the same vector in mock mode.</summary>
     public Task<float[]?> GetEmbeddingAsync(string text, CancellationToken cancellationToken = default)
     {
         var seed = text.GetHashCode();

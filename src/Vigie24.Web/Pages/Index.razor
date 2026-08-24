@@ -76,7 +76,7 @@ else
             ? HealthEvaluator.FormatAge(DateTime.UtcNow - last)
             : "jamais";
 
-        // Coût IA du jour : somme des tokens consommés par les analyses du jour, convertie en CHF
+        // Today's AI cost: sum of tokens consumed by today's analyses, converted to CHF
         var today = DateTime.UtcNow.Date;
         var prompt = await DbContext.Articles
             .Where(a => a.PromptTokens != null && a.UpdatedAt >= today)
@@ -100,6 +100,6 @@ else
             ? cost.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))
             : cost.ToString("0.0000", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"));
 
-    /// <summary>Filtre de base : articles publiés (recherche/tri/pagination gérés par ArticleBrowser sur son propre contexte)</summary>
+    /// <summary>Base filter: published articles (search/sort/pagination handled by ArticleBrowser on its own context)</summary>
     private System.Linq.Expressions.Expression<Func<Article, bool>> BuildFilter() => a => a.IsPublished;
 }

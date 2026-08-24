@@ -1,16 +1,16 @@
 namespace Vigie24.Domain.Models;
 
 /// <summary>
-/// Vecteur sémantique d'un article (embedding multilingue bge-multilingual-gemma2,
-/// 3584 dimensions) — utilisé pour rapprocher des articles traitant du même sujet
-/// avec des formulations de topic différentes.
-/// Stocké dans une table dédiée pour ne pas alourdir les requêtes du site.
+/// Semantic vector of an article (multilingual bge-multilingual-gemma2 embedding,
+/// 3584 dimensions) — used to match articles covering the same subject
+/// with different topic phrasings.
+/// Stored in a dedicated table to keep site queries light.
 /// </summary>
 public class ArticleEmbedding
 {
     public Guid ArticleId { get; set; }
 
-    /// <summary>Vecteur sémantique (real[3584])</summary>
+    /// <summary>Semantic vector (real[3584])</summary>
     public float[] Vector { get; set; } = [];
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

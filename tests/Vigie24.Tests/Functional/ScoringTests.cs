@@ -81,7 +81,7 @@ public class ScoringFunctionalTests
             PublishedAt = DateTime.UtcNow - TimeSpan.FromDays(30)
         };
 
-        // Act & Assert - vérifie que les dates sont différentes
+        // Act & Assert - verifies that the dates are different
         Assert.True(recentArticle.PublishedAt > oldArticle.PublishedAt);
     }
 

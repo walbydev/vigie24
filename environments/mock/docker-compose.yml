@@ -1,4 +1,3 @@
-version: '3.8'
 name: vigie24-mock
 services:
   postgres:
@@ -22,15 +21,17 @@ services:
 
   vigie24-worker:
     build:
-      context: .
+      context: ../..
       dockerfile: src/Vigie24.Worker/Dockerfile
     container_name: vigie24-worker-mock
-    env_file: .env.mock
+    env_file: .env
     environment:
       - ASPNETCORE_ENVIRONMENT=Mock
       - DOTNET_ENVIRONMENT=Mock
       - AiService__Provider=mock
       - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_mock};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres_mock_password}
+    volumes:
+      - ./appsettings.Mock.json:/app/appsettings.Mock.json:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -40,15 +41,17 @@ services:
 
   vigie24-web:
     build:
-      context: .
+      context: ../..
       dockerfile: src/Vigie24.Web/Dockerfile
     container_name: vigie24-web-mock
-    env_file: .env.mock
+    env_file: .env
     environment:
       - ASPNETCORE_ENVIRONMENT=Mock
       - DOTNET_ENVIRONMENT=Mock
       - AiService__Provider=mock
       - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_mock};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres_mock_password}
+    volumes:
+      - ./appsettings.Mock.json:/app/appsettings.Mock.json:ro
     ports:
       - "5001:8080"
     depends_on:

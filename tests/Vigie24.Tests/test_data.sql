@@ -1,12 +1,12 @@
 -- ============================================
--- Script de création des données de test
+-- Test data creation script
 -- Date: 2026-08-18
--- Description: Insère des données de test pour les tests unitaires et d'intégration
+-- Description: Inserts test data for unit and integration tests
 -- ============================================
 
 BEGIN;
 
--- Supprimer les données existantes (pour éviter les doublons)
+-- Delete existing data (to avoid duplicates)
 DELETE FROM articles;
 DELETE FROM source_tag;
 DELETE FROM source_category;
@@ -117,7 +117,7 @@ INSERT INTO articles_category ("ArticleId", "CategoryId") VALUES
 
 COMMIT;
 
--- Vérification
+-- Verification
 SELECT 'Authors: ' || COUNT(*) FROM authors
 UNION ALL SELECT 'Categories: ' || COUNT(*) FROM categories
 UNION ALL SELECT 'Tags: ' || COUNT(*) FROM tags

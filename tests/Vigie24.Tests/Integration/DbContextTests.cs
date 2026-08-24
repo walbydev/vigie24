@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
 /// <summary>
-/// Tests d'intégration pour le DbContext avec base en mémoire
+/// Integration tests for the DbContext with an in-memory database
 /// </summary>
 public class Vigie24DbContextInMemoryTests : IAsyncLifetime
 {

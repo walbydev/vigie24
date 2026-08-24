@@ -1,20 +1,16 @@
-version: '3.8'
-name: vigie24-legacy
-
+name: vigie24-dev
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: vigie24-db
+    container_name: vigie24-db-dev
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: vigie24
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres_dev_password}
+      POSTGRES_DB: ${DB_NAME:-vigie24_dev}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - postgres_dev_data:/var/lib/postgresql/data
     networks:
       - vigie24-network
     healthcheck:
@@ -23,28 +19,22 @@ services:
       timeout: 5s
       retries: 5
 
-  # Worker Service - RSS Polling & AI Processing
   vigie24-worker:
     build:
-      context: .
+      context: ../..
       dockerfile: src/Vigie24.Worker/Dockerfile
-    container_name: vigie24-worker
-    env_file:
-      - .env
+    container_name: vigie24-worker-dev
+    env_file: .env
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_ENVIRONMENT=Development
       - AiService__Provider=${AI_PROVIDER:-infomaniak}
       - AiService__ApiUrl=${INFOMANIAK_API_URL:-https://api.infomaniak.com}
       - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
-      - AiService__DeepSeekApiKey=${DEEPSEEK_API_KEY:-}
       - AiService__Model=${AI_MODEL:-llama-3.1-70b}
-      - AiService__DeepSeekModel=${DEEPSEEK_MODEL:-deepseek-chat}
-      - AiService__TimeoutSeconds=${AI_TIMEOUT_SECONDS:-30}
-      - AiService__Temperature=${AI_TEMPERATURE:-0.3}
-      - AiService__MaxTokens=${AI_MAX_TOKENS:-1024}
-      - ConnectionStrings__Database=Host=postgres;Database=vigie24;Username=postgres;Password=postgres
-      - FeedReader__PollingIntervalMinutes=${FEED_POLLING_INTERVAL_MINUTES:-15}
-      - FeedReader__MaxConcurrentRequests=${FEED_MAX_CONCURRENT_REQUESTS:-5}
+      - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_dev};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres_dev_password}
+    volumes:
+      - ./appsettings.Development.json:/app/appsettings.Development.json:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,21 +42,22 @@ services:
       - vigie24-network
     restart: unless-stopped
 
-  # Web Application - Blazor Frontend
   vigie24-web:
     build:
-      context: .
+      context: ../..
       dockerfile: src/Vigie24.Web/Dockerfile
-    container_name: vigie24-web
-    env_file:
-      - .env
+    container_name: vigie24-web-dev
+    env_file: .env
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__Database=Host=postgres;Database=vigie24;Username=postgres;Password=postgres
+      - DOTNET_ENVIRONMENT=Development
       - AiService__Provider=${AI_PROVIDER:-infomaniak}
       - AiService__ApiUrl=${INFOMANIAK_API_URL:-https://api.infomaniak.com}
       - AiService__ApiKey=${INFOMANIAK_API_KEY:-}
-      - AiService__DeepSeekApiKey=${DEEPSEEK_API_KEY:-}
+      - AiService__Model=${AI_MODEL:-llama-3.1-70b}
+      - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_dev};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres_dev_password}
+    volumes:
+      - ./appsettings.Development.json:/app/appsettings.Development.json:ro
     ports:
       - "5000:8080"
     depends_on:
@@ -83,5 +74,5 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
-    name: vigie24_postgres_data
+  postgres_dev_data:
+    name: vigie24_postgres_dev_data
