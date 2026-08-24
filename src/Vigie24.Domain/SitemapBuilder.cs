@@ -3,15 +3,15 @@ using System.Xml.Linq;
 namespace Vigie24.Domain;
 
 /// <summary>
-/// Construit le sitemap.xml (protocole sitemaps.org) pour Vigie24.
-/// Les URLs sont construites depuis le baseUrl ; l'échappement XML est géré par XDocument.
-/// N'inclut NI /articles/{id} (redirection 301 vers la source) NI /feed (flux, pas une page).
+/// Builds the sitemap.xml (sitemaps.org protocol) for Vigie24.
+/// URLs are built from baseUrl; XML escaping is handled by XDocument.
+/// Includes NEITHER /articles/{id} (301 redirect to the source) NOR /feed (feed, not a page).
 /// </summary>
 public static class SitemapBuilder
 {
     private static readonly XNamespace SitemapNs = "http://www.sitemaps.org/schemas/sitemap/0.9";
 
-    /// <summary>Pages statiques indexables : l'accueil en priorité 1.0, le reste 0.5.</summary>
+    /// <summary>Indexable static pages: homepage priority 1.0, the rest 0.5.</summary>
     public static readonly (string Path, double Priority)[] StaticUrls =
     {
         ("/", 1.0),
@@ -26,12 +26,12 @@ public static class SitemapBuilder
     };
 
     /// <summary>
-    /// Construit le document sitemap complet (déclaration XML incluse, UTF-8).
+    /// Builds the complete sitemap document (XML declaration included, UTF-8).
     /// </summary>
-    /// <param name="baseUrl">Origine du site, sans slash final (ex: https://vigie24.info).</param>
-    /// <param name="categorySlugs">Slugs des catégories actives (priorité 0.8).</param>
-    /// <param name="themeSlugs">Slugs des thèmes liés à des articles publiés (priorité 0.5).</param>
-    /// <param name="lastMod">Date de dernière modification (facultatif, format ISO yyyy-MM-dd).</param>
+    /// <param name="baseUrl">Site origin, without trailing slash (ex: https://vigie24.info).</param>
+    /// <param name="categorySlugs">Slugs of active categories (priority 0.8).</param>
+    /// <param name="themeSlugs">Slugs of themes linked to published articles (priority 0.5).</param>
+    /// <param name="lastMod">Last modification date (optional, ISO yyyy-MM-dd format).</param>
     public static string Build(
         string baseUrl,
         IEnumerable<string> categorySlugs,

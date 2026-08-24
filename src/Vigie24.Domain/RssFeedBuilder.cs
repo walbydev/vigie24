@@ -3,30 +3,30 @@ using System.Xml;
 
 namespace Vigie24.Domain;
 
-/// <summary>Un article de flux RSS (les champs sont échappés XML à la sérialisation).</summary>
+/// <summary>An RSS feed item (fields are XML-escaped at serialization).</summary>
 public sealed record RssItem(string Title, string Link, string Description, DateTime PubDateUtc, string Guid);
 
 /// <summary>
-/// Construit un flux RSS 2.0 bien formé. L'échappement XML est géré par XmlWriter,
-/// ce qui garantit l'absence d'injection de balises dans les titres/descriptions.
+/// Builds a well-formed RSS 2.0 feed. XML escaping is handled by XmlWriter,
+/// which guarantees no tag injection in titles/descriptions.
 /// </summary>
 public static class RssFeedBuilder
 {
     /// <summary>
-    /// Construit le document RSS 2.0 complet.
+    /// Builds the complete RSS 2.0 document.
     /// </summary>
-    /// <param name="channelTitle">Titre du flux (ex: « Vigie24 — Intelligence artificielle »).</param>
-    /// <param name="channelLink">URL du site (ex: https://vigie24.info).</param>
-    /// <param name="channelDescription">Description du flux.</param>
-    /// <param name="items">Articles du flux (dans l'ordre voulu, généralement du plus récent au plus ancien).</param>
+    /// <param name="channelTitle">Feed title (ex: « Vigie24 — Intelligence artificielle »).</param>
+    /// <param name="channelLink">Site URL (ex: https://vigie24.info).</param>
+    /// <param name="channelDescription">Feed description.</param>
+    /// <param name="items">Feed items (in the desired order, usually newest to oldest).</param>
     public static string Build(
         string channelTitle,
         string channelLink,
         string channelDescription,
         IEnumerable<RssItem> items)
     {
-        // MemoryStream (et non StringWriter) pour que la déclaration XML soit en UTF-8,
-        // cohérente avec le charset servi par HTTP (un parseur strict rejetterait sinon).
+        // MemoryStream (not StringWriter) so the XML declaration is UTF-8,
+        // consistent with the charset served over HTTP (a strict parser would otherwise reject it).
         var ms = new MemoryStream();
         var settings = new XmlWriterSettings
         {
@@ -48,7 +48,7 @@ public static class RssFeedBuilder
             xml.WriteElementString("description", channelDescription);
             xml.WriteElementString("language", "fr");
 
-            // Lien atom:link pour que les lecteurs détectent le flux même sans découverte.
+            // atom:link so feed readers can discover the feed even without auto-discovery.
             xml.WriteStartElement("atom", "link", null);
             xml.WriteAttributeString("href", channelLink);
             xml.WriteAttributeString("rel", "self");

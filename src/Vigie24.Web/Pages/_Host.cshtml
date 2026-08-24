@@ -4,8 +4,8 @@
 @using Microsoft.AspNetCore.Components.Web
 @inject Microsoft.Extensions.Configuration.IConfiguration Config
 @{
-    // Charte graphique « Mode Radar » (bleu pétrole / vert-sarcelle / ambre) :
-    // activée uniquement quand Branding:Theme=radar (staging) — la prod reste en « classic ».
+    // "Mode Radar" brand theme (petrol blue / teal / amber):
+    // enabled only when Branding:Theme=radar (staging) — prod stays on "classic".
     var isRadarBranding = string.Equals(Config["Branding:Theme"], "radar", StringComparison.OrdinalIgnoreCase);
 }
 <!DOCTYPE html>
@@ -707,7 +707,7 @@
         </style>
     }
     <script>
-        // Applique le thème avant le premier rendu (anti-flash) : localStorage puis préférence système
+        // Apply the theme before the first render (anti-flash): localStorage then system preference
         (function () {
             var stored = null;
             try { stored = localStorage.getItem('vigie24-theme'); } catch (e) {}

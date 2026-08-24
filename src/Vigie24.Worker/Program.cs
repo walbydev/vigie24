@@ -24,7 +24,7 @@ builder.Services.AddDbContext<Vigie24DbContext>(options =>
 // HTTP Client
 builder.Services.AddHttpClient();
 
-// AI Service - Factory pattern pour basculer entre Infomaniak et DeepSeek
+// AI Service - Factory pattern to switch between Infomaniak and DeepSeek
 var serviceProvider = builder.Services.BuildServiceProvider();
 var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 var aiService = AiServiceFactory.Create(aiSettings, loggerFactory);
@@ -39,17 +39,17 @@ builder.Logging.AddDebug();
 
 var host = builder.Build();
 
-// Auto-migration au demarrage (si configure)
+// Auto-migrate on startup (if configured)
 if (builder.Configuration.GetValue<bool>("Database:MigrateOnStartup", true))
 {
     using var scope = host.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<Vigie24DbContext>();
     await dbContext.Database.MigrateAsync();
-    Console.WriteLine("Base de donnees migree avec succes");
+    Console.WriteLine("Database migrated successfully");
 
-    // Seed de la taxonomie de categories (parents + sous-categories)
+    // Seed the category taxonomy (parents + subcategories)
     await Vigie24Worker.EnsureTaxonomyAsync(dbContext);
-    Console.WriteLine("Taxonomie de categories seedee");
+    Console.WriteLine("Category taxonomy seeded");
 }
 
 host.Run();

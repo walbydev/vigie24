@@ -4,8 +4,8 @@ using System.Text;
 namespace Vigie24.Domain;
 
 /// <summary>
-/// Taxonomie de catégories Vigie24 : catégories parentes + sous-catégories.
-/// Partagée entre le Worker (seed + mapping IA) et le Web (affichage des noms).
+/// Vigie24 category taxonomy: parent categories + subcategories.
+/// Shared between the Worker (seed + AI mapping) and the Web (displaying names).
 /// </summary>
 public static class VigieTaxonomy
 {
@@ -13,13 +13,13 @@ public static class VigieTaxonomy
 
     public static readonly CategoryDef[] Categories =
     {
-        // IA
+        // AI
         new("IA", "ia", null),
         new("Modèles LLM", "ia-modeles-llm", "ia"),
         new("Agents IA", "ia-agents", "ia"),
         new("Vision & Génératif", "ia-vision-generatif", "ia"),
         new("Outils & Applications", "ia-outils-applications", "ia"),
-        // Développement
+        // Development
         new("Développement", "developpement", null),
         new("Web", "dev-web", "developpement"),
         new("Backend", "dev-backend", "developpement"),
@@ -27,7 +27,7 @@ public static class VigieTaxonomy
         new("DevOps & Cloud", "dev-devops-cloud", "developpement"),
         new("Open Source", "dev-open-source", "developpement"),
         new("Vulgarisation technique", "dev-vulgarisation-technique", "developpement"),
-        // Cybersécurité
+        // Cybersecurity
         new("Cybersécurité", "cybersecurite", null),
         new("Vulnérabilités", "cyber-vulnerabilites", "cybersecurite"),
         new("Menaces & Acteurs", "cyber-menaces-acteurs", "cybersecurite"),
@@ -43,19 +43,19 @@ public static class VigieTaxonomy
         new("Composants", "hardware-composants", "hardware"),
         new("Électronique", "hardware-electronique", "hardware"),
         new("Mobilité", "hardware-mobilite", "hardware"),
-        // Divertissements
+        // Entertainment
         new("Divertissements", "divertissements", null),
         new("Gaming", "divertissements-gaming", "divertissements")
     };
 
-    /// <summary>Slugify : minuscules, sans accents, tirets (ex: "Vision & Génératif" → "vision-generatif")</summary>
+    /// <summary>Slugify: lowercase, no diacritics, hyphens (ex: "Vision & Generative" → "vision-generative")</summary>
     public static string Slugify(string name)
     {
         var sb = new StringBuilder();
         foreach (var c in name.ToLowerInvariant().Normalize(NormalizationForm.FormD))
         {
             if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
-                continue; // supprime les accents
+                continue; // strips diacritics
             if (char.IsLetterOrDigit(c))
                 sb.Append(c);
             else if (sb.Length > 0 && sb[^1] != '-')
@@ -64,7 +64,7 @@ public static class VigieTaxonomy
         return sb.ToString().Trim('-');
     }
 
-    /// <summary>Nom d'affichage d'une catégorie (depuis la taxonomie, sinon slug humanisé)</summary>
+    /// <summary>Display name of a category (from the taxonomy, otherwise humanized slug)</summary>
     public static string DisplayName(string slug)
     {
         var def = Categories.FirstOrDefault(c => c.Slug == slug);
@@ -75,9 +75,9 @@ public static class VigieTaxonomy
     }
 
     /// <summary>
-    /// Résout le slug officiel depuis un nom libre renvoyé par l'IA
-    /// (ex: "Electronique" → "hardware-electronique", "DevOps & Cloud" → "dev-devops-cloud").
-    /// Retourne null si aucun nom de la taxonomie ne correspond.
+    /// Resolves the official slug from a free-form name returned by the AI
+    /// (ex: "electronique" → "hardware-electronique", "DevOps & Cloud" → "dev-devops-cloud").
+    /// Returns null if no taxonomy name matches.
     /// </summary>
     public static string? ResolveSlug(string name)
     {
@@ -87,7 +87,7 @@ public static class VigieTaxonomy
         return def?.Slug;
     }
 
-    /// <summary>Liste "(Parent (sous-cat, ...), ...)" injectée dans le prompt IA</summary>
+    /// <summary>List "(Parent (sub-cat, ...), ...)" injected into the AI prompt</summary>
     public static string PromptList()
     {
         var parents = Categories.Where(c => c.ParentSlug is null).ToList();

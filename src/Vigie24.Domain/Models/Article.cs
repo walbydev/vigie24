@@ -1,7 +1,7 @@
 namespace Vigie24.Domain.Models;
 
 /// <summary>
-/// Entité éditoriale canonique — un événement = un article
+/// Canonical editorial entity — one event = one article
 /// </summary>
 public class Article
 {
@@ -16,18 +16,18 @@ public class Article
     public DateTime PublishedAt { get; set; }
     public DateTime FirstSeenAt { get; set; } = DateTime.UtcNow;
     
-    /// <summary>Score éditorial attribué par l'IA (0-100)</summary>
+    /// <summary>Editorial score assigned by the AI (0-100)</summary>
     public decimal EditorialScore { get; set; }
     
-    /// <summary>Score algorithmique basé sur divers facteurs techniques</summary>
+    /// <summary>Algorithmic score based on various technical factors</summary>
     public decimal AlgorithmicScore { get; set; }
     
-    /// <summary>Score combiné affiché aux utilisateurs</summary>
+    /// <summary>Combined score displayed to users</summary>
     public decimal RankingScore { get; set; }
     
     public int VoteCount { get; set; }
     public decimal VoteAverage { get; set; }
-    /// <summary>Nombre de clics vers la source originale (engagement)</summary>
+    /// <summary>Number of clicks to the original source (engagement)</summary>
     public int ClickCount { get; set; }
     public int CrossSourceCount { get; set; }
     public bool IsPublished { get; set; }
@@ -35,16 +35,16 @@ public class Article
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    /// <summary>Tokens d'entrée consommés par l'IA pour l'analyse de cet article</summary>
+    /// <summary>Input tokens consumed by the AI to analyze this article</summary>
     public int? PromptTokens { get; set; }
 
-    /// <summary>Tokens de sortie consommés par l'IA pour l'analyse de cet article</summary>
+    /// <summary>Output tokens consumed by the AI to analyze this article</summary>
     public int? CompletionTokens { get; set; }
 
-    /// <summary>Sujet précis du débat (normalisé) — vide si l'article ne participe à aucun débat</summary>
+    /// <summary>Specific debate topic (normalized) — empty if the article is not part of any debate</summary>
     public string? Topic { get; set; }
 
-    /// <summary>Position de l'article : pour / contre / nuance / neutre / vide</summary>
+    /// <summary>Article stance: pour / contre / nuance / neutre / empty</summary>
     public string? Stance { get; set; }
     
     // Navigation properties
@@ -56,7 +56,7 @@ public class Article
 }
 
 /// <summary>
-/// Catégorie hiérarchique (IA, Dev, Science, Cyber, Hardware)
+/// Hierarchical category (AI, Dev, Science, Cyber, Hardware)
 /// </summary>
 public class Category
 {
@@ -71,7 +71,7 @@ public class Category
 }
 
 /// <summary>
-/// Lien entre un article et une source (un article peut venir de plusieurs sources)
+/// Link between an article and a source (an article can come from multiple sources)
 /// </summary>
 public class ArticleSource
 {
@@ -89,7 +89,7 @@ public class ArticleSource
 }
 
 /// <summary>
-/// Source d'information (média, blog, chaîne YouTube, Reddit, etc.)
+/// Information source (media outlet, blog, YouTube channel, Reddit, etc.)
 /// </summary>
 public class Source
 {
@@ -109,7 +109,7 @@ public class Source
 }
 
 /// <summary>
-/// Type de source
+/// Source type
 /// </summary>
 public enum SourceKind
 {
@@ -121,7 +121,7 @@ public enum SourceKind
 }
 
 /// <summary>
-/// Méthode d'ingestion
+/// Ingestion method
 /// </summary>
 public enum IngestionMethod
 {
@@ -133,7 +133,7 @@ public enum IngestionMethod
 }
 
 /// <summary>
-/// Lien entre un article et un auteur
+/// Link between an article and an author
 /// </summary>
 public class ArticleAuthor
 {
@@ -147,7 +147,7 @@ public class ArticleAuthor
 }
 
 /// <summary>
-/// Auteur d'article
+/// Article author
 /// </summary>
 public class Author
 {
@@ -161,7 +161,7 @@ public class Author
 }
 
 /// <summary>
-/// Lien entre un article et un tag
+/// Link between an article and a tag
 /// </summary>
 public class ArticleTag
 {
@@ -174,7 +174,7 @@ public class ArticleTag
 }
 
 /// <summary>
-/// Tag/Mot-clé
+/// Tag/Keyword
 /// </summary>
 public class Tag
 {
@@ -187,7 +187,7 @@ public class Tag
 }
 
 /// <summary>
-/// Utilisateur (pour authentification et votes)
+/// User (for authentication and votes)
 /// </summary>
 public class User
 {
@@ -204,8 +204,8 @@ public class User
 }
 
 /// <summary>
-/// Vote d'un visiteur sur un article — échelle 0 à 5 (0-1 : pas intéressant, 5 : très intéressant).
-/// Vote anonyme via VoterKey (cookie de session) ; UserId réservé à une future authentification.
+/// A visitor's vote on an article — 0 to 5 scale (0-1: not interesting, 5: very interesting).
+/// Anonymous vote via VoterKey (session cookie); UserId reserved for future authentication.
 /// </summary>
 public class ArticleVote
 {
@@ -213,7 +213,7 @@ public class ArticleVote
     public Guid ArticleId { get; set; }
     public Guid? UserId { get; set; }
     public string? VoterKey { get; set; }
-    public short VoteValue { get; set; } // 0 à 5
+    public short VoteValue { get; set; } // 0 to 5
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     public virtual Article Article { get; set; } = null!;

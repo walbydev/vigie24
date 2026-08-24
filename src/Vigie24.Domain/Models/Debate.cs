@@ -1,18 +1,18 @@
 namespace Vigie24.Domain.Models;
 
 /// <summary>
-/// Débat : regroupement d'articles traitant du même sujet avec des positions
-/// opposées (pour / contre / nuancé) — « mise en parallèle d'articles
-/// contradictoires pour illustrer un débat/propos » (spécification originale).
+/// Debate: a grouping of articles covering the same subject with opposing
+/// stances (for / against / nuanced) — "side-by-side of contradictory articles
+/// to illustrate a debate/point" (original specification).
 /// </summary>
 public class Debate
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Sujet du débat, normalisé (minuscules, sans accents, tirets)</summary>
+    /// <summary>Debate topic, normalized (lowercase, no diacritics, hyphens)</summary>
     public string Topic { get; set; } = string.Empty;
 
-    /// <summary>Sujet affichable (première formulation rencontrée)</summary>
+    /// <summary>Displayable topic (first formulation encountered)</summary>
     public string DisplayTopic { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -21,13 +21,13 @@ public class Debate
     public virtual ICollection<DebateArticle> Articles { get; set; } = new List<DebateArticle>();
 }
 
-/// <summary>Lien entre un débat et un article, avec la position de l'article</summary>
+/// <summary>Link between a debate and an article, with the article's stance</summary>
 public class DebateArticle
 {
     public Guid DebateId { get; set; }
     public Guid ArticleId { get; set; }
 
-    /// <summary>Position de l'article : pour / contre / nuance / neutre</summary>
+    /// <summary>Article stance: pour / contre / nuance / neutre</summary>
     public string Stance { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

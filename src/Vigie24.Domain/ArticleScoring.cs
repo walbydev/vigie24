@@ -3,11 +3,11 @@ using Vigie24.Domain.Models;
 namespace Vigie24.Domain;
 
 /// <summary>
-/// Calcul des scores Vigie24 — partagé entre le Worker (calcul) et le Web
-/// (hint « calcul précis » affiché sur chaque carte article).
-/// Les formules ci-dessous sont la référence unique.
-/// Score de classement = Éditorial × 0,55 + Algorithmique × 0,35 + Engagement × 0,10
-/// (l'engagement — votes 0-5 et clics — entre ainsi dans le classement).
+/// Vigie24 score computation — shared between the Worker (computation) and the Web
+/// ("precise score" hint displayed on each article card).
+/// The formulas below are the single source of truth.
+/// Ranking score = Editorial × 0.55 + Algorithmic × 0.35 + Engagement × 0.10
+/// (engagement — 0-5 votes and clicks — thus contributes to the ranking).
 /// </summary>
 public static class ArticleScoring
 {
@@ -15,7 +15,7 @@ public static class ArticleScoring
     public const decimal AlgorithmicWeight = 0.35m;
     public const decimal EngagementWeight = 0.10m;
 
-    /// <summary>Récence : 100 (≤1h), 80 (≤6h), 60 (≤24h), 40 (≤48h), puis décroissance</summary>
+    /// <summary>Recency: 100 (≤1h), 80 (≤6h), 60 (≤24h), 40 (≤48h), then decreasing</summary>
     public static decimal CalculateRecencyScore(DateTime publishedAt)
     {
         var hoursOld = (decimal)(DateTime.UtcNow - publishedAt).TotalHours;
@@ -26,7 +26,7 @@ public static class ArticleScoring
         return Math.Max(0, 40 - (hoursOld - 48) / 24 * 10);
     }
 
-    /// <summary>Densité d'information du résumé : 90 (≥50 mots), 70 (≥30), 50 (≥15), 30</summary>
+    /// <summary>Summary information density: 90 (≥50 words), 70 (≥30), 50 (≥15), 30</summary>
     public static decimal CalculateContentScore(string summary)
     {
         var wordCount = summary.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
@@ -40,10 +40,10 @@ public static class ArticleScoring
         => (CalculateRecencyScore(article.PublishedAt) + CalculateContentScore(article.Summary)) / 2;
 
     /// <summary>
-    /// Score d'engagement 0-100 à partir des votes (échelle 0-5) et des clics.
-    /// Sans vote ni clic → 0 (le classement reste inchangé).
-    /// Composantes (0-100) : votes = moyenne / 5 × 100 ; clics = min(100, clics × 10).
-    /// Mélange pondéré : engagement = 0,6 × votes + 0,4 × clics (les votes pèsent plus).
+    /// Engagement score 0-100 from votes (0-5 scale) and clicks.
+    /// No votes and no clicks → 0 (ranking unchanged).
+    /// Components (0-100): votes = average / 5 × 100; clicks = min(100, clicks × 10).
+    /// Weighted blend: engagement = 0.6 × votes + 0.4 × clicks (votes weigh more).
     /// </summary>
     public static decimal CalculateEngagementScore(int voteCount, decimal voteAverage, int clickCount)
     {
@@ -53,7 +53,7 @@ public static class ArticleScoring
         return voteScore * 0.6m + clickScore * 0.4m;
     }
 
-    /// <summary>Score de classement final (engagement optionnel, 0 par défaut)</summary>
+    /// <summary>Final ranking score (engagement optional, 0 by default)</summary>
     public static decimal CalculateRanking(decimal editorialScore, decimal algorithmicScore, decimal engagementScore = 0)
         => editorialScore * EditorialWeight + algorithmicScore * AlgorithmicWeight + engagementScore * EngagementWeight;
 }

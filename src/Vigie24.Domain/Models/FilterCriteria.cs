@@ -4,10 +4,10 @@ using System.Text.Json;
 namespace Vigie24.Domain.Models;
 
 /// <summary>
-/// Critères de filtrage d'articles (recherche, pays, type de source, sources, score,
-/// note, plage de dates, tri, pagination). Source de vérité unique partagée entre
-/// l'UI (ArticleBrowser), la persistance locale (JSON) et les flux RSS (query string).
-/// Aucune dépendance EF Core : les codecs JSON / query string sont faits main.
+/// Article filtering criteria (search, country, source kind, sources, score,
+/// rating, date range, sort, pagination). Single source of truth shared between
+/// the UI (ArticleBrowser), local persistence (JSON) and RSS feeds (query string).
+/// No EF Core dependency: JSON / query string codecs are hand-written.
 /// </summary>
 public sealed record FilterCriteria
 {
@@ -30,7 +30,7 @@ public sealed record FilterCriteria
     public string SortField { get; init; } = "date";
     public int PageSize { get; init; } = DefaultPageSize;
 
-    /// <summary>Vrai si aucun critère actif (équivalent au défaut complet).</summary>
+    /// <summary>True if no criteria are active (equivalent to the full default).</summary>
     public bool IsEmpty =>
         string.IsNullOrEmpty(SearchText)
         && string.IsNullOrEmpty(CountryCode)
@@ -44,8 +44,8 @@ public sealed record FilterCriteria
         && PageSize == DefaultPageSize;
 
     /// <summary>
-    /// Sérialise les critères en query string (précédée de '?'), en omettant les valeurs par défaut.
-    /// Noms courts et lisibles : q, country, kind, sources (séparées par des virgules),
+    /// Serializes the criteria to a query string (prefixed with '?'), omitting default values.
+    /// Short, readable names: q, country, kind, sources (comma-separated),
     /// minScore, minRating, from, to, sort, pageSize.
     /// </summary>
     public string ToQueryString()
@@ -77,8 +77,8 @@ public sealed record FilterCriteria
     }
 
     /// <summary>
-    /// Parse une query string (avec ou sans '?'). Retourne false (sans lever) si une
-    /// valeur est mal formée ou hors bornes : l'appelant peut alors répondre 400.
+    /// Parses a query string (with or without '?'). Returns false (without throwing) if a
+    /// value is malformed or out of range: the caller can then answer 400.
     /// </summary>
     public static bool TryParse(string? query, out FilterCriteria criteria)
     {
@@ -93,8 +93,8 @@ public sealed record FilterCriteria
             string key, value;
             try
             {
-                // .NET est permissif sur les séquences % mal formées (les laisse telles quelles) :
-                // on valide explicitement pour pouvoir répondre 400 sur une query invalide.
+                // .NET is lenient with malformed % sequences (leaves them as-is):
+                // we validate explicitly so an invalid query can get a 400.
                 var rawKey = eq < 0 ? pair : pair[..eq];
                 var rawValue = eq < 0 ? "" : pair[(eq + 1)..];
                 if (!HasValidEscapes(rawKey) || !HasValidEscapes(rawValue))
@@ -158,7 +158,7 @@ public sealed record FilterCriteria
                     criteria = criteria with { PageSize = pageSize };
                     break;
                 default:
-                    // Paramètre inconnu : ignoré (tolérant à l'avenir)
+                    // Unknown parameter: ignored (future-proof tolerance)
                     break;
             }
         }
@@ -168,7 +168,7 @@ public sealed record FilterCriteria
 
     public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
 
-    /// <summary>Vérifie que chaque '%' est suivi de deux chiffres hexadécimaux (échappement valide).</summary>
+    /// <summary>Checks that every '%' is followed by two hexadecimal digits (valid escape).</summary>
     private static bool HasValidEscapes(string s)
     {
         for (var i = 0; i < s.Length; i++)
@@ -193,7 +193,7 @@ public sealed record FilterCriteria
         }
     }
 
-    /// <summary>Égalité structurelle : les collections sont comparées par contenu et par ordre.</summary>
+    /// <summary>Structural equality: collections are compared by content and order.</summary>
     public bool Equals(FilterCriteria? other)
     {
         if (other is null) return false;

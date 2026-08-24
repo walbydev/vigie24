@@ -4,27 +4,27 @@ using Vigie24.Domain.Models;
 namespace Vigie24.Domain;
 
 /// <summary>
-/// Regroupement des articles en « débats » : articles traitant du même sujet
-/// (topic normalisé) avec des positions opposées.
-/// Règles :
-///  - Un débat existe si ≥ 2 articles partagent le même topic normalisé
-///    ET qu'au moins une position « pour » ET une position « contre » sont présentes
-///    (les « nuance » et « neutre » rejoignent le débat sans le déclencher).
-///  - Les topics sont normalisés (minuscules, sans accents, mots-clés canoniques)
-///    pour rapprocher les formulations proches (« Régulation IA en Europe » ≈
-///    « régulation de l'IA européenne »).
+/// Groups articles into "debates": articles covering the same subject
+/// (normalized topic) with opposing stances.
+/// Rules:
+///  - A debate exists if ≥ 2 articles share the same normalized topic
+///    AND at least one "for" AND one "against" stance are present
+///    ("nuanced" and "neutral" join the debate without triggering it).
+///  - Topics are normalized (lowercase, no diacritics, canonical keywords)
+///    to bring similar formulations together ("AI Regulation in Europe" ≈
+///    "European AI regulation").
 /// </summary>
 public static class DebateEngine
 {
-    /// <summary>Position qui ne déclenche pas un débat (seule)</summary>
+    /// <summary>A stance that alone does not trigger a debate</summary>
     public const string StanceFor = "pour";
     public const string StanceAgainst = "contre";
     public const string StanceNuanced = "nuance";
     public const string StanceNeutral = "neutre";
 
     /// <summary>
-    /// Regroupe les articles en débats. Entrée : articles avec Topic + Stance non vides.
-    /// Sortie : dictionnaire topicNormalisé → (DisplayTopic, liste (articleId, stance)).
+    /// Groups articles into debates. Input: articles with non-empty Topic + Stance.
+    /// Output: dictionary normalizedTopic → (DisplayTopic, list of (articleId, stance)).
     /// </summary>
     public static Dictionary<string, DebateGroup> Build(IEnumerable<Article> articles)
     {
@@ -49,13 +49,13 @@ public static class DebateEngine
             group.Entries.Add(new DebateEntry(article.Id, stance));
         }
 
-        // Ne conserver que les débats réels : une position pour + une position contre
+        // Keep only real debates: at least one for + one against stance
         return groups
             .Where(kv => HasOpposingStances(kv.Value.Entries))
             .ToDictionary(kv => kv.Key, kv => kv.Value);
     }
 
-    /// <summary>Vrai si le groupe contient au moins un « pour » et un « contre »</summary>
+    /// <summary>True if the group contains at least one "for" and one "against"</summary>
     public static bool HasOpposingStances(IEnumerable<DebateEntry> entries)
     {
         var stances = entries.Select(e => e.Stance).ToHashSet();
@@ -63,10 +63,10 @@ public static class DebateEngine
     }
 
     /// <summary>
-    /// Normalise un topic pour le regroupement : minuscules, sans accents,
-    /// sans ponctuation, mots-clés les plus porteurs uniquement (≤ 4 mots).
-    /// Ex: "Régulation de l'IA en Europe" → "regulation ia europe"
-    /// Table d'accents explicite : robuste même sans ICU (mode globalization-invariant).
+    /// Normalizes a topic for grouping: lowercase, no diacritics,
+    /// no punctuation, most significant keywords only (≤ 4 words).
+    /// Ex: "AI Regulation in Europe" → "ai regulation europe"
+    /// Explicit accent table: robust even without ICU (globalization-invariant mode).
     /// </summary>
     public static string NormalizeTopic(string? topic)
     {
@@ -92,7 +92,7 @@ public static class DebateEngine
 
         var words = sb.ToString()
             .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(w => w.Length > 1)            // ignore "de", "la", "un"… (2 lettres, couverts par StopWords)
+            .Where(w => w.Length > 1)            // skips "de", "la", "un", etc. (2-letter words, covered by StopWords)
             .Where(w => !StopWords.Contains(w))
             .Take(4)
             .ToList();
@@ -112,7 +112,7 @@ public static class DebateEngine
         ['œ'] = "oe", ['æ'] = "ae"
     };
 
-    /// <summary>Normalise une position : accepte pour/contre/nuance/neutre (et variantes)</summary>
+    /// <summary>Normalizes a stance: accepts pour/contre/nuance/neutre (and variants)</summary>
     public static string NormalizeStance(string? stance)
     {
         if (string.IsNullOrWhiteSpace(stance))
