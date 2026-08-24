@@ -7,10 +7,10 @@
 
 <PageTitle>Thématiques - Vigie24</PageTitle>
 <HeadContent>
-    <meta name="description" content="Les thématiques détectées par l'IA sur les articles publiés par Vigie24 : parcourez la veille technologique francophone par sujet." />
+    <meta name="description" content="Les thématiques détectées par l'IA sur les articles publiés par Vigie24 : recherchez, triez et filtrez la veille technologique francophone par sujet." />
     <link rel="canonical" href="https://vigie24.info/themes" />
     <meta property="og:title" content="Thématiques - Vigie24" />
-    <meta property="og:description" content="Les thèmes détectés par l'IA sur les articles publiés par Vigie24." />
+    <meta property="og:description" content="Les thèmes détectés par l'IA sur les articles publiés par Vigie24 : recherche, tri et filtres." />
     <meta property="og:url" content="https://vigie24.info/themes" />
     <meta property="og:type" content="website" />
 </HeadContent>
@@ -24,31 +24,106 @@
 }
 else
 {
-    <div class="chips" style="gap:10px;">
-        @foreach (var theme in _themes)
-        {
-            <a class="chip chip-tag" style="font-size:0.9rem;padding:6px 14px;" href="/themes/@theme.Slug">
-                <span class="chip-icon" aria-hidden="true">🏷</span>@VigieTaxonomy.DisplayName(theme.Slug) <span class="count-badge">@theme.Count</span>
-            </a>
-        }
+    <div class="browser-toolbar" style="margin-bottom:1rem;flex-wrap:wrap;">
+        <input type="search" class="search-input"
+               placeholder="🔍 Filtrer les thématiques…"
+               aria-label="Filtrer les thématiques"
+               value="@_search" @oninput="OnSearch" />
+        <select @bind="_sort" @bind:after="ApplyClientFilters" aria-label="Trier les thématiques">
+            <option value="volume">Tri : volume décroissant</option>
+            <option value="az">Tri : A → Z</option>
+        </select>
+        <div class="af-group" style="min-width:180px;flex:1;">
+            <label for="min-volume" style="white-space:nowrap;">
+                Volume min. : <span class="af-value">@(_volumeFilter == 0 ? "tous" : "≥ " + _volumeFilter)</span>
+            </label>
+            <div class="af-range">
+                <input id="min-volume" type="range" min="0" max="10" step="1"
+                       @bind="_volumeFilter" @bind:after="ApplyClientFilters" />
+                <span class="muted">0 = tous</span>
+            </div>
+        </div>
+        <span class="result-count" role="status" aria-live="polite">
+            @_filtered.Count thématique(s)@(_volumeFilter > 0 ? $" (≥ {_volumeFilter})" : "")
+        </span>
     </div>
+
+    @if (!_filtered.Any())
+    {
+        <div class="alert alert-warning" role="alert">Aucune thématique ne correspond à ces critères.</div>
+    }
+    else
+    {
+        <div class="chips" style="gap:10px;">
+            @foreach (var theme in _filtered.Take(_visibleCount))
+            {
+                <a class="chip chip-tag" style="font-size:0.9rem;padding:6px 14px;" href="/themes/@theme.Slug">
+                    <span class="chip-icon" aria-hidden="true">🏷</span>@VigieTaxonomy.DisplayName(theme.Slug) <span class="count-badge">@theme.Count</span>
+                </a>
+            }
+        </div>
+        @if (_visibleCount < _filtered.Count)
+        {
+            <button class="btn-toggle" style="margin-top:1rem;" @onclick="ShowMore">
+                Afficher plus (@(_filtered.Count - _visibleCount) restant(s))
+            </button>
+        }
+    }
 }
 
 @code {
+    private const int PageSize = 100;
+
     private List<(string Slug, int Count)> _themes = new();
+    private List<(string Slug, int Count)> _filtered = new();
+    private string _search = "";
+    private string _sort = "volume";   // "volume" | "az"
+    private int _volumeFilter;         // 0 = tous ; sinon volume minimal d'articles
+    private int _visibleCount = PageSize;
 
     protected override async Task OnInitializedAsync()
     {
-        var pairs = await DbContext.Articles.AsNoTracking()
-            .Where(a => a.IsPublished)
-            .SelectMany(a => a.Tags.Select(t => t.Tag!.Slug))
+        // Agrégation côté base (GROUP BY traduit par EF Core/Npgsql) :
+        // une seule requête sur la table de liaison, on ne charge que les comptes.
+        var pairs = await DbContext.ArticleTags.AsNoTracking()
+            .Where(at => at.Article.IsPublished)
+            .GroupBy(at => at.Tag!.Slug)
+            .Select(g => new { Slug = g.Key, Count = g.Count() })
             .ToListAsync();
 
         _themes = pairs
-            .GroupBy(s => s)
-            .Select(g => (g.Key, g.Count()))
-            .OrderByDescending(x => x.Item2)
-            .ThenBy(x => x.Item1)
+            .Select(x => (x.Slug, x.Count))
+            .OrderByDescending(x => x.Count)
+            .ThenBy(x => x.Slug)
             .ToList();
+
+        ApplyClientFilters();
     }
+
+    private void OnSearch(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        ApplyClientFilters();
+    }
+
+    private void ApplyClientFilters()
+    {
+        var q = _themes.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(_search))
+        {
+            q = q.Where(t => t.Slug.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                          || VigieTaxonomy.DisplayName(t.Slug).Contains(_search, StringComparison.OrdinalIgnoreCase));
+        }
+        if (_volumeFilter > 0)
+        {
+            q = q.Where(t => t.Count >= _volumeFilter);
+        }
+
+        _filtered = _sort == "az"
+            ? q.OrderBy(t => t.Slug).ToList()
+            : q.OrderByDescending(t => t.Count).ThenBy(t => t.Slug).ToList();
+        _visibleCount = PageSize;
+    }
+
+    private void ShowMore() => _visibleCount += PageSize;
 }
