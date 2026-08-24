@@ -3,7 +3,7 @@ namespace Vigie24.Tests.Unit.Services;
 using System.Xml.Linq;
 using Vigie24.Domain;
 
-/// <summary>Tests unitaires du générateur de flux RSS 2.0.</summary>
+/// <summary>Unit tests for the RSS 2.0 feed builder.</summary>
 public class RssFeedBuilderTests
 {
     [Fact]
@@ -35,7 +35,7 @@ public class RssFeedBuilderTests
         var xml = RssFeedBuilder.Build("T & T", "https://x.test", "Desc & co", items);
         var doc = XDocument.Parse(xml);
 
-        // Après parsing, les valeurs originales sont restituées (échappement correct).
+        // After parsing, the original values are restored (correct escaping).
         Assert.Equal("A & B <C> \"D\" 'E'", doc.Root!.Element("channel")!.Element("item")!.Element("title")!.Value);
         Assert.Equal("Résumé <b>gras</b> & plus", doc.Root.Element("channel")!.Element("item")!.Element("description")!.Value);
     }
@@ -71,7 +71,7 @@ public class RssFeedBuilderTests
     {
         var xml = RssFeedBuilder.Build("Vigie24", "https://vigie24.info", "Veille", Array.Empty<RssItem>());
 
-        // La déclaration doit être utf-8, cohérente avec le charset servi par HTTP.
+        // The declaration must be utf-8, consistent with the charset served over HTTP.
         Assert.StartsWith("<?xml version=\"1.0\" encoding=\"utf-8\"?>", xml);
     }
 }

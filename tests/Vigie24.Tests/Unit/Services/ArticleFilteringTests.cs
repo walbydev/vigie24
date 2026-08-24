@@ -6,8 +6,8 @@ using Vigie24.Infrastructure.Data;
 using Vigie24.Infrastructure.Queries;
 
 /// <summary>
-/// Tests de l'extension ApplyFilterCriteria (filtrage partagé UI + RSS).
-/// Utilise le DbContext réel en mémoire (même modèle que les tests d'intégration InMemory).
+/// Tests for the ApplyFilterCriteria extension (shared UI + RSS filtering).
+/// Uses the real in-memory DbContext (same model as the InMemory integration tests).
 /// </summary>
 public class ArticleFilteringTests
 {
@@ -152,8 +152,8 @@ public class ArticleFilteringTests
     [Fact]
     public void SearchCriterion_BuildsIlIkeExpression()
     {
-        // La recherche plein-texte repose sur ILike (insensible à la casse) : on vérifie la
-        // forme de l'arbre d'expression sans l'énumérer (ILike n'est traduit que par Npgsql).
+        // Full-text search relies on ILike (case-insensitive): we verify the
+        // shape of the expression tree without enumerating it (only Npgsql translates ILike).
         var q = Array.Empty<Article>().AsQueryable()
             .ApplyFilterCriteria(new FilterCriteria { SearchText = "IA" });
 

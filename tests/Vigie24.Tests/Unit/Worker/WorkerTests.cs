@@ -5,7 +5,7 @@ using Vigie24.Worker;
 using Vigie24.Domain.Models;
 
 /// <summary>
-/// Tests unitaires pour les classes de données du Worker
+/// Unit tests for the Worker data classes
 /// </summary>
 public class FeedItemTests
 {
@@ -89,7 +89,7 @@ public class FeedItemTests
 }
 
 /// <summary>
-/// Tests pour les méthodes de scoring du Worker
+/// Tests for the Worker scoring methods
 /// </summary>
 public class ScoringTests
 {
@@ -152,17 +152,17 @@ public class ScoringTests
             UpdatedAt = DateTime.UtcNow
         };
 
-        // Act avec différents counts
+        // Act with different counts
         var score1 = CalculateAlgorithmicScore(article, 1);
         var score10 = CalculateAlgorithmicScore(article, 10);
         var score100 = CalculateAlgorithmicScore(article, 100);
 
-        // Assert - le score devrait diminuer avec plus d'articles récents
+        // Assert - the score should decrease with more recent articles
         Assert.True(score1 >= score10, "Score devrait diminuer avec plus d'articles récents");
         Assert.True(score10 >= score100, "Score devrait diminuer avec plus d'articles récents");
     }
 
-    // Méthodes helpers pour tester les méthodes privées
+    // Helper methods to test private methods
     private static decimal CalculateRecencyScore(DateTime publishedAt)
     {
         var hoursSincePublish = (DateTime.UtcNow - publishedAt).TotalHours;
@@ -293,7 +293,7 @@ public class ArticleProcessingTests
 }
 
 /// <summary>
-/// Tests pour la logique de catégorie et tags
+/// Tests for the category and tags logic
 /// </summary>
 public class CategoryTagTests
 {
@@ -372,7 +372,7 @@ public class ExtractFeedImageTests
     [Fact]
     public void YoutubeFeed_ShouldExtractMediaThumbnailFromGroup()
     {
-        // Arrange — structure réelle d'un flux YouTube feeds/videos.xml
+        // Arrange — real structure of a YouTube feeds/videos.xml feed
         const string xml = """
             <?xml version="1.0" encoding="UTF-8"?>
             <feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"

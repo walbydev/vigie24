@@ -4,7 +4,7 @@ using Vigie24.Domain;
 using Vigie24.Domain.Models;
 
 /// <summary>
-/// Tests du regroupement des articles en débats (DebateEngine).
+/// Tests for grouping articles into debates (DebateEngine).
 /// </summary>
 public class DebateEngineTests
 {

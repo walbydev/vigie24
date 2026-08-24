@@ -6,9 +6,9 @@ using Vigie24.Infrastructure.Data;
 using Vigie24.Infrastructure.Queries;
 
 /// <summary>
-/// Tests de la construction des flux RSS (RssFeedService) : filtres, tri, portée catégorie,
+/// Tests for RSS feed construction (RssFeedService): filters, sorting, category scope,
 /// limite de 50 articles. Le contexte est construit directement en InMemory (pas de DI),
-/// pattern identique aux tests d'intégration InMemory existants.
+/// same pattern as the existing InMemory integration tests.
 /// </summary>
 public class RssFeedServiceTests
 {
@@ -62,7 +62,7 @@ public class RssFeedServiceTests
 
         var items = await RssFeedService.GetItemsAsync(db, new FilterCriteria());
 
-        // 5 articles seedés dont 1 non publié → 4, triés du plus récent au plus ancien
+        // 5 seeded articles, 1 unpublished → 4, sorted from newest to oldest
         Assert.Equal(4, items.Count);
         Assert.Equal(new[]
         {
@@ -90,7 +90,7 @@ public class RssFeedServiceTests
         var parentItems = await RssFeedService.GetItemsAsync(db, new FilterCriteria(), "tech");
         var leafItems = await RssFeedService.GetItemsAsync(db, new FilterCriteria(), "ia");
 
-        // "ia" est une sous-catégorie de "tech" : les deux articles de "ia" remontent dans "tech"
+        // "ia" is a subcategory of "tech": both "ia" articles surface in "tech"
         Assert.Equal(2, parentItems.Count);
         Assert.Equal(2, leafItems.Count);
         Assert.Equal(parentItems.Select(i => i.Title).OrderBy(t => t), leafItems.Select(i => i.Title).OrderBy(t => t));

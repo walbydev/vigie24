@@ -6,8 +6,8 @@ using Vigie24.Infrastructure.Data;
 using Vigie24.Infrastructure.Queries;
 
 /// <summary>
-/// Tests de l'agrégation des coûts IA (CostReportService) : sommes de tokens par jour/semaine,
-/// conversion CHF (AiCost) et fenêtre temporelle. Contexte InMemory construit directement.
+/// Tests for AI cost aggregation (CostReportService): token sums per day/week,
+/// CHF conversion (AiCost) and time window. InMemory context built directly.
 /// </summary>
 public class CostReportServiceTests
 {
@@ -74,7 +74,7 @@ public class CostReportServiceTests
     public async Task Weekly_365Days_GroupsByWeekStartingMonday()
     {
         var today = DateTime.UtcNow.Date;
-        // jeudi de la semaine passée et lundi de cette semaine → 2 groupes distincts
+        // last week's Thursday and this week's Monday → 2 distinct groups
         var lastWeekThursday = today.AddDays(-((int)today.DayOfWeek + 6) % 7 - 3);
         var thisWeekMonday = today.AddDays(-((int)today.DayOfWeek + 6) % 7);
         await using var db = await SeedAsync(

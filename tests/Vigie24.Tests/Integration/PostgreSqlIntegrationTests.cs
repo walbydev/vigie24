@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
 
 /// <summary>
-/// Tests d'intégration avec PostgreSQL réel via Testcontainers
+/// Integration tests with real PostgreSQL via Testcontainers
 /// </summary>
 public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
 {
@@ -43,7 +43,7 @@ public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
     [Fact]
     public async Task SaveAndRetrieveArticle_WithPostgreSQL_ShouldPersistData()
     {
-        // Arrange - Créer d'abord une Category valide
+        // Arrange - first create a valid Category
         var category = new Category { Id = Guid.NewGuid(), Slug = "test-category" };
         _context.Categories.Add(category);
         await _context.SaveChangesAsync();
@@ -80,7 +80,7 @@ public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
     [Fact]
     public async Task BulkInsert_WithPostgreSQL_ShouldHandleManyArticles()
     {
-        // Arrange - Créer une Category valide
+        // Arrange - create a valid Category
         var category = new Category { Id = Guid.NewGuid(), Slug = "bulk-test" };
         _context.Categories.Add(category);
         await _context.SaveChangesAsync();
@@ -117,7 +117,7 @@ public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
     [Fact]
     public async Task ComplexQuery_WithPostgreSQL_ShouldReturnCorrectResults()
     {
-        // Arrange - Créer une Category valide
+        // Arrange - create a valid Category
         var category = new Category { Id = Guid.NewGuid(), Slug = "complex-query" };
         _context.Categories.Add(category);
         await _context.SaveChangesAsync();
@@ -206,7 +206,7 @@ public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
     [Fact]
     public async Task UpdateArticle_WithPostgreSQL_ShouldUpdateTimestamp()
     {
-        // Arrange - Créer une Category valide
+        // Arrange - create a valid Category
         var category = new Category { Id = Guid.NewGuid(), Slug = "update-test" };
         _context.Categories.Add(category);
         await _context.SaveChangesAsync();
@@ -244,7 +244,7 @@ public class Vigie24DbContextPostgreSqlTests : IAsyncLifetime
     [Fact]
     public async Task DeleteArticle_WithPostgreSQL_ShouldRemoveFromDatabase()
     {
-        // Arrange - Créer une Category valide
+        // Arrange - create a valid Category
         var category = new Category { Id = Guid.NewGuid(), Slug = "delete-test" };
         _context.Categories.Add(category);
         await _context.SaveChangesAsync();
