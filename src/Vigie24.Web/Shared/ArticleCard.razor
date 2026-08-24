@@ -36,14 +36,14 @@
             {
                 @if (Article.Category.ParentCategory != null)
                 {
-                    <a class="chip chip-cat" href="/categories/@Article.Category.ParentCategory.Slug">@VigieTaxonomy.DisplayName(Article.Category.ParentCategory.Slug)</a>
+                    <a class="chip chip-cat" href="/categories/@Article.Category.ParentCategory.Slug"><span class="chip-icon" aria-hidden="true">🗂</span>@VigieTaxonomy.DisplayName(Article.Category.ParentCategory.Slug)</a>
                     <span class="chip-sep">›</span>
                 }
-                <a class="chip chip-cat" href="/categories/@Article.Category.Slug">@VigieTaxonomy.DisplayName(Article.Category.Slug)</a>
+                <a class="chip chip-cat" href="/categories/@Article.Category.Slug"><span class="chip-icon" aria-hidden="true">🗂</span>@VigieTaxonomy.DisplayName(Article.Category.Slug)</a>
             }
             @foreach (var t in Article.Tags.Take(4))
             {
-                <a class="chip chip-tag" href="/themes/@t.Tag.Slug">@VigieTaxonomy.DisplayName(t.Tag.Slug)</a>
+                <a class="chip chip-tag" href="/themes/@t.Tag.Slug"><span class="chip-icon" aria-hidden="true">🏷</span>@VigieTaxonomy.DisplayName(t.Tag.Slug)</a>
             }
         </div>
 

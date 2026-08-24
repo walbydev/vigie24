@@ -63,8 +63,10 @@
             --brand-accent: #4ade80;
             --chip-cat-bg: #e0e7ff;
             --chip-cat-ink: #312e81;
-            --chip-tag-bg: #dcfce7;
+            --chip-cat-border: #6366f1;
+            --chip-tag-bg: transparent;
             --chip-tag-ink: #14532d;
+            --chip-tag-border: #16a34a;
             --chip-sep: #64748b;
             --vote-bad: #dc2626;
             --vote-good: #16a34a;
@@ -99,8 +101,10 @@
             --brand-accent: #4ade80;
             --chip-cat-bg: #312e81;
             --chip-cat-ink: #c7d2fe;
-            --chip-tag-bg: #14532d;
+            --chip-cat-border: #818cf8;
+            --chip-tag-bg: transparent;
             --chip-tag-ink: #bbf7d0;
+            --chip-tag-border: #4ade80;
             --chip-sep: #94a3b8;
             --vote-bad: #f87171;
             --vote-good: #4ade80;
@@ -136,8 +140,10 @@
             --brand-accent: #ffff00;
             --chip-cat-bg: #e0e7ff;
             --chip-cat-ink: #000000;
-            --chip-tag-bg: #dcfce7;
+            --chip-cat-border: #000000;
+            --chip-tag-bg: #ffffff;
             --chip-tag-ink: #000000;
+            --chip-tag-border: #000000;
             --chip-sep: #000000;
             --vote-bad: #8b0000;
             --vote-good: #006400;
@@ -171,10 +177,12 @@
             --nav-ink: #ffffff;
             --nav-ink-hover: #ffffff;
             --brand-accent: #ffff00;
-            --chip-cat-bg: #000000;
-            --chip-cat-ink: #ffffff;
+            --chip-cat-bg: #ffd400;
+            --chip-cat-ink: #000000;
+            --chip-cat-border: #000000;
             --chip-tag-bg: #000000;
             --chip-tag-ink: #ffffff;
+            --chip-tag-border: #ffffff;
             --chip-sep: #ffffff;
             --vote-bad: #ff6b6b;
             --vote-good: #6bff6b;
@@ -266,13 +274,28 @@
         .status-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 16px 0; }
 
         /* ===== Chips (catégories / thèmes) ===== */
+        /* Distinction accessible : la catégorie est une puce PLEINE (fond teinté + bordure
+           soutenue, coins carrés, icône 🗂) ; la thématique une puce CONTOUR (fond neutre,
+           bordure teintée, pill, icône 🏷). Couleur + remplissage + icône = 3 indices
+           redondants (daltonisme, basse vision). Contrastes : texte ≥ 4.5:1, bordures ≥ 3:1. */
         .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
         .chip { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; text-decoration: none; }
-        .chip-cat { background: var(--chip-cat-bg); color: var(--chip-cat-ink); }
+        .chip-cat {
+            background: var(--chip-cat-bg); color: var(--chip-cat-ink);
+            border: 1.5px solid var(--chip-cat-border);
+            border-radius: 6px; font-weight: 600;
+        }
         .chip-cat:hover { filter: brightness(0.94); }
-        .chip-tag { background: var(--chip-tag-bg); color: var(--chip-tag-ink); }
+        .chip-tag {
+            background: var(--chip-tag-bg); color: var(--chip-tag-ink);
+            border: 1.5px solid var(--chip-tag-border);
+            border-radius: 999px;
+        }
         .chip-tag:hover { filter: brightness(0.94); }
         .chip-sep { color: var(--chip-sep); }
+        .chip-icon { margin-right: 3px; }
+        /* Accent ambre des cartes de la page Catégories : renforce l'identité « catégorie = ambre » */
+        .tree-card { border-left: 4px solid var(--chip-cat-border); }
 
         /* ===== Timeline ===== */
         .timeline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
@@ -486,7 +509,7 @@
 
         /* ===== Haut contraste : renforce les éléments ===== */
         [data-theme$="-hc"] .article-card { border-width: 2px; }
-        [data-theme$="-hc"] .chip { border: 1px solid currentColor; }
+        [data-theme$="-hc"] .chip { border: 2px solid currentColor; }
         [data-theme$="-hc"] .tl-pill, [data-theme$="-hc"] .vote-btn, [data-theme$="-hc"] .btn-toggle,
         [data-theme$="-hc"] .af-chip, [data-theme$="-hc"] .pagination button { border-width: 2px; }
         [data-theme$="-hc"] .hint-popup { border: 2px solid currentColor; }
@@ -515,10 +538,12 @@
                 --nav-ink: #d5e4e8;
                 --nav-ink-hover: #ffffff;
                 --brand-accent: #5fb5a3;
-                --chip-cat-bg: #eef5f3;
-                --chip-cat-ink: #1b4b5a;
-                --chip-tag-bg: #e8f4f1;
-                --chip-tag-ink: #2c6e5f;
+                --chip-cat-bg: #fbf0dc;
+                --chip-cat-ink: #7a4b00;
+                --chip-cat-border: #a16207;
+                --chip-tag-bg: transparent;
+                --chip-tag-ink: #0f4a3c;
+                --chip-tag-border: #2c6e5f;
                 --chip-sep: #64748b;
                 --vote-bad: #c4634a;
                 --vote-good: #5fb5a3;
@@ -551,10 +576,12 @@
                 --nav-ink: #a8c3cb;
                 --nav-ink-hover: #f2f7f6;
                 --brand-accent: #6ccbb4;
-                --chip-cat-bg: #1e3a45;
-                --chip-cat-ink: #9cd0dc;
-                --chip-tag-bg: #16343f;
+                --chip-cat-bg: #3a2e12;
+                --chip-cat-ink: #f2c879;
+                --chip-cat-border: #e8a33d;
+                --chip-tag-bg: transparent;
                 --chip-tag-ink: #7fd4c0;
+                --chip-tag-border: #6ccbb4;
                 --chip-sep: #64748b;
                 --vote-bad: #d9765e;
                 --vote-good: #6ccbb4;
@@ -569,6 +596,26 @@
                 --shadow: rgba(0, 0, 0, 0.35);
                 --code-bg: #0a1a20;
                 --code-ink: #d5e4e8;
+            }
+
+            /* Haut contraste (Radar) : on garde l'identité ambre (catégorie) / sarcelle (thématique)
+               avec des bordures noires et des encres extrêmes — l'icône + le remplissage restent
+               les indices redondants en plus de la teinte. */
+            [data-theme$="-hc"] {
+                --chip-cat-bg: #fdf0dc;
+                --chip-cat-ink: #000000;
+                --chip-cat-border: #000000;
+                --chip-tag-bg: #ffffff;
+                --chip-tag-ink: #000000;
+                --chip-tag-border: #000000;
+            }
+            [data-theme="dark-hc"] {
+                --chip-cat-bg: #e8a33d;
+                --chip-cat-ink: #000000;
+                --chip-cat-border: #000000;
+                --chip-tag-bg: #000000;
+                --chip-tag-ink: #ffffff;
+                --chip-tag-border: #ffffff;
             }
 
             body { font-family: 'Inter', -apple-system, "Segoe UI", Roboto, sans-serif; }
