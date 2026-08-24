@@ -71,6 +71,30 @@ public class FilterCriteriaTests
         Assert.False(FilterCriteria.TryParse("?sort=zzz", out _));
         Assert.False(FilterCriteria.TryParse("?pageSize=0", out _));
         Assert.False(FilterCriteria.TryParse("?q=%zz", out _));
+        Assert.False(FilterCriteria.TryParse("?maxAnxiety=abc", out _));
+        Assert.False(FilterCriteria.TryParse("?maxAnxiety=11", out _));
+        Assert.False(FilterCriteria.TryParse("?maxAnxiety=-1", out _));
+    }
+
+    [Fact]
+    public void MaxAnxiety_RoundTrips_And_OmitsDefault()
+    {
+        // Default 10 = no filter → omitted from the query string
+        Assert.Equal("", new FilterCriteria().ToQueryString());
+        Assert.True(new FilterCriteria().IsEmpty);
+
+        // Below 10 → serialized and parsed back
+        var c = new FilterCriteria { MaxAnxiety = 3 };
+        Assert.Equal("?maxAnxiety=3", c.ToQueryString());
+        Assert.True(FilterCriteria.TryParse(c.ToQueryString(), out var parsed));
+        Assert.Equal(3, parsed.MaxAnxiety);
+        Assert.Equal(c, parsed);
+
+        // Boundary values are accepted
+        Assert.True(FilterCriteria.TryParse("?maxAnxiety=0", out var zero));
+        Assert.Equal(0, zero.MaxAnxiety);
+        Assert.True(FilterCriteria.TryParse("?maxAnxiety=10", out var ten));
+        Assert.Equal(10, ten.MaxAnxiety);
     }
 
     [Fact]

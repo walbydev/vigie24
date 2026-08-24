@@ -150,6 +150,43 @@ public class ArticleFilteringTests
     }
 
     [Fact]
+    public async Task MaxAnxiety_FiltersByAnxietyScore_AndKeepsNulls()
+    {
+        var src = new Source { Name = "Test", CountryCode = "FR", SourceKind = "press", IngestionMethod = "rss" };
+
+        Article New(string title, int? anxiety) => new()
+        {
+            Title = title,
+            Summary = $"Résumé de {title}",
+            CanonicalUrl = $"https://x.test/{Guid.NewGuid():N}",
+            RankingScore = 70,
+            PublishedAt = new DateTime(2026, 8, 20),
+            IsPublished = true,
+            AnxietyScore = anxiety,
+            Sources = { new ArticleSource { Source = src, IsPrimary = true, SourceArticleUrl = "https://x.test/a" } }
+        };
+
+        await using var db = await SeedAsync(
+            New("Calme", 0),
+            New("Moyen", 5),
+            New("Alarmiste", 9),
+            New("Non évalué", null));
+
+        // Cap at 3: 0 and null pass, 5 and 9 are hidden
+        var result = await db.Articles
+            .ApplyFilterCriteria(new FilterCriteria { MaxAnxiety = 3 })
+            .ToListAsync();
+
+        Assert.Equal(new[] { "Calme", "Non évalué" }, result.Select(a => a.Title).OrderBy(t => t));
+
+        // Cap at 10 (default): everything passes
+        var all = await db.Articles
+            .ApplyFilterCriteria(new FilterCriteria())
+            .ToListAsync();
+        Assert.Equal(4, all.Count);
+    }
+
+    [Fact]
     public void SearchCriterion_BuildsIlIkeExpression()
     {
         // Full-text search relies on ILike (case-insensitive): we verify the
