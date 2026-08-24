@@ -2,6 +2,7 @@
 @using Vigie24.Domain
 @using Vigie24.Domain.Models
 @using Vigie24.Infrastructure.Data
+@using Vigie24.Infrastructure.Queries
 @using Vigie24.Web.Services
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<Vigie24DbContext> DbFactory
@@ -207,52 +208,25 @@ else
     }
 
     private IQueryable<Article> ApplyFilters(IQueryable<Article> q)
+        => q.ApplyFilterCriteria(BuildCriteria());
+
+    /// <summary>
+    /// Critères courants du composant, source de vérité partagée avec les flux RSS.
+    /// Le tri et la pagination restent propres au composant (le RSS trie par date).
+    /// </summary>
+    private FilterCriteria BuildCriteria() => new()
     {
-        var search = SearchText?.Trim();
-        if (!string.IsNullOrEmpty(search))
-        {
-            var pattern = $"%{search}%";
-            q = q.Where(a => EF.Functions.ILike(a.Title, pattern)
-                || EF.Functions.ILike(a.Summary, pattern)
-                || a.Tags.Any(t => EF.Functions.ILike(t.Tag.Slug, pattern))
-                || a.Sources.Any(s => EF.Functions.ILike(s.Source.Name, pattern)));
-        }
-
-        if (!string.IsNullOrEmpty(_country))
-        {
-            // Le pays affiché est celui de la source primaire
-            q = q.Where(a => a.Sources.Any(s => s.IsPrimary && s.Source.CountryCode == _country));
-        }
-
-        if (!string.IsNullOrEmpty(_sourceKind))
-        {
-            // Type de source : YouTube, Reddit, Presse, Blogs (insensible à la casse)
-            q = q.Where(a => a.Sources.Any(s => s.Source.SourceKind.ToLower() == _sourceKind));
-        }
-
-        if (_selectedSources.Count > 0)
-        {
-            q = q.Where(a => a.Sources.Any(s => _selectedSources.Contains(s.Source.Name)));
-        }
-
-        if (_minScore > 0)
-        {
-            q = q.Where(a => a.RankingScore >= _minScore);
-        }
-
-        if (_minRating > 0)
-        {
-            q = q.Where(a => a.VoteAverage >= _minRating);
-        }
-
-        if (_range is { } range)
-        {
-            if (range.From.HasValue) q = q.Where(a => a.PublishedAt >= range.From.Value);
-            if (range.To.HasValue) q = q.Where(a => a.PublishedAt < range.To.Value);
-        }
-
-        return q;
-    }
+        SearchText = SearchText,
+        CountryCode = _country,
+        SourceKind = _sourceKind,
+        SelectedSources = _selectedSources.ToList(),
+        MinScore = _minScore,
+        MinRating = _minRating,
+        RangeFrom = _range?.From,
+        RangeTo = _range?.To,
+        SortField = SortField,
+        PageSize = PageSize
+    };
 
     private static IQueryable<Article> ApplySort(IQueryable<Article> q, string sortField) => sortField switch
     {
