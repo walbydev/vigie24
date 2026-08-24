@@ -40,7 +40,7 @@ else
         <a class="chip" href="/categories/@_category.Slug/feed" rel="alternate" type="application/rss+xml" title="S'abonner au flux RSS de cette catégorie">📡 RSS</a>
     </div>
 
-    <ArticleBrowser Filter="@BuildFilter" />
+    <ArticleBrowser Filter="@BuildFilter" RssPath="@("/categories/" + Slug + "/feed")" />
 }
 
 @code {

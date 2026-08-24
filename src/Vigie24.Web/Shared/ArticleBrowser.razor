@@ -6,10 +6,12 @@
 @using Vigie24.Web.Services
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.JSInterop
 @inject IDbContextFactory<Vigie24DbContext> DbFactory
 @inject IEngagementService Engagement
 @inject NavigationManager Nav
 @inject ProtectedLocalStorage Storage
+@inject IJSRuntime JS
 @inject ILogger<ArticleBrowser> Logger
 
 @* Navigation d'articles : recherche plein-texte, pays, tri, plage de dates, pagination.
@@ -98,6 +100,17 @@
             </div>
         </div>
         <button class="af-reset" @onclick="ResetFiltersAsync">✕ Réinitialiser les filtres</button>
+        <div class="af-group">
+            <label id="lbl-prefs">Mes préférences</label>
+            <div class="af-actions">
+                <button class="af-chip" @onclick="CopyRssLinkAsync" title="Flux RSS reprenant ces filtres, à coller dans votre lecteur">📡 Copier le lien RSS</button>
+                <button class="af-chip" @onclick="CopyViewLinkAsync" title="Lien partageable qui ouvre cette vue avec ses filtres">🔗 Copier le lien de cette vue</button>
+                @if (!string.IsNullOrEmpty(_copiedMessage))
+                {
+                    <span class="af-copied muted">@_copiedMessage</span>
+                }
+            </div>
+        </div>
         <div class="af-note muted">✓ Filtres mémorisés sur cet appareil et restaurés à votre prochaine visite</div>
     </div>
 }
@@ -132,6 +145,10 @@ else
     /// </summary>
     [Parameter]
     public Func<Expression<Func<Article, bool>>> Filter { get; set; } = null!;
+
+    /// <summary>Chemin du flux RSS de ce contexte (ex. "/feed", "/categories/ia/feed").</summary>
+    [Parameter]
+    public string RssPath { get; set; } = "/feed";
 
     private List<Article> _articles = new();
     private List<DateTime> _dates = new();
@@ -426,6 +443,28 @@ else
         {
             Logger.LogWarning(ex, "Impossible d'effacer les filtres sauvegardés localement");
         }
+    }
+
+    private string? _copiedMessage;
+
+    /// <summary>URL du flux RSS reprenant les filtres courants (base + chemin + query).</summary>
+    private string RssUrl => Nav.BaseUri.TrimEnd('/') + RssPath + BuildCriteria().ToQueryString();
+
+    /// <summary>URL partageable de la vue courante (chemin + query des filtres).</summary>
+    private string ViewUrl => Nav.ToAbsoluteUri(Nav.Uri).GetLeftPart(UriPartial.Path) + BuildCriteria().ToQueryString();
+
+    private async Task CopyRssLinkAsync()
+    {
+        _copiedMessage = null;
+        var ok = await JS.InvokeAsync<bool>("vigie24.copyText", RssUrl);
+        _copiedMessage = ok ? "lien RSS copié ✓" : "copie impossible dans ce navigateur";
+    }
+
+    private async Task CopyViewLinkAsync()
+    {
+        _copiedMessage = null;
+        var ok = await JS.InvokeAsync<bool>("vigie24.copyText", ViewUrl);
+        _copiedMessage = ok ? "lien copié ✓" : "copie impossible dans ce navigateur";
     }
 
     private async Task LoadAsync()
