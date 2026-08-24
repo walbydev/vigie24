@@ -18,6 +18,14 @@
 <h1>Catégories</h1>
 <p class="muted">Parcourez les articles par thématique et sous-catégorie.</p>
 
+@if (_parents.Any())
+{
+    <button class="btn-toggle" style="margin-bottom:1rem;" @onclick="ToggleSort"
+            aria-pressed="@_sortByVolume">
+        @(_sortByVolume ? "Tri : par volume" : "Tri : ordre taxonomique")
+    </button>
+}
+
 @if (!_parents.Any())
 {
     <div class="alert alert-warning" role="alert">Aucune catégorie pour le moment.</div>
@@ -25,16 +33,16 @@
 else
 {
     <div class="tree">
-        @foreach (var parent in _parents)
+        @foreach (var parent in _orderedParents)
         {
             <div class="tree-card">
                 <h3>
                     <a href="/categories/@parent.Slug">@VigieTaxonomy.DisplayName(parent.Slug)</a>
                     <span class="count-badge">@_counts.GetValueOrDefault(parent.Id)</span>
                 </h3>
-                @foreach (var sub in _subs.GetValueOrDefault(parent.Id) ?? new List<Category>())
+                @foreach (var sub in _orderedSubs.GetValueOrDefault(parent.Id) ?? new List<Category>())
                 {
-                    <div class="tree-sub">
+                    <div class="tree-sub @(_counts.GetValueOrDefault(sub.Id) == 0 ? "is-empty" : "")">
                         <a href="/categories/@sub.Slug">@VigieTaxonomy.DisplayName(sub.Slug)</a>
                         <span class="count-badge">@_counts.GetValueOrDefault(sub.Id)</span>
                     </div>
@@ -48,6 +56,19 @@ else
     private List<Category> _parents = new();
     private Dictionary<Guid, List<Category>> _subs = new();
     private Dictionary<Guid, int> _counts = new();
+    private bool _sortByVolume;
+
+    private List<Category> _orderedParents => _sortByVolume
+        ? _parents.OrderByDescending(p => _counts.GetValueOrDefault(p.Id)).ToList()
+        : _parents;
+
+    private Dictionary<Guid, List<Category>> _orderedSubs => _sortByVolume
+        ? _subs.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value.OrderByDescending(s => _counts.GetValueOrDefault(s.Id)).ToList())
+        : _subs;
+
+    private void ToggleSort() => _sortByVolume = !_sortByVolume;
 
     protected override async Task OnInitializedAsync()
     {

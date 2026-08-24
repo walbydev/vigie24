@@ -468,6 +468,9 @@
         .tree-sub { display: flex; justify-content: space-between; padding: 5px 0; border-top: 1px solid var(--border); font-size: 0.9rem; }
         .tree-sub a { color: var(--text); text-decoration: none; }
         .tree-sub a:hover { color: var(--accent); }
+        /* Catégorie vide : atténuée mais conservée dans l'arbre (la taxonomie reste visible) */
+        .tree-sub.is-empty { opacity: 0.55; }
+        .tree-sub.is-empty .count-badge { background: transparent; color: var(--text-muted); }
         .count-badge { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 10px; padding: 1px 8px; font-size: 0.75rem; color: var(--text); }
 
         /* ===== Divers ===== */
