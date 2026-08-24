@@ -289,7 +289,7 @@ app.MapGet("/sources.xml", async (Vigie24DbContext db) =>
 });
 
 // /sitemap.xml → XML sitemap (SEO): static pages + active categories + themes linked to
-// published articles. Does not include /articles/{id} (301 to the source) nor /feed (feeds).
+// published articles + reading pages /articles/{id} (AI summary). Excludes /feed and /track.
 app.MapGet("/sitemap.xml", async (Vigie24DbContext db) =>
 {
     const string baseUrl = "https://vigie24.info";
@@ -313,7 +313,16 @@ app.MapGet("/sitemap.xml", async (Vigie24DbContext db) =>
         .Where(a => a.IsPublished)
         .MaxAsync(a => (DateTime?)a.PublishedAt);
 
-    var xml = SitemapBuilder.Build(baseUrl, categorySlugs, themeSlugs, lastMod);
+    // Reading pages (mode lecture) — bounded to the 500 most recent articles to keep the
+    // sitemap reasonable; each <lastmod> is the article publication date.
+    var articlePages = await db.Articles.AsNoTracking()
+        .Where(a => a.IsPublished)
+        .OrderByDescending(a => a.PublishedAt)
+        .Take(500)
+        .Select(a => new SitemapBuilder.SitemapArticle(a.Id, a.PublishedAt))
+        .ToListAsync();
+
+    var xml = SitemapBuilder.Build(baseUrl, categorySlugs, themeSlugs, lastMod, articlePages);
     return Results.Content(xml, "application/xml; charset=utf-8");
 });
 
