@@ -44,6 +44,17 @@
                 };
                 <span class="chip chip-stance chip-stance-@stance" title="Position de l'article sur son sujet : @label">@icon @label</span>
             }
+            @if (Article.AnxietyScore is { } anxiety)
+            {
+                var (icon, label) = anxiety switch
+                {
+                    <= 3 => ("🧘", "Peu anxiogène"),
+                    <= 6 => ("😟", "Modérément anxiogène"),
+                    _ => ("🚨", "Très anxiogène")
+                };
+                <span class="chip chip-anxiety chip-anxiety-@(anxiety <= 3 ? "low" : anxiety <= 6 ? "med" : "high")"
+                      title="Score d'anxiété : @anxiety/10 — @label">@icon @anxiety/10</span>
+            }
             @if (Article.Category != null)
             {
                 @if (Article.Category.ParentCategory != null)

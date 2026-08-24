@@ -72,6 +72,9 @@
             --stance-contre: #dc2626;
             --stance-nuance: #d97706;
             --stance-neutre: #64748b;
+            --anxiety-low: #16a34a;
+            --anxiety-med: #d97706;
+            --anxiety-high: #dc2626;
             --vote-bad: #dc2626;
             --vote-good: #16a34a;
             --vote-ink: #ffffff;
@@ -114,6 +117,9 @@
             --stance-contre: #f87171;
             --stance-nuance: #fbbf24;
             --stance-neutre: #94a3b8;
+            --anxiety-low: #4ade80;
+            --anxiety-med: #fbbf24;
+            --anxiety-high: #f87171;
             --vote-bad: #f87171;
             --vote-good: #4ade80;
             --vote-ink: #0f172a;
@@ -366,6 +372,17 @@
         .chip-stance-nuance { --c: var(--stance-nuance); }
         .chip-stance-neutre { --c: var(--stance-neutre); }
         [data-theme$="-hc"] .chip-stance { color: var(--text); background: var(--surface); }
+        /* Badge anxiété : même pattern color-mix que les positions de débat (3 paliers) */
+        .chip-anxiety {
+            background: color-mix(in srgb, var(--c) 16%, var(--surface));
+            color: color-mix(in srgb, var(--c) 55%, var(--text));
+            border: 1.5px solid var(--c);
+            border-radius: 6px; font-weight: 600;
+        }
+        .chip-anxiety-low  { --c: var(--anxiety-low); }
+        .chip-anxiety-med  { --c: var(--anxiety-med); }
+        .chip-anxiety-high { --c: var(--anxiety-high); }
+        [data-theme$="-hc"] .chip-anxiety { color: var(--text); background: var(--surface); }
 
         /* ===== Timeline ===== */
         .timeline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }

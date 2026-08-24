@@ -89,6 +89,13 @@
             </div>
         </div>
         <div class="af-group">
+            <label for="max-anxiety">Anxiété max : <span class="af-value">@(_maxAnxiety < 10 ? _maxAnxiety.ToString() : "—")</span></label>
+            <div class="af-range">
+                <input id="max-anxiety" type="range" min="0" max="10" step="1" @bind="_maxAnxiety" @bind:after="OnFilterChanged" />
+                <span class="muted">10 = aucun filtre · 0 = non anxiogène uniquement</span>
+            </div>
+        </div>
+        <div class="af-group">
             <label id="lbl-rating">Note moyenne minimum</label>
             <div class="af-chips" role="group" aria-labelledby="lbl-rating">
                 @foreach (var r in new[] { 0, 1, 2, 3, 4, 5 })
@@ -174,6 +181,7 @@ else
     private readonly HashSet<string> _selectedSources = new();
     private int _minScore;                              // 0 = aucun filtre
     private int _minRating;                             // 0 = aucune note minimale
+    private int _maxAnxiety = 10;                       // 10 = aucun filtre ; 0-9 = plafond d'anxiété
     private bool _urlHadFilters;                        // l'URL portait des filtres explicites
 
     private CancellationTokenSource? _searchCts;
@@ -311,6 +319,7 @@ else
         SelectedSources = _selectedSources.ToList(),
         MinScore = _minScore,
         MinRating = _minRating,
+        MaxAnxiety = _maxAnxiety,
         RangeFrom = _range?.From,
         RangeTo = _range?.To,
         SortField = SortField,
@@ -341,6 +350,7 @@ else
             _selectedSources.Add(s);
         _minScore = criteria.MinScore;
         _minRating = criteria.MinRating;
+        _maxAnxiety = criteria.MaxAnxiety;
         _range = (criteria.RangeFrom, criteria.RangeTo);
         SortField = criteria.SortField;
         PageSize = criteria.PageSize;
@@ -436,6 +446,7 @@ else
         _selectedSources.Clear();
         _minScore = 0;
         _minRating = 0;
+        _maxAnxiety = 10;
         _range = null;
         _page = 1;
         await LoadAsync();
