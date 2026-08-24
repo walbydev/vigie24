@@ -2,16 +2,16 @@
 -- Vigie24 — Taxonomy migration 2026-08: Musiques, Arts graphiques,
 -- Divertissements rework, Politique removal (idempotent)
 --
--- Order: create → reclassify → unpublish → delete
+-- Order: create → reclassify → delete
 -- Run once per environment (staging first, then production):
 --   cat scripts/migrate-taxonomy-2026-08.sql | docker exec -i <db> \
 --     psql -U <user> -d <db>
 -- ============================================================
 
 -- 0. Fix DisplayOrder of existing parents (idempotent)
-UPDATE categories SET "DisplayOrder" = v.order
+UPDATE categories SET "DisplayOrder" = v.display_order
 FROM (VALUES ('ia',1), ('developpement',2), ('cybersecurite',3),
-             ('science',4), ('hardware',5), ('divertissements',6)) AS v(slug, order)
+             ('science',4), ('hardware',5), ('divertissements',6)) AS v(slug, display_order)
 WHERE categories."Slug" = v.slug;
 
 -- 1. Create new parent categories
@@ -71,9 +71,9 @@ BEGIN
   END LOOP;
 END $$;
 
--- 4. Unpublish out-of-scope articles (politics, people, misc news)
-UPDATE articles a SET "IsPublished" = false
-FROM categories c
+-- 4. Delete out-of-scope articles (politics, people, misc news — zero place
+--    in the tech watch; articles.CategoryId is NOT NULL so they cannot linger)
+DELETE FROM articles a USING categories c
 WHERE a."CategoryId" = c."Id"
   AND c."Slug" IN ('elections', 'suisse', 'people', 'actualites');
 
