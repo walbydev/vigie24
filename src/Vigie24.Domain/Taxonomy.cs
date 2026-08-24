@@ -49,12 +49,13 @@ public static class VigieTaxonomy
         new("Cinéma & Séries", "divertissements-cinema-series", "divertissements"),
         new("Streaming", "divertissements-streaming", "divertissements"),
         new("Culture & Médias", "divertissements-culture-medias", "divertissements"),
+        new("Bushcraft", "divertissements-bushcraft", "divertissements"),
+        new("Bricolage maison", "divertissements-bricolage-maison", "divertissements"),
         // Music
         new("Musiques", "musiques", null),
         new("Électronique & Techno", "musiques-electronique-techno", "musiques"),
         new("Métal & Philharmonique", "musiques-metal-philharmonique", "musiques"),
         new("Jazz & Blues", "musiques-jazz-blues", "musiques"),
-        new("Hip-Hop & R&B", "musiques-hiphop-rnb", "musiques"),
         new("Pop & Variété", "musiques-pop-variete", "musiques"),
         // Visual arts
         new("Arts graphiques", "arts-graphiques", null),
