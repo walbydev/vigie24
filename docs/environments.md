@@ -9,7 +9,7 @@ This document describes the 4 environments available for the Vigie24 project.
 | **Development** | Active development with real AI APIs | ✅ Real | 5000 | 5432 |
 | **Mock** | Testing & demos without API calls | ❌ Mocked | 5001 | 5433 |
 | **Staging** | Pre-production (Debian server `<STAGING_HOST>`) | ✅ Real | 80 | internal |
-| **Production** | VPS deployment (future) | ✅ Real | 443 (HTTPS) | internal |
+| **Production** | Public VPS — [vigie24.info](https://vigie24.info) | ✅ Real | 443 (HTTPS) | internal |
 
 ---
 
@@ -42,7 +42,7 @@ make dev-debug    # foreground (live logs)
 ## 🧪 2. MOCK Environment
 
 ### Purpose
-Testing & demos with no AI API calls — generates fake articles (Bogus).
+Testing & demos with no AI API calls — generates fake articles (MockAiService).
 
 ### Configuration files
 - `environments/mock/.env` - Environment variables (no secrets required)
@@ -56,7 +56,7 @@ make mock-debug    # foreground (live logs)
 ```
 
 ### Characteristics
-- **AI**: Mocked (Bogus) — no network calls
+- **AI**: Mocked (MockAiService) — no network calls
 - **Logging**: Information
 - **RSS polling**: 15 minutes
 - **AI temperature**: 0.5
@@ -82,7 +82,7 @@ make staging-pub   # publish the solution + build + start Docker on <STAGING_HOS
 
 Prerequisites: deployment account (`vigie24deploy`) created on the server, SSH key
 installed, SSH alias `vigie24-staging` in `~/.ssh/config` or `Makefile.env`
-(see `docs/plan` or README).
+(see `docs/deployment.md` or the root README).
 
 ### Operations
 ```bash
