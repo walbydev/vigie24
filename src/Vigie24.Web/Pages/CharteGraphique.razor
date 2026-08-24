@@ -1,0 +1,103 @@
+@page "/charte-graphique"
+
+<PageTitle>Charte graphique - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="Charte graphique de Vigie24 : palette « Mode Radar » (bleu pétrole, vert-sarcelle, ambre), thèmes clair/sombre/haut contraste, typographies — et les raisons de chaque choix." />
+    <link rel="canonical" href="https://vigie24.info/charte-graphique" />
+    <meta property="og:title" content="Charte graphique - Vigie24" />
+    <meta property="og:description" content="La charte graphique de Vigie24 et les raisons de ses choix de couleurs et de typographies." />
+    <meta property="og:url" content="https://vigie24.info/charte-graphique" />
+    <meta property="og:type" content="website" />
+</HeadContent>
+
+<h1>Charte graphique</h1>
+<p class="muted">
+    Deux chartes coexistent : <strong>classic</strong> (défaut, utilisée en développement) et
+    <strong>« Mode Radar »</strong> (staging et production). Cette page présente la charte Radar,
+    ses couleurs, et surtout <strong>pourquoi</strong> ces choix.
+</p>
+
+<div class="license-card">
+    <h2>L'identité « Radar »</h2>
+    <p>
+        Le nom Vigie24 évoque une <strong>sentinelle</strong> qui surveille en continu. La charte
+        s'inspire donc d'un <strong>écran radar</strong> : un fond sombre et profond (pétrole), des
+        échos lumineux (sarcelle), et une alerte chaude quand quelque chose mérite l'attention (ambre).
+        Le logo reprend la métaphore : une loupe de vigie entourée d'arcs radar concentriques.
+    </p>
+    <ul>
+        <li><strong>Bleu pétrole</strong> — profondeur, confiance, sérieux éditorial (les fonds, la navigation, l'accent principal).</li>
+        <li><strong>Vert-sarcelle</strong> — la technologie, le positif, l'engagement (votes, succès, thématiques).</li>
+        <li><strong>Ambre</strong> — l'alerte bienveillante, l'action, le ranking (CTA, score, catégories).</li>
+        <li><strong>Terracotta</strong> — l'alerte négative (erreurs, votes négatifs), distincte de l'ambre pour ne jamais être ambiguë.</li>
+    </ul>
+</div>
+
+<div class="license-card">
+    <h2>Palette — mode clair</h2>
+    <div class="palette-grid">
+        <div class="palette-item"><span class="swatch" style="background:#1B4B5A"></span><span class="palette-name">Pétrole</span><code>#1B4B5A</code><span class="muted">accent, nav</span></div>
+        <div class="palette-item"><span class="swatch" style="background:#5FB5A3"></span><span class="palette-name">Sarcelle</span><code>#5FB5A3</code><span class="muted">positif, votes</span></div>
+        <div class="palette-item"><span class="swatch" style="background:#E8A33D"></span><span class="palette-name">Ambre</span><code>#E8A33D</code><span class="muted">CTA, score, catégories</span></div>
+        <div class="palette-item"><span class="swatch" style="background:#C4634A"></span><span class="palette-name">Terracotta</span><code>#C4634A</code><span class="muted">alerte négative</span></div>
+        <div class="palette-item"><span class="swatch" style="background:#EEF5F3;border:1px solid var(--border)"></span><span class="palette-name">Sarcelle pâle</span><code>#EEF5F3</code><span class="muted">surfaces secondaires</span></div>
+        <div class="palette-item"><span class="swatch" style="background:#F7F8FA;border:1px solid var(--border)"></span><span class="palette-name">Fond</span><code>#F7F8FA</code><span class="muted">arrière-plan</span></div>
+    </div>
+</div>
+
+<div class="license-card">
+    <h2>Palette — mode sombre</h2>
+    <div class="palette-grid">
+        <div class="palette-item"><span class="swatch" style="background:#0D2027"></span><span class="palette-name">Fond nuit</span><code>#0D2027</code><span class="muted">arrière-plan sombre</span></div>
+        <div class="palette-item"><span class="swatch" style="background:#132E38"></span><span class="palette-name">Surface</span><code>#132E38</code><span class="muted">cartes</span></div>
+        <div class="palette-item"><span class="swatch" style="background:#5E9EAE"></span><span class="palette-name">Pétrole clair</span><code>#5E9EAE</code><span class="muted">accent sur fond sombre</span></div>
+        <div class="palette-item"><span class="swatch" style="background:#6CCBB4"></span><span class="palette-name">Sarcelle clair</span><code>#6CCBB4</code><span class="muted">positif, thématiques</span></div>
+        <div class="palette-item"><span class="swatch" style="background:#F2B755"></span><span class="palette-name">Ambre clair</span><code>#F2B755</code><span class="muted">score, catégories</span></div>
+        <div class="palette-item"><span class="swatch" style="background:#D9765E"></span><span class="palette-name">Terracotta clair</span><code>#D9765E</code><span class="muted">alerte négative</span></div>
+    </div>
+</div>
+
+<div class="license-card">
+    <h2>Thèmes de couleurs — pourquoi trois niveaux</h2>
+    <ul>
+        <li><strong>Clair / sombre</strong> : le choix est proposé au visiteur (persisté localement) et respecte automatiquement la préférence système (<code>prefers-color-scheme</code>). Le sombre n'est pas une simple inversion : les teintes sont <em>éclaircies</em> (ex. pétrole → pétrole clair) pour conserver les contrastes sur fond nuit.</li>
+        <li><strong>Haut contraste (HC)</strong> : variante pensée pour la basse vision — encres extrêmes (noir/blanc), bordures renforcées (2 px), liens soulignés. Le HC conserve les identités de couleur (catégories ambre, thématiques sarcelle) pour ne pas perdre l'information.</li>
+        <li><strong>Accessibilité vérifiée</strong> : chaque paire texte/fond respecte au minimum le niveau <strong>AA du WCAG</strong> (contraste ≥ 4,5:1 pour le texte, ≥ 3:1 pour les composants) — vérifié par calcul sur chaque couleur de la palette.</li>
+    </ul>
+</div>
+
+<div class="license-card">
+    <h2>Catégories vs thématiques — la distinction accessible</h2>
+    <p>
+        Les catégories et les thématiques ne se distinguent <strong>jamais par la couleur seule</strong> :
+        trois indices redondants sont combinés (daltonisme, basse vision).
+    </p>
+    <div class="chips" style="margin-top:10px;">
+        <a class="chip chip-cat" href="/categories"><span class="chip-icon" aria-hidden="true">🗂</span>Catégorie</a>
+        <a class="chip chip-tag" href="/themes"><span class="chip-icon" aria-hidden="true">🏷</span>Thématique</a>
+    </div>
+    <ul>
+        <li><strong>Couleur</strong> : ambre (catégorie, chaude) vs sarcelle (thématique, froide).</li>
+        <li><strong>Remplissage</strong> : puce pleine vs puce en contour.</li>
+        <li><strong>Forme et icône</strong> : coins carrés + 🗂 vs pill + 🏷.</li>
+    </ul>
+</div>
+
+<div class="license-card">
+    <h2>Typographies</h2>
+    <ul>
+        <li><strong>Inter</strong> — le corps du texte : lisibilité optimale à l'écran, neutre et moderne (Google Fonts, avec repli système).</li>
+        <li><strong>Space Grotesk</strong> — les titres et le logo : un caractère légèrement technique qui évoque la machine, sans perdre en élégance.</li>
+        <li><strong>JetBrains Mono</strong> — les données : scores, dates, coûts, code. La monospace « instrument de mesure » colle à l'esprit radar.</li>
+    </ul>
+</div>
+
+<div class="license-card">
+    <h2>Choix techniques</h2>
+    <ul>
+        <li>Le thème est appliqué par <strong>variables CSS</strong> (<code>--bg</code>, <code>--accent</code>, …) : changer de charte ou de thème ne touche aucun composant.</li>
+        <li>Le <strong>anti-flash</strong> : le thème est posé sur <code>&lt;html&gt;</code> avant le premier rendu (script inline) pour éviter un flash blanc en mode sombre.</li>
+        <li>Le branding est piloté par configuration (<code>Branding:Theme</code>) : staging et production en Radar, développement en classic.</li>
+        <li>Les graphiques de la page <a href="/couts">Coûts IA</a> sont en <strong>SVG natif</strong> stylé par ces mêmes variables — aucune dépendance JavaScript externe, aucun tracker de polices ou de graphiques.</li>
+    </ul>
+</div>

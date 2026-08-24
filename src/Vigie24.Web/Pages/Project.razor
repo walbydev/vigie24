@@ -1,0 +1,159 @@
+@page "/projet"
+
+<PageTitle>Le projet - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="Vigie24 : projet de démonstration de développement assisté par agents (Hermes). Veille RSS francophone analysée par IA — architecture, choix, calcul du score en détail, outils et assistants utilisés." />
+    <link rel="canonical" href="https://vigie24.info/projet" />
+    <meta property="og:title" content="Le projet Vigie24" />
+    <meta property="og:description" content="Un projet de veille RSS + IA, développé en collaboration avec des agents (Hermes) : architecture, score en détail, outils." />
+    <meta property="og:url" content="https://vigie24.info/projet" />
+    <meta property="og:type" content="website" />
+</HeadContent>
+
+<h1>Le projet Vigie24</h1>
+<p class="muted">
+    Vigie24 est une <strong>veille technologique francophone</strong> : des flux RSS publics sont
+    surveillés en continu, chaque article est <strong>analysé par une IA</strong> (résumé, score,
+    catégories, thèmes), et les meilleurs sont publiés. C'est aussi — volontairement — un
+    <strong>projet de démonstration</strong> de développement assisté par des agents comme
+    <strong>Hermes</strong>.
+</p>
+
+<div class="license-card">
+    <h2>Le concept</h2>
+    <ul>
+        <li>📡 <strong>246+ sources</strong> vérifiées une à une : presse, blogs, chaînes YouTube et Reddit — France, Suisse, Belgique, Québec, Luxembourg.</li>
+        <li>🤖 <strong>Analyse IA par article</strong> : résumé, score éditorial (0-100), catégories, thèmes, positionnements de débat.</li>
+        <li>⭐ <strong>Publication si score éditorial ≥ 60</strong> : l'IA agit comme un comité de rédaction automatisé.</li>
+        <li>💬 <strong>Engagement des lecteurs</strong> : votes 0-5 et clics (anonymes) qui entrent dans le classement.</li>
+        <li>🥊 <strong>Débats</strong> : les articles contradictoires sur un même sujet sont mis en parallèle.</li>
+        <li>📊 <strong>Coûts mesurés</strong> et publiés en transparence (<a href="/couts">page Coûts IA</a>).</li>
+    </ul>
+</div>
+
+<div class="license-card">
+    <h2>Architecture</h2>
+    <ul>
+        <li><strong>Worker</strong> (service en arrière-plan) : interroge les flux toutes les 15 minutes, déduplique, analyse chaque nouvel article via l'API IA, puis le publie.</li>
+        <li><strong>Web</strong> : application <strong>Blazor Server</strong> (.NET 10) — navigation, recherche, filtres, votes, flux RSS, pages du projet.</li>
+        <li><strong>PostgreSQL 16</strong> via EF Core / Npgsql — articles, sources, tags, votes, débats, suivi des tokens.</li>
+        <li><strong>Docker Compose</strong> (worker + web + base) derrière <strong>Caddy</strong> (HTTPS Let's Encrypt) ; environnement séparé staging / production.</li>
+        <li><strong>IA</strong> : API <strong>Infomaniak AI</strong> (compatible OpenAI, hébergement en Suisse), modèle <strong>google/gemma-4-31B-it</strong>, avec DeepSeek en secours.</li>
+    </ul>
+    <p class="muted">
+        Code : <strong>.NET 10</strong> · <strong>ASP.NET Core</strong> · <strong>Blazor Server</strong> ·
+        <strong>EF Core</strong> · <strong>Npgsql</strong> · <strong>PostgreSQL 16</strong> ·
+        <strong>xUnit</strong> (125+ tests) · licence <strong>MIT</strong> (<a href="/license">voir la licence</a>).
+    </p>
+</div>
+
+<div class="license-card">
+    <h2>Le score, en détail</h2>
+    <p>Chaque article reçoit un <strong>score de classement</strong> sur 100, combinaison de trois composantes :</p>
+    <p class="score-formula"><strong>Classement = Éditorial × 0,55 + Algorithmique × 0,35 + Engagement × 0,10</strong></p>
+
+    <h3>1. Score éditorial (0-100) — attribué par l'IA</h3>
+    <p>
+        L'IA évalue chaque article pour une veille technologique francophone : pertinence du sujet,
+        nouveauté de l'information, qualité de la source. C'est le <strong>seul critère de publication</strong>
+        (seuil : <strong>≥ 60</strong>).
+    </p>
+
+    <h3>2. Score algorithmique (0-100) — récence + densité</h3>
+    <p class="score-formula"><strong>Algorithmique = (Récence + Contenu) / 2</strong></p>
+    <table class="score-table">
+        <thead><tr><th>Âge de l'article</th><th>Récence</th></tr></thead>
+        <tbody>
+            <tr><td>≤ 1 heure</td><td>100</td></tr>
+            <tr><td>≤ 6 heures</td><td>80</td></tr>
+            <tr><td>≤ 24 heures</td><td>60</td></tr>
+            <tr><td>≤ 48 heures</td><td>40</td></tr>
+            <tr><td>Au-delà</td><td>40 − (heures − 48) / 24 × 10 (minimum 0)</td></tr>
+        </tbody>
+    </table>
+    <table class="score-table">
+        <thead><tr><th>Longueur du résumé</th><th>Contenu</th></tr></thead>
+        <tbody>
+            <tr><td>≥ 50 mots</td><td>90</td></tr>
+            <tr><td>≥ 30 mots</td><td>70</td></tr>
+            <tr><td>≥ 15 mots</td><td>50</td></tr>
+            <tr><td>Sinon</td><td>30</td></tr>
+        </tbody>
+    </table>
+
+    <h3>3. Score d'engagement (0-100) — votes et clics</h3>
+    <p class="score-formula"><strong>Engagement = 0,6 × votes + 0,4 × clics</strong></p>
+    <ul>
+        <li>Votes : moyenne des votes 0-5 divisée par 5, ramenée à 100.</li>
+        <li>Clics : 10 points par clic, plafonné à 100.</li>
+        <li>Sans aucun vote ni clic, l'engagement est de 0 — le classement reste inchangé.</li>
+    </ul>
+
+    <p class="muted">
+        Chaque carte affiche son détail de calcul (ⓘ « Score : … »). Les formules ci-dessus sont la
+        référence unique du code (<code>ArticleScoring</code>) — rien n'est figé dans l'interface.
+    </p>
+</div>
+
+<div class="license-card">
+    <h2>Choix et critères</h2>
+    <ul>
+        <li>🌍 <strong>Francophonie assumée</strong> : 5 pays, langue des articles forcée au français.</li>
+        <li>✅ <strong>Sources vérifiées à la main</strong> : flux valide, dates parsables, contenu de qualité — les médias sans flux public ou anti-bot sont exclus.</li>
+        <li>🧠 <strong>Curatelle par IA, pas par algorithme froid</strong> : le jugement éditorial (pertinence, nouveauté) est la clé, les métriques techniques ne sont qu'un complément.</li>
+        <li>🔒 <strong>Vie privée</strong> : pas de compte obligatoire, votes anonymes (cookie local), aucun tracker tiers, aucune donnée personnelle stockée.</li>
+        <li>🇨🇭 <strong>Données et IA hébergées en Suisse</strong> (Infomaniak), requêtes non stockées par le fournisseur.</li>
+        <li>💸 <strong>Coût maîtrisé et transparent</strong> : ~0,04 CHF/jour pour une centaine d'articles, mesuré réellement (<a href="/couts">graphiques</a>).</li>
+    </ul>
+</div>
+
+<div class="license-card">
+    <h2>Outils et assistants utilisés</h2>
+    <p>Le projet est développé en <strong>collaboration avec des agents IA</strong>, sous la supervision d'un humain :</p>
+    <ul>
+        <li><strong>Hermes</strong> (Nous Research) — l'assistant agentique qui planifie, écrit le code, les tests, déploie et vérifie (<a href="https://hermes-agent.nousresearch.com/docs" rel="noopener">documentation</a> · <a href="https://nousresearch.com" rel="noopener">Nous Research</a>).</li>
+        <li><strong>DeepSeek API</strong> — modèle <code>deepseek-v4-flash</code>, assistant de l'auteur (<a href="https://www.deepseek.com" rel="noopener">deepseek.com</a>).</li>
+        <li><strong>Infomaniak AI</strong> — API OpenAI-compatible, data centers suisses, modèle <code>google/gemma-4-31B-it</code> (<a href="https://www.infomaniak.com/fr/ai" rel="noopener">infomaniak.com/ai</a> · <a href="https://ai.google.dev/gemma" rel="noopener">Gemma</a>).</li>
+        <li><strong>.NET 10 / ASP.NET Core / Blazor Server</strong> (<a href="https://dotnet.microsoft.com" rel="noopener">dotnet.microsoft.com</a> · <a href="https://learn.microsoft.com/aspnet/core/blazor" rel="noopener">Blazor</a>)</li>
+        <li><strong>EF Core + Npgsql + PostgreSQL 16</strong> (<a href="https://learn.microsoft.com/ef" rel="noopener">EF Core</a> · <a href="https://www.npgsql.org" rel="noopener">Npgsql</a> · <a href="https://www.postgresql.org" rel="noopener">PostgreSQL</a>)</li>
+        <li><strong>Docker Compose</strong> (<a href="https://www.docker.com" rel="noopener">docker.com</a>) et <strong>Caddy</strong> (HTTPS automatique, <a href="https://caddyserver.com" rel="noopener">caddyserver.com</a>)</li>
+        <li><strong>Gitea</strong> (dépôt auto-hébergé, <a href="https://gitea.io" rel="noopener">gitea.io</a>), <strong>xUnit</strong> (tests, <a href="https://xunit.net" rel="noopener">xunit.net</a>), <strong>Google Fonts</strong> (Inter, Space Grotesk, JetBrains Mono)</li>
+    </ul>
+</div>
+
+<div class="license-card">
+    <h2>Un projet de démonstration pour travailler avec des agents</h2>
+    <p>
+        Vigie24 sert de <strong>bac à sable</strong> pour éprouver une méthode de développement où
+        l'humain reste décisionnaire et l'agent exécute :
+    </p>
+    <ol>
+        <li><strong>Plan d'abord</strong> : chaque fonctionnalité commence par un document de plan (objectif, options, risques) écrit puis validé avant tout code.</li>
+        <li><strong>TDD par petites tâches</strong> : test d'abord (rouge), implémentation minimale (vert), commit unitaire — les commits de ce dépôt sont de vrais commits produits par l'agent.</li>
+        <li><strong>Vérification réelle</strong> : build, suite de tests, déploiement sur staging, validation navigateur (styles, contrastes, parcours) avant publication.</li>
+        <li><strong>Staging puis production</strong> : chaque livraison passe par l'environnement de préproduction, puis la production, avec vérifications curl et navigateur.</li>
+        <li><strong>Mémoire et compétence</strong> : les leçons apprises (pièges, procédures) sont consignées dans les skills de l'agent — l'équipe s'améliore à chaque session.</li>
+    </ol>
+    <p class="muted">
+        Résultat : un site complet, testé et déployé, dont <em>chaque brique</em> (de la base de données
+        aux graphiques de coûts) a été conçue et livrée en collaboration homme-machine. La charte
+        graphique et ses choix sont expliqués sur la page <a href="/charte-graphique">Charte graphique</a>.
+    </p>
+</div>
+
+<div class="license-card">
+    <h2>Sources et données</h2>
+    <ul>
+        <li>🗂 <strong>Liste des sources</strong> : <a href="/sources">page Sources</a> · <a href="/sources.json">sources.json</a> · <a href="/sources.xml">sources.xml</a></li>
+        <li>📡 <strong>Flux RSS</strong> : <a href="/feed">flux complet</a>, flux par catégorie, et <a href="/feed?minScore=60">flux personnalisés</a> (mêmes filtres que l'interface).</li>
+        <li>⚖️ Les articles proviennent de flux publics ; les droits appartiennent à leurs auteurs et médias d'origine (<a href="/license">licence</a>).</li>
+    </ul>
+</div>
+
+<div class="license-card">
+    <h2>Contact</h2>
+    <p>
+        Une question, un signalement, une suggestion de source ? Écrivez-nous :
+        <strong><a href="mailto:contact@vigie24.info">contact@vigie24.info</a></strong>
+    </p>
+</div>

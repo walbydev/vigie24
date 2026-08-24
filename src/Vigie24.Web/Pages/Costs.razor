@@ -1,0 +1,173 @@
+@page "/couts"
+@using System.Globalization
+@using System.Text
+@using Vigie24.Domain
+@using Vigie24.Infrastructure.Data
+@using Vigie24.Infrastructure.Queries
+@using Vigie24.Services.Interfaces
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
+@inject AiServiceSettings AiSettings
+@inject ILogger<Costs> Logger
+
+<PageTitle>Coûts IA - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="Coûts réels de l'analyse IA de Vigie24 : tokens consommés et dépense en CHF sur 1 semaine, 1 mois et 1 an (modèle gemma-4-31B-it, Infomaniak AI)." />
+    <link rel="canonical" href="https://vigie24.info/couts" />
+    <meta property="og:title" content="Coûts IA - Vigie24" />
+    <meta property="og:description" content="Consommation et coût réels des analyses IA de Vigie24 (tokens et CHF)." />
+    <meta property="og:url" content="https://vigie24.info/couts" />
+    <meta property="og:type" content="website" />
+</HeadContent>
+
+<h1>Coûts IA</h1>
+<p class="muted">
+    Consommation réelle et coût en CHF des analyses IA de Vigie24 — mesurés via le champ
+    <code>usage</code> renvoyé par l'API pour chaque analyse (modèle @AiSettings.Model,
+    tarifs @(AiSettings.InputPricePerMillionTokens.ToString("0.00", Culture)) CHF / M tokens en entrée,
+    @(AiSettings.OutputPricePerMillionTokens.ToString("0.00", Culture)) CHF / M en sortie).
+</p>
+
+<div class="period-switch" role="group" aria-label="Période du rapport">
+    <button class="period-btn @(_period == 7 ? "active" : "")" @onclick="() => _period = 7">1 semaine</button>
+    <button class="period-btn @(_period == 30 ? "active" : "")" @onclick="() => _period = 30">1 mois</button>
+    <button class="period-btn @(_period == 365 ? "active" : "")" @onclick="() => _period = 365">1 année</button>
+</div>
+
+@if (Current.Count == 0)
+{
+    <div class="alert alert-warning" role="alert">
+        Aucune donnée de consommation sur cette période (le suivi des tokens a débuté le 23 août 2026).
+    </div>
+}
+else
+{
+    <div class="stat-grid" role="list">
+        <div class="stat-card" role="listitem"><span class="stat-label">Analyses IA</span><span class="stat-value">@FormatInt(Current.Sum(p => p.ArticleCount))</span></div>
+        <div class="stat-card" role="listitem"><span class="stat-label">Tokens consommés</span><span class="stat-value">@FormatInt(Current.Sum(p => p.TotalTokens))</span></div>
+        <div class="stat-card" role="listitem"><span class="stat-label">Coût total</span><span class="stat-value">@FormatCost(Current.Sum(p => p.CostChf)) CHF</span></div>
+        <div class="stat-card" role="listitem"><span class="stat-label">Coût moyen / jour</span><span class="stat-value">@FormatCost(Current.Sum(p => p.CostChf) / _period) CHF</span></div>
+    </div>
+
+    <div class="chart-card">
+        <h2>Tokens par @(_period == 365 ? "semaine" : "jour")</h2>
+        @BuildTokenChart(Current)
+        <p class="muted chart-note">Entrée + sortie cumulées. Survolez une barre pour le détail (infobulle).</p>
+    </div>
+
+    <div class="chart-card">
+        <h2>Coût en CHF par @(_period == 365 ? "semaine" : "jour")</h2>
+        @BuildCostChart(Current)
+        <p class="muted chart-note">CHF hors TVA, estimés aux tarifs @AiSettings.Model.</p>
+    </div>
+}
+
+<div class="license-card">
+    <h2>Méthodologie et limites</h2>
+    <ul>
+        <li><strong>Mesure réelle</strong> : chaque analyse d'article rapporte ses tokens via le champ <code>usage</code> de l'API (Infomaniak AI, compatible OpenAI). Le coût est calculé par la formule <code>entrée × 0,20 / 1M + sortie × 0,40 / 1M</code> (tarifs Gemma-4-31B-it, configurables).</li>
+        <li><strong>Non comptées</strong> : les vérifications de doublons entre articles (appels courts, ~50 tokens max) et les embeddings — négligeables au regard du coût total.</li>
+        <li><strong>Périmètre</strong> : les articles analysés avant la mise en place du suivi (23 août 2026) n'ont pas de tokens enregistrés (NULL) et ne figurent pas dans ces graphiques.</li>
+        <li><strong>Ordre de grandeur</strong> : ~750 tokens d'entrée + ~135 de sortie par analyse, soit ≈ 0,0004 CHF/article — environ 0,04 CHF par jour pour une centaine d'articles.</li>
+    </ul>
+</div>
+
+@code {
+    private const int ChartWidth = 720;
+    private const int ChartHeight = 190;
+    private const int PadTop = 16;
+    private const int PadBottom = 24;
+    private const int PadLeft = 8;
+    private const int PadRight = 8;
+
+    private static readonly CultureInfo Culture = CultureInfo.GetCultureInfo("fr-FR");
+
+    private Dictionary<int, List<CostPoint>> _reports = new();
+    private int _period = 7;
+
+    private IReadOnlyList<CostPoint> Current => _reports.TryGetValue(_period, out var r) ? r : Array.Empty<CostPoint>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Les trois périodes sont préchargées une fois ; le sélecteur ne fait que re-rendre.
+            _reports[7] = await CostReportService.GetAsync(
+                DbContext, 7, CostGrouping.Daily,
+                AiSettings.InputPricePerMillionTokens, AiSettings.OutputPricePerMillionTokens);
+            _reports[30] = await CostReportService.GetAsync(
+                DbContext, 30, CostGrouping.Daily,
+                AiSettings.InputPricePerMillionTokens, AiSettings.OutputPricePerMillionTokens);
+            _reports[365] = await CostReportService.GetAsync(
+                DbContext, 365, CostGrouping.Weekly,
+                AiSettings.InputPricePerMillionTokens, AiSettings.OutputPricePerMillionTokens);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Impossible de charger le rapport de coûts IA");
+        }
+    }
+
+    private MarkupString BuildTokenChart(IReadOnlyList<CostPoint> points)
+        => BuildBarChart(points, p => (decimal)p.TotalTokens, "tokens", "Tokens consommés (entrée + sortie)");
+
+    private MarkupString BuildCostChart(IReadOnlyList<CostPoint> points)
+        => BuildBarChart(points, p => p.CostChf, "chf", "Coût en CHF");
+
+    /// <summary>Graphique en barres SVG pur (aucune dépendance JS/CDN), stylé par les variables de thème.</summary>
+    private MarkupString BuildBarChart(IReadOnlyList<CostPoint> points, Func<CostPoint, decimal> value, string cssClass, string ariaLabel)
+    {
+        var sb = new StringBuilder();
+        if (points.Count == 0)
+            return new MarkupString("<p class=\"muted\">Aucune donnée.</p>");
+
+        var max = Math.Max(points.Max(value), 0.01m);
+        var plotW = ChartWidth - PadLeft - PadRight;
+        var plotH = ChartHeight - PadTop - PadBottom;
+        var slot = plotW / (double)points.Count;
+
+        sb.Append($"<svg class=\"cost-chart {cssClass}\" viewBox=\"0 0 {ChartWidth} {ChartHeight}\" role=\"img\" aria-label=\"{ariaLabel}\">");
+        sb.Append($"<title>{ariaLabel} — {points.Count} point(s)</title>");
+
+        // Ligne de base + valeur max
+        sb.Append($"<line x1=\"{PadLeft}\" y1=\"{PadTop + plotH}\" x2=\"{ChartWidth - PadRight}\" y2=\"{PadTop + plotH}\" class=\"chart-axis\" />");
+        sb.Append($"<text x=\"{PadLeft}\" y=\"{PadTop - 4}\" class=\"chart-max\">{FormatCompact(max)}</text>");
+
+        for (var i = 0; i < points.Count; i++)
+        {
+            var v = value(points[i]);
+            var h = (double)(v / max) * plotH;
+            var x = PadLeft + i * slot + slot * 0.18;
+            var w = slot * 0.64;
+            var y = PadTop + plotH - h;
+            sb.Append($"<rect x=\"{x:0.0}\" y=\"{y:0.0}\" width=\"{w:0.0}\" height=\"{Math.Max(h, 1):0.0}\" class=\"chart-bar\">");
+            sb.Append($"<title>{points[i].Date:dd/MM} : {FormatInt(points[i].TotalTokens)} tokens · {FormatCost(points[i].CostChf)} CHF · {points[i].ArticleCount} analyse(s)</title>");
+            sb.Append("</rect>");
+        }
+
+        // Étiquettes de dates : première, médiane, dernière (évite l'encombrement)
+        var labelIndexes = new[] { 0, points.Count / 2, points.Count - 1 }.Distinct().ToArray();
+        foreach (var i in labelIndexes)
+        {
+            var anchor = i == 0 ? "start" : i == points.Count - 1 ? "end" : "middle";
+            var x = PadLeft + i * slot + slot / 2;
+            sb.Append($"<text x=\"{x:0.0}\" y=\"{ChartHeight - 6}\" text-anchor=\"{anchor}\" class=\"chart-label\">{points[i].Date:dd/MM}</text>");
+        }
+
+        sb.Append("</svg>");
+        return new MarkupString(sb.ToString());
+    }
+
+    private static string FormatInt(long v) => v.ToString("N0", Culture);
+
+    private static string FormatCost(decimal cost)
+        => cost >= 0.01m ? cost.ToString("0.00", Culture) : cost.ToString("0.0000", Culture);
+
+    /// <summary>Valeur max compacte : 12,4 k / 1,2 M (barre de référence de l'axe).</summary>
+    private static string FormatCompact(decimal v)
+        => v >= 1_000_000m
+            ? (v / 1_000_000m).ToString("0.0", Culture) + " M"
+            : v >= 1_000m
+                ? (v / 1_000m).ToString("0.0", Culture) + " k"
+                : v.ToString("0.00", Culture);
+}

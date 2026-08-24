@@ -273,6 +273,53 @@
         .alert-warning { background-color: var(--alert-warning-bg); border-color: var(--alert-warning-border); color: var(--alert-warning-ink); }
         .status-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 16px 0; }
 
+        /* ===== Page Coûts IA ===== */
+        .period-switch { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+        .period-btn {
+            border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--text);
+            border-radius: 999px; padding: 7px 16px; font-size: 0.85rem; cursor: pointer; font-weight: 600;
+        }
+        .period-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .period-btn.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0; }
+        .stat-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 14px; display: flex; flex-direction: column; gap: 4px;
+        }
+        .stat-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+        .stat-value { font-size: 1.15rem; font-weight: 700; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+        .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 16px 0; }
+        .chart-card h2 { margin: 0 0 10px; font-size: 1.05rem; }
+        .cost-chart { width: 100%; height: auto; }
+        .chart-bar { fill: var(--accent); }
+        .cost-chart.chf .chart-bar { fill: var(--brand-accent); }
+        .chart-axis { stroke: var(--border-strong); stroke-width: 1; }
+        .chart-max { font-size: 11px; fill: var(--text-muted); font-family: 'JetBrains Mono', ui-monospace, monospace; }
+        .chart-label { font-size: 10px; fill: var(--text-muted); }
+        .chart-note { font-size: 0.8rem; margin: 6px 0 0; }
+        [data-theme$="-hc"] .period-btn, [data-theme$="-hc"] .stat-card, [data-theme$="-hc"] .chart-card { border-width: 2px; }
+
+        /* ===== Page Projet : score en détail ===== */
+        .score-formula {
+            background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px;
+            padding: 10px 14px; font-family: 'JetBrains Mono', ui-monospace, monospace;
+        }
+        .score-table { border-collapse: collapse; margin: 10px 0; width: 100%; max-width: 520px; }
+        .score-table th, .score-table td {
+            border: 1px solid var(--border); padding: 6px 12px; text-align: left; font-size: 0.9rem;
+        }
+        .score-table th { background: var(--surface-alt); font-weight: 700; }
+        .license-card h3 { margin: 18px 0 6px; font-size: 1rem; }
+
+        /* ===== Page Charte graphique : palette ===== */
+        .palette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin: 10px 0; }
+        .palette-item {
+            display: flex; flex-direction: column; gap: 3px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 8px; padding: 10px;
+        }
+        .palette-item code { font-size: 0.78rem; }
+        .swatch { width: 100%; height: 34px; border-radius: 6px; margin-bottom: 4px; }
+
         /* ===== Chips (catégories / thèmes) ===== */
         /* Distinction accessible : la catégorie est une puce PLEINE (fond teinté + bordure
            soutenue, coins carrés, icône 🗂) ; la thématique une puce CONTOUR (fond neutre,
@@ -675,7 +722,13 @@
       "@@type": "Organization",
       "name": "Walby Developments",
       "url": "https://vigie24.info/",
-      "logo": "https://vigie24.info/apple-touch-icon.png"
+      "logo": "https://vigie24.info/apple-touch-icon.png",
+      "contactPoint": {
+        "@@type": "ContactPoint",
+        "email": "contact@vigie24.info",
+        "contactType": "customer support",
+        "availableLanguage": "French"
+      }
     }
     </script>
 </head>

@@ -19,6 +19,9 @@ public static class SitemapBuilder
         ("/themes", 0.5),
         ("/sources", 0.5),
         ("/debats", 0.5),
+        ("/projet", 0.5),
+        ("/charte-graphique", 0.5),
+        ("/couts", 0.5),
         ("/license", 0.5)
     };
 
