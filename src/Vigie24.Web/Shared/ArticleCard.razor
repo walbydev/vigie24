@@ -84,7 +84,7 @@
                 }
                 @if (_primarySource?.Source != null)
                 {
-                    <span> · via </span>
+                    <span>&nbsp;·&nbsp;via&nbsp;</span>
                     <a href="/api/articles/@Article.Id/track" target="_blank" rel="noopener">@_primarySource.Source.Name</a>
                 }
             </p>
@@ -95,19 +95,19 @@
                 @if (!string.IsNullOrEmpty(_countryDisplay))
                 {
                     <span class="country" title="Pays de publication">@_countryDisplay</span>
-                    <span> · </span>
+                    <span>&nbsp;·&nbsp;</span>
                 }
                 <span>@Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
                 @if (Article.PromptTokens is > 0)
                 {
-                    <span> · </span>
-                    <span title="Tokens consommés par l'analyse IA de cet article (entrée + sortie)">⚙️ @(((Article.PromptTokens ?? 0) + (Article.CompletionTokens ?? 0)).ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))) tok</span>
+                    <span>&nbsp;·&nbsp;</span>
+                    <span class="nowrap" title="Tokens consommés par l'analyse IA de cet article (entrée + sortie)">⚙️&nbsp;@(((Article.PromptTokens ?? 0) + (Article.CompletionTokens ?? 0)).ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")))&nbsp;tok</span>
                 }
             </span>
             <span class="score-hint">
-                <span class="score" @onclick="ToggleHint" @onkeydown="OnScoreKey" role="button" tabindex="0"
+                <span class="score nowrap" @onclick="ToggleHint" @onkeydown="OnScoreKey" role="button" tabindex="0"
                       aria-expanded="@_showHint"
-                      title="Calcul du score (Entrée pour afficher)">Score : <strong>@_state.RankingScore.ToString("0.0")</strong> ⓘ</span>
+                      title="Calcul du score (Entrée pour afficher)">Score&nbsp;:&nbsp;<strong>@_state.RankingScore.ToString("0.0")</strong>&nbsp;ⓘ</span>
                 @if (_showHint)
                 {
                     <span class="hint-popup">@_hint</span>
@@ -128,9 +128,9 @@
             <span class="eng-stats">
                 @if (_state.VoteCount > 0)
                 {
-                    <span class="vote-stats" title="Note moyenne (0-5)">⭐ @_state.VoteAverage.ToString("0.0") (@_state.VoteCount)</span>
+                    <span class="vote-stats nowrap" title="Note moyenne (0-5)">⭐&nbsp;@_state.VoteAverage.ToString("0.0")&nbsp;(<span class="nowrap">@_state.VoteCount</span>)</span>
                 }
-                <span class="click-stats" title="Clics vers l'article original">👁 @_state.ClickCount</span>
+                <span class="click-stats nowrap" title="Clics vers l'article original">👁&nbsp;@_state.ClickCount</span>
             </span>
         </div>
     </div>

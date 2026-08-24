@@ -37,7 +37,7 @@ else
         <strong>Modèle LLM :</strong> @AiService.ModelName<br />
         <strong>Statut :</strong> <span class="@_status?.CssClass">@_status?.Label</span> · <strong>Dernière ingestion :</strong> @_lastIngestionText<br />
         <strong>Articles en base :</strong> @_totalArticles<br />
-        <strong>Coût IA aujourd'hui :</strong> @FormatTokens(_todayTokens) tokens · ≈ CHF @FormatCost(_todayCostChf) · <a href="/couts" title="Graphiques des coûts IA (1 semaine, 1 mois, 1 an)">📊 voir les coûts</a>
+        <strong>Coût IA aujourd'hui :</strong> @FormatTokens(_todayTokens)&nbsp;tokens&nbsp;·&nbsp;≈&nbsp;CHF&nbsp;@FormatCost(_todayCostChf)&nbsp;·&nbsp;<a class="nowrap" href="/couts" title="Graphiques des coûts IA (1 semaine, 1 mois, 1 an)">📊&nbsp;voir les coûts</a>
     </div>
 }
 

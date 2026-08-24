@@ -24,8 +24,8 @@
 <p class="muted">
     Consommation réelle et coût en CHF des analyses IA de Vigie24 — mesurés via le champ
     <code>usage</code> renvoyé par l'API pour chaque analyse (modèle @AiSettings.Model,
-    tarifs @(AiSettings.InputPricePerMillionTokens.ToString("0.00", Culture)) CHF / M tokens en entrée,
-    @(AiSettings.OutputPricePerMillionTokens.ToString("0.00", Culture)) CHF / M en sortie).
+    tarifs @(AiSettings.InputPricePerMillionTokens.ToString("0.00", Culture))&nbsp;CHF&nbsp;/&nbsp;M&nbsp;tokens en entrée,
+    @(AiSettings.OutputPricePerMillionTokens.ToString("0.00", Culture))&nbsp;CHF&nbsp;/&nbsp;M&nbsp;tokens en sortie).
 </p>
 
 <div class="period-switch" role="group" aria-label="Période du rapport">
@@ -45,8 +45,8 @@ else
     <div class="stat-grid" role="list">
         <div class="stat-card" role="listitem"><span class="stat-label">Analyses IA</span><span class="stat-value">@FormatInt(Current.Sum(p => p.ArticleCount))</span></div>
         <div class="stat-card" role="listitem"><span class="stat-label">Tokens consommés</span><span class="stat-value">@FormatInt(Current.Sum(p => p.TotalTokens))</span></div>
-        <div class="stat-card" role="listitem"><span class="stat-label">Coût total</span><span class="stat-value">@FormatCost(Current.Sum(p => p.CostChf)) CHF</span></div>
-        <div class="stat-card" role="listitem"><span class="stat-label">Coût moyen / jour</span><span class="stat-value">@FormatCost(Current.Sum(p => p.CostChf) / _period) CHF</span></div>
+        <div class="stat-card" role="listitem"><span class="stat-label">Coût total</span><span class="stat-value">@FormatCost(Current.Sum(p => p.CostChf))&nbsp;CHF</span></div>
+        <div class="stat-card" role="listitem"><span class="stat-label">Coût moyen / jour</span><span class="stat-value">@FormatCost(Current.Sum(p => p.CostChf) / _period)&nbsp;CHF</span></div>
     </div>
 
     <div class="chart-card">

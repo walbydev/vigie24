@@ -334,7 +334,7 @@
            bordure teintée, pill, icône 🏷). Couleur + remplissage + icône = 3 indices
            redondants (daltonisme, basse vision). Contrastes : texte ≥ 4.5:1, bordures ≥ 3:1. */
         .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-        .chip { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; text-decoration: none; }
+        .chip { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; text-decoration: none; white-space: nowrap; }
         .chip-cat {
             background: var(--chip-cat-bg); color: var(--chip-cat-ink);
             border: 1.5px solid var(--chip-cat-border);
@@ -349,6 +349,10 @@
         .chip-tag:hover { filter: brightness(0.94); }
         .chip-sep { color: var(--chip-sep); }
         .chip-icon { margin-right: 3px; }
+        /* Les informations atomiques (nombre + unité/icône) ne doivent jamais se couper :
+           retour à la ligne entre unités, jamais à l'intérieur. */
+        .nowrap { white-space: nowrap; }
+        .debate-camp h3 { white-space: nowrap; }
         /* Badge de position (débats) : fond teinté + bordure teintée + icône — contraste texte ≥ 4.5:1
            (encre = 55 % teinte + 45 % texte), bordure ≥ 3:1. La teinte suit le thème (variable --c locale). */
         .chip-stance {
