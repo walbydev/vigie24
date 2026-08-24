@@ -71,6 +71,7 @@
         </div>
 
         <h5 class="card-title"><a href="/api/articles/@Article.Id/track" target="_blank" rel="noopener">@Article.Title</a></h5>
+        <a class="reader-link" href="/articles/@Article.Id" title="Lire la fiche de lecture Vigie24 (résumé IA)">📖 Lire sur Vigie24</a>
         <p class="card-text">@Article.Summary</p>
 
         @if (Article.Authors.Any() || _primarySource?.Source != null)

@@ -454,6 +454,8 @@
         .card-title { margin: 0; font-size: 1.05rem; line-height: 1.35; }
         .card-title a { color: var(--text); text-decoration: none; }
         .card-title a:hover { color: var(--accent); }
+        .reader-link { display: inline-block; font-size: 0.8rem; color: var(--accent); text-decoration: none; font-weight: 600; margin: 2px 0 4px; }
+        .reader-link:hover { text-decoration: underline; }
         .card-text { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
         .authors { margin: 0; color: var(--text-muted); font-size: 0.85rem; }
         .meta { margin: 0; display: flex; justify-content: space-between; align-items: center; font-size: 0.83rem; color: var(--text-muted); }
@@ -499,6 +501,18 @@
         .breadcrumb a { color: var(--accent); text-decoration: none; }
         .page-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
         .page-head .muted { font-size: 0.9rem; }
+
+        /* ===== Mode lecture (fiche article /articles/{id}) ===== */
+        .reader { max-width: 72ch; margin: 0 auto; padding: 8px 0 40px; }
+        .reader-img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 10px; margin-bottom: 16px; }
+        .reader h1 { font-size: 1.9rem; line-height: 1.25; margin: 0 0 10px; }
+        .reader .reader-meta { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; color: var(--text-muted); font-size: 0.9rem; margin: 10px 0 22px; }
+        .reader .reader-meta a { color: var(--accent); text-decoration: none; }
+        .reader .reader-meta a:hover { text-decoration: underline; }
+        .reader .score { cursor: help; }
+        .reader-body { font-size: 1.08rem; line-height: 1.75; color: var(--text); white-space: pre-line; }
+        .reader-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+        .reader-actions .chip { font-size: 0.9rem; padding: 8px 16px; }
 
         /* ===== Bandeau d'erreur Blazor (masqué par défaut) ===== */
         #blazor-error-ui {
