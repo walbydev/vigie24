@@ -60,6 +60,14 @@ public class AiProcessingResult
     /// </summary>
     [JsonPropertyName("stance")]
     public string? Stance { get; set; }
+
+    /// <summary>
+    /// Anxiety score 0-10 (0 = not anxiety-inducing, 10 = very anxiety-inducing).
+    /// Subjective, editorial: measures how much the topic is likely to worry a
+    /// French tech-watch reader (threats, crises, alarmism...).
+    /// </summary>
+    [JsonPropertyName("anxiety_score")]
+    public int AnxietyScore { get; set; }
 }
 
 /// <summary>

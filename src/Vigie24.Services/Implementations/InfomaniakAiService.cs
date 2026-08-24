@@ -89,6 +89,7 @@ Fournis ta réponse au format JSON suivant (sans markdown, juste le JSON brut):
 {{
   ""summary"": ""Résumé concis en français (2-3 phrases)"",
   ""editorial_score"": 0-100 (note de pertinence éditoriale),
+  ""anxiety_score"": 0-10 (potentiel anxiogène du sujet pour un lecteur de veille tech : 0 = neutre/rassurant, 10 = alarmiste/effrayant. Exemples : faille zero-day massive = 8-10 ; crise géopolitique = 6-8 ; lancement produit = 1-2 ; tutoriel = 0-1),
   ""categories"": [""catégorie parente"", ""sous-catégorie""],
   ""themes"": [""liste"", ""de"", ""themes""],
   ""keywords"": [""liste"", ""de"", ""mots-clés""],
