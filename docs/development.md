@@ -18,7 +18,7 @@ cd vigie24
 Copy `.env.example` to `.env` and fill in the API keys:
 ```bash
 cp .env.example .env
-# Éditer .env avec vos clés API
+# Edit .env with your API keys
 ```
 
 **Configuration files:**
@@ -118,7 +118,7 @@ dotnet test --collect:"XPlat Code Coverage"
 ```
 vigie24/
 ├── src/
-│   ├── Vigie24.Domain/        # Entités, interfaces, value objects
+│   ├── Vigie24.Domain/        # Entities, interfaces, value objects
 │   ├── Vigie24.Infrastructure # EF Core, repositories, migrations
 │   ├── Vigie24.Services/      # Services IA, feed parsing, business logic
 │   ├── Vigie24.Web/           # Blazor Server frontend
@@ -155,11 +155,11 @@ Local format: `Host=localhost;Database=vigie24;Username=postgres;Password=postgr
 docker compose logs -f worker
 docker compose logs -f web
 
-# Redémarrer un service
+# Restart a service
 docker compose restart worker
 docker compose restart web
 
-# Arrêter tout
+# Stop everything
 docker compose down
 
 # Reset DB

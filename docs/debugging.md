@@ -133,13 +133,13 @@ dotnet user-secrets set "AiService__ApiKey" "VOTRE_CLE_INFOMANIAK"
 
 ### Worker (`src/Vigie24.Worker/Worker.cs`)
 ```csharp
-// Ligne 44 : ExecuteAsync - point d'entrée du worker
+// Line 44: ExecuteAsync - worker entry point
 protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 
 // Ligne 63 : ProcessFeedsAsync - traitement des flux RSS
 var sources = await _feedRepository.GetAllAsync();
 
-// Ligne 120 : FetchRssFeedAsync - récupération des feeds
+// Line 120: FetchRssFeedAsync - feed fetching
 var response = await _httpClient.GetAsync(feedUrl);
 ```
 
@@ -163,7 +163,7 @@ src/Vigie24.Services/InfomaniakAiService.cs
 ```bash
 # Dans le conteneur
 docker exec -it vigie24-web-debug ps aux | grep dotnet
-# Devrait montrer le processus avec diagnostics activés
+# Should show the process with diagnostics enabled
 ```
 
 ### 2. Test a breakpoint
@@ -202,7 +202,7 @@ docker exec -it vigie24-web-debug ps aux | grep dotnet
 # Lancer tout en mode debug
 docker compose -f docker-compose.debug.yml up
 
-# Arrêter tout
+# Stop everything
 docker compose -f docker-compose.debug.yml down
 
 # Voir les logs
