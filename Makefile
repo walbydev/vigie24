@@ -205,10 +205,14 @@ prod-worker-resume:
 	@echo "▶️ Production worker restarted."
 
 # --- Public release (Gitea = primary source, GitHub = major releases only) ---
+# Auth: GITEA_TOKEN / GITHUB_TOKEN read from Makefile.env (gitignored) when set
 release:
 	@test -n "$(VERSION)" || { echo "❌ Usage: make release VERSION=x.y.z"; exit 1; }
 	@test -z "$$(git status --porcelain)" || { echo "❌ Working tree is not clean — commit or stash first"; exit 1; }
 	@git tag -a "v$(VERSION)" -m "Release v$(VERSION)"
-	@git push origin master --tags
-	@git push github master --tags
+	@if [ -n "$(GITEA_TOKEN)" ]; then git -c http.extraHeader="Authorization: token $(GITEA_TOKEN)" push origin master --tags; else git push origin master --tags; fi
+	@if [ -n "$(GITHUB_TOKEN)" ]; then \
+		GH_BASIC="$$(printf 'x-access-token:%s' "$(GITHUB_TOKEN)" | base64 | tr -d '\n')"; \
+		git -c "http.extraHeader=Authorization: Basic $$GH_BASIC" push github master --tags; \
+	else git push github master --tags; fi
 	@echo "✅ Release v$(VERSION) pushed to Gitea (origin) and GitHub (github)"
