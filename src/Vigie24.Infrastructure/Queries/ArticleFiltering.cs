@@ -50,6 +50,13 @@ public static class ArticleFiltering
             q = q.Where(a => a.VoteAverage >= c.MinRating);
         }
 
+        // Anxiety cap: 10 = no filter. Articles without a score (null, not yet
+        // evaluated) remain visible — only scored articles above the cap are hidden.
+        if (c.MaxAnxiety < 10)
+        {
+            q = q.Where(a => a.AnxietyScore == null || a.AnxietyScore <= c.MaxAnxiety);
+        }
+
         if (c.RangeFrom is { } from)
         {
             q = q.Where(a => a.PublishedAt >= from);

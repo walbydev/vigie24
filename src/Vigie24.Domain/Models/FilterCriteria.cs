@@ -25,6 +25,10 @@ public sealed record FilterCriteria
     public IReadOnlyList<string> SelectedSources { get; init; } = [];
     public int MinScore { get; init; }
     public int MinRating { get; init; }
+
+    /// <summary>Maximum anxiety score (0-10) — 10 = no filter (default). Articles without a score (null) always pass.</summary>
+    public int MaxAnxiety { get; init; } = 10;
+
     public DateTime? RangeFrom { get; init; }
     public DateTime? RangeTo { get; init; }
     public string SortField { get; init; } = "date";
@@ -38,6 +42,7 @@ public sealed record FilterCriteria
         && SelectedSources.Count == 0
         && MinScore == 0
         && MinRating == 0
+        && MaxAnxiety == 10
         && RangeFrom is null
         && RangeTo is null
         && string.Equals(SortField, "date", StringComparison.Ordinal)
@@ -64,6 +69,8 @@ public sealed record FilterCriteria
             parts.Add($"minScore={MinScore}");
         if (MinRating > 0)
             parts.Add($"minRating={MinRating}");
+        if (MaxAnxiety < 10)
+            parts.Add($"maxAnxiety={MaxAnxiety}");
         if (RangeFrom is { } from)
             parts.Add($"from={from:yyyy-MM-dd}");
         if (RangeTo is { } to)
@@ -136,6 +143,12 @@ public sealed record FilterCriteria
                         return false;
                     criteria = criteria with { MinRating = minRating };
                     break;
+                case "maxanxiety":
+                    if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var maxAnxiety)
+                        || maxAnxiety is < 0 or > 10)
+                        return false;
+                    criteria = criteria with { MaxAnxiety = maxAnxiety };
+                    break;
                 case "from":
                     if (!DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var from))
                         return false;
@@ -203,6 +216,7 @@ public sealed record FilterCriteria
             && SelectedSources.SequenceEqual(other.SelectedSources, StringComparer.Ordinal)
             && MinScore == other.MinScore
             && MinRating == other.MinRating
+            && MaxAnxiety == other.MaxAnxiety
             && RangeFrom == other.RangeFrom
             && RangeTo == other.RangeTo
             && string.Equals(SortField, other.SortField, StringComparison.Ordinal)
@@ -219,6 +233,7 @@ public sealed record FilterCriteria
             hash.Add(s, StringComparer.Ordinal);
         hash.Add(MinScore);
         hash.Add(MinRating);
+        hash.Add(MaxAnxiety);
         hash.Add(RangeFrom);
         hash.Add(RangeTo);
         hash.Add(SortField, StringComparer.Ordinal);
