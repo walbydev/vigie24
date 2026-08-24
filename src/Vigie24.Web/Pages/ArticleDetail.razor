@@ -1,0 +1,150 @@
+@page "/articles/{Id:guid}"
+@using Vigie24.Domain
+@using Vigie24.Domain.Models
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
+
+@* Mode lecture : fiche de l'article avec le résumé IA (contenu propre indexable) *@
+<PageTitle>@_seoTitle</PageTitle>
+<HeadContent>
+    <meta name="description" content="@_metaDescription" />
+    <link rel="canonical" href="https://vigie24.info/articles/@Id" />
+    <meta property="og:title" content="@_seoTitle" />
+    <meta property="og:description" content="@_metaDescription" />
+    <meta property="og:url" content="https://vigie24.info/articles/@Id" />
+    <meta property="og:type" content="article" />
+</HeadContent>
+
+@if (_article == null)
+{
+    <div class="alert alert-warning" role="alert">Article introuvable.</div>
+}
+else
+{
+    <article class="reader">
+        <p class="muted"><a href="/">← Retour à l'accueil</a></p>
+
+        @if (!string.IsNullOrEmpty(_article.ImageUrl))
+        {
+            <img src="@_article.ImageUrl" alt="@_article.ImageAltText" class="reader-img" loading="lazy" />
+        }
+
+        <div class="chips">
+            @if (_article.DebateArticles.Any())
+            {
+                <a class="chip chip-debate" href="/debats" title="Cet article participe à un débat — voir les positions opposées">🥊 Débat</a>
+            }
+            @if (_article.AnxietyScore is { } anxiety)
+            {
+                var (icon, label) = anxiety switch
+                {
+                    <= 3 => ("🧘", "Peu anxiogène"),
+                    <= 6 => ("😟", "Modérément anxiogène"),
+                    _ => ("🚨", "Très anxiogène")
+                };
+                <span class="chip chip-anxiety chip-anxiety-@(anxiety <= 3 ? "low" : anxiety <= 6 ? "med" : "high")"
+                      title="Score d'anxiété : @anxiety/10 — @label">@icon @anxiety/10</span>
+            }
+            @if (_article.Category != null)
+            {
+                @if (_article.Category.ParentCategory != null)
+                {
+                    <a class="chip chip-cat" href="/categories/@_article.Category.ParentCategory.Slug">🗂 @VigieTaxonomy.DisplayName(_article.Category.ParentCategory.Slug)</a>
+                    <span class="chip-sep">›</span>
+                }
+                <a class="chip chip-cat" href="/categories/@_article.Category.Slug">🗂 @VigieTaxonomy.DisplayName(_article.Category.Slug)</a>
+            }
+            @foreach (var t in _article.Tags.Take(6))
+            {
+                <a class="chip chip-tag" href="/themes/@t.Tag.Slug">🏷 @VigieTaxonomy.DisplayName(t.Tag.Slug)</a>
+            }
+        </div>
+
+        <h1>@_article.Title</h1>
+
+        <div class="reader-meta">
+            @if (!string.IsNullOrEmpty(_primarySourceName))
+            {
+                <span>
+                    📰
+                    @if (!string.IsNullOrEmpty(_primarySourceUrl))
+                    {
+                        <a href="@_primarySourceUrl" target="_blank" rel="noopener">@_primarySourceName</a>
+                    }
+                    else
+                    {
+                        <text>@_primarySourceName</text>
+                    }
+                </span>
+            }
+            @if (!string.IsNullOrEmpty(_countryDisplay))
+            {
+                <span>@_countryDisplay</span>
+            }
+            <span>@_article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+            @if (_article.Authors.Any())
+            {
+                <span>✍️ @string.Join(", ", _article.Authors.OrderBy(a => a.AuthorOrder).Select(a => a.Author?.Name).Where(n => !string.IsNullOrEmpty(n)))</span>
+            }
+            <span class="score" title="Score de classement : éditorial @_article.EditorialScore.ToString("0.0") × 0,55 + algorithmique @_article.AlgorithmicScore.ToString("0.0") × 0,35 + engagement × 0,10">Score : <strong>@_article.RankingScore.ToString("0.0")</strong></span>
+            @if (_article.VoteCount > 0)
+            {
+                <span title="@_article.VoteCount vote(s)">⭐ @_article.VoteAverage.ToString("0.0") (@_article.VoteCount)</span>
+            }
+            <span title="Clics vers l'article original">👁 @_article.ClickCount</span>
+        </div>
+
+        <div class="reader-body">@_article.Summary</div>
+
+        <div class="reader-actions">
+            <a class="chip" href="/api/articles/@_article.Id/track" target="_blank" rel="noopener">📖 Lire l'article original</a>
+            @if (_article.DebateArticles.Any())
+            {
+                <a class="chip chip-debate" href="/debats">🥊 Voir le débat</a>
+            }
+        </div>
+    </article>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Article? _article;
+    private string _seoTitle = "Article - Vigie24";
+    private string _metaDescription = "";
+    private string _primarySourceName = "";
+    private string _primarySourceUrl = "";
+    private string _countryDisplay = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _article = await DbContext.Articles.AsNoTracking()
+            .Include(a => a.Category!).ThenInclude(c => c.ParentCategory)
+            .Include(a => a.Tags).ThenInclude(t => t.Tag)
+            .Include(a => a.Sources).ThenInclude(s => s.Source)
+            .Include(a => a.Authors).ThenInclude(a => a.Author)
+            .Include(a => a.DebateArticles)
+            .FirstOrDefaultAsync(a => a.Id == Id);
+
+        if (_article == null)
+        {
+            _seoTitle = "Article introuvable - Vigie24";
+            _metaDescription = "Cet article n'existe pas sur Vigie24.";
+            return;
+        }
+
+        _seoTitle = Truncate(_article.Title, 60) + " - Vigie24";
+        _metaDescription = Truncate(_article.Summary, 155);
+
+        var primary = _article.Sources.FirstOrDefault(s => s.IsPrimary) ?? _article.Sources.FirstOrDefault();
+        _primarySourceName = primary?.Source?.Name ?? "";
+        _primarySourceUrl = primary?.Source?.WebsiteUrl ?? "";
+        _countryDisplay = CountryInfo.Display(primary?.Source?.CountryCode);
+    }
+
+    /// <summary>Coupe un texte à max caractères en ajoutant une ellipse (titres/meta SEO).</summary>
+    private static string Truncate(string s, int max)
+        => s.Length <= max ? s : s[..max].TrimEnd() + "…";
+}
