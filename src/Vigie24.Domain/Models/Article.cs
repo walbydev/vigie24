@@ -46,6 +46,9 @@ public class Article
 
     /// <summary>Article stance: pour / contre / nuance / neutre / empty</summary>
     public string? Stance { get; set; }
+
+    /// <summary>Anxiety score 0-10 assigned by the AI (null = not evaluated)</summary>
+    public int? AnxietyScore { get; set; }
     
     // Navigation properties
     public virtual Category? Category { get; set; }

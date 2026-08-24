@@ -31,6 +31,9 @@ namespace Vigie24.Infrastructure.Migrations
                     b.Property<decimal>("AlgorithmicScore")
                         .HasColumnType("numeric");
 
+                    b.Property<int?>("AnxietyScore")
+                        .HasColumnType("integer");
+
                     b.Property<string>("CanonicalUrl")
                         .IsRequired()
                         .HasColumnType("text");
@@ -577,7 +580,7 @@ namespace Vigie24.Infrastructure.Migrations
             modelBuilder.Entity("Vigie24.Domain.Models.DebateArticle", b =>
                 {
                     b.HasOne("Vigie24.Domain.Models.Article", "Article")
-                        .WithMany()
+                        .WithMany("DebateArticles")
                         .HasForeignKey("ArticleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -596,6 +599,8 @@ namespace Vigie24.Infrastructure.Migrations
             modelBuilder.Entity("Vigie24.Domain.Models.Article", b =>
                 {
                     b.Navigation("Authors");
+
+                    b.Navigation("DebateArticles");
 
                     b.Navigation("Sources");
 
