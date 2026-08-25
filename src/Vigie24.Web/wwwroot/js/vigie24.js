@@ -25,5 +25,41 @@ window.vigie24 = window.vigie24 || {
         } catch (e) {
             return false;
         }
+    },
+    // Floating scroll buttons (top/bottom of page), right side of the content.
+    // Pure client-side: no Blazor circuit needed, works during prerender too.
+    initScrollFabs: function () {
+        var topBtn = document.getElementById('fab-top');
+        var bottomBtn = document.getElementById('fab-bottom');
+        if (!topBtn || !bottomBtn) return;
+
+        var ticking = false;
+        function update() {
+            ticking = false;
+            var y = window.scrollY || document.documentElement.scrollTop;
+            var maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+            topBtn.classList.toggle('visible', y > 400);
+            bottomBtn.classList.toggle('visible', maxScroll > 150 && y < maxScroll - 150);
+        }
+        function onScroll() {
+            if (!ticking) { ticking = true; requestAnimationFrame(update); }
+        }
+
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var behavior = reduce ? 'auto' : 'smooth';
+
+        topBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: behavior });
+        });
+        bottomBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            window.scrollTo({ top: document.documentElement.scrollHeight, behavior: behavior });
+        });
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll);
+        update();
     }
 };
+
+window.vigie24.initScrollFabs();

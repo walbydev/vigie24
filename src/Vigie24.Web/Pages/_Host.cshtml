@@ -623,6 +623,52 @@
         [data-theme$="-hc"] .tl-pill, [data-theme$="-hc"] .vote-btn, [data-theme$="-hc"] .btn-toggle,
         [data-theme$="-hc"] .af-chip, [data-theme$="-hc"] .pagination button { border-width: 2px; }
         [data-theme$="-hc"] .hint-popup { border: 2px solid currentColor; }
+
+        /* Boutons flottants haut/bas de page (à droite du contenu) */
+        .scroll-fabs {
+            position: fixed;
+            right: 1.25rem;
+            bottom: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            z-index: 90;
+        }
+        .scroll-fab {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            border: 1px solid var(--border-strong);
+            background: var(--surface);
+            color: var(--text-muted);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(4px);
+            transition: opacity 0.2s ease, transform 0.2s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+        .scroll-fab.visible {
+            opacity: 0.92;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .scroll-fab:hover, .scroll-fab:focus-visible {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--accent-ink);
+            opacity: 1;
+        }
+        .scroll-fab:focus-visible {
+            outline: 2px solid var(--focus);
+            outline-offset: 2px;
+        }
+        @@media (prefers-reduced-motion: reduce) {
+            .scroll-fab { transition: none; }
+        }
     </style>
     @if (isRadarBranding)
     {
