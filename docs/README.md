@@ -14,6 +14,8 @@
 | Scripts | [scripts.md](scripts.md) | [scripts.fr.md](scripts.fr.md) |
 | Testing | [testing.md](testing.md) | [testing.fr.md](testing.fr.md) |
 | Releases | [releases.md](releases.md) | [releases.fr.md](releases.fr.md) |
+| Architecture | [architecture.md](architecture.md) | [architecture.fr.md](architecture.fr.md) |
+| Algorithms | [algorithmes.md](algorithmes.md) | [algorithmes.fr.md](algorithmes.fr.md) |
 
 ## Design documents (specs)
 

@@ -115,6 +115,8 @@ dotnet test tests/Vigie24.Tests --filter "FullyQualifiedName!~Integration"
 | Scripts | `docs/scripts.md` | `docs/scripts.fr.md` |
 | Testing | `docs/testing.md` | `docs/testing.fr.md` |
 | Releases | `docs/releases.md` | `docs/releases.fr.md` |
+| Architecture | `docs/architecture.md` | `docs/architecture.fr.md` |
+| Algorithms | `docs/algorithmes.md` | `docs/algorithmes.fr.md` |
 | Design docs | `docs/design/*.md` | `docs/design/*.fr.md` |
 
 ## 🔄 Release Policy
