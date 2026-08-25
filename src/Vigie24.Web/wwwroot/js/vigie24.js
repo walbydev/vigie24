@@ -62,4 +62,10 @@ window.vigie24 = window.vigie24 || {
     }
 };
 
-window.vigie24.initScrollFabs();
+// Init when the DOM is ready (script is loaded at the end of <body>, but be safe
+// if a layout change ever moves it earlier).
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { window.vigie24.initScrollFabs(); });
+} else {
+    window.vigie24.initScrollFabs();
+}
