@@ -119,18 +119,11 @@
 }
 else
 {
-    <div class="browser-layout">
-        <div class="browser-grid-zone">
-            <div class="article-grid">
-                @foreach (var article in _articles)
-                {
-                    <ArticleCard Article="@article" MyVote="@(_myVotes.TryGetValue(article.Id, out var myVote) ? myVote : (int?)null)" ShowStance="ShowStance" />
-                }
-            </div>
-        </div>
-        <ArticleTimeline TotalPages="@_totalPages" CurrentPage="@_page" PageSize="@PageSize"
-                         TotalCount="@_totalCount" Dates="@_dates" SortField="@SortField"
-                         OnPageRequested="@OnTimelinePageRequested" />
+    <div class="article-grid">
+        @foreach (var article in _articles)
+        {
+            <ArticleCard Article="@article" MyVote="@(_myVotes.TryGetValue(article.Id, out var myVote) ? myVote : (int?)null)" ShowStance="ShowStance" />
+        }
     </div>
 
     <nav class="pagination" aria-label="Pagination">
@@ -401,13 +394,6 @@ else
     private async Task GoToPageAsync(int page)
     {
         if (page < 1 || page > _totalPages) return;
-        _page = page;
-        await LoadAsync();
-    }
-
-    private async Task OnTimelinePageRequested(int page)
-    {
-        if (page < 1 || page > _totalPages || page == _page) return;
         _page = page;
         await LoadAsync();
     }
