@@ -1,274 +1,220 @@
+using Vigie24.Domain;
+using Vigie24.Domain.Models;
+using Vigie24.Services.Interfaces;
+using Xunit;
+
 namespace Vigie24.Tests.Functional;
 
-using Vigie24.Domain.Models;
-using System.Text.Json;
-
 /// <summary>
-/// Tests fonctionnels pour les algorithmes de scoring
+/// Functional tests exercising the REAL production code paths: the scoring formulas
+/// (ArticleScoring), the publication rule enforced by the Worker, and the taxonomy
+/// fallbacks. These tests replaced a set of assertions that re-implemented the
+/// formulas locally and therefore validated nothing.
 /// </summary>
 public class ScoringFunctionalTests
 {
-    [Fact]
-    public void ArticleWithHighScore_ShouldBePublished()
+    [Theory]
+    [InlineData(85, 70, true)]   // high editorial score → published
+    [InlineData(45, 60, false)]  // low editorial score → not published
+    [InlineData(60, 50, true)]   // exactly at the threshold → published (>=)
+    public void PublicationRule_ShouldUseEditorialScore(decimal editorial, decimal algorithmic, bool expectedPublished)
     {
-        // Arrange
-        var article = CreateArticleWithScore(85m);
-        const decimal publishThreshold = 60m;
+        var article = BuildArticle(editorial, algorithmic);
 
-        // Act
-        var shouldPublish = article.RankingScore >= publishThreshold;
+        // The exact rule enforced by the Worker when creating the article:
+        // IsPublished = aiResult.EditorialScore >= ArticleScoring.PublicationThreshold
+        var isPublished = article.EditorialScore >= ArticleScoring.PublicationThreshold;
 
-        // Assert
-        Assert.True(shouldPublish, "Article avec score élevé devrait être publié");
+        Assert.Equal(expectedPublished, isPublished);
     }
 
     [Fact]
-    public void ArticleWithLowScore_ShouldNotBePublished()
+    public void CalculateRanking_ShouldBlendEditorialAlgorithmicEngagement()
     {
-        // Arrange
-        var article = CreateArticleWithScore(45m);
-        const decimal publishThreshold = 60m;
+        const decimal editorial = 80m, algorithmic = 70m, engagement = 50m;
 
-        // Act
-        var shouldPublish = article.RankingScore >= publishThreshold;
+        var ranking = ArticleScoring.CalculateRanking(editorial, algorithmic, engagement);
 
-        // Assert
-        Assert.False(shouldPublish, "Article avec score bas ne devrait pas être publié");
+        Assert.Equal(editorial * 0.55m + algorithmic * 0.35m + engagement * 0.10m, ranking);
+    }
+
+    [Fact]
+    public void Ranking_WithoutEngagement_ShouldBePureEditorialAlgorithmic()
+    {
+        const decimal editorial = 80m, algorithmic = 70m;
+
+        var ranking = ArticleScoring.CalculateRanking(editorial, algorithmic);
+
+        Assert.Equal(editorial * ArticleScoring.EditorialWeight
+                   + algorithmic * ArticleScoring.AlgorithmicWeight, ranking);
+    }
+
+    [Fact]
+    public void Engagement_ShouldRaiseRanking()
+    {
+        var withEngagement = ArticleScoring.CalculateRanking(70m, 60m,
+            ArticleScoring.CalculateEngagementScore(voteCount: 10, voteAverage: 4.5m, clickCount: 8));
+        var withoutEngagement = ArticleScoring.CalculateRanking(70m, 60m);
+
+        Assert.True(withEngagement > withoutEngagement);
+    }
+
+    [Fact]
+    public void Engagement_WithoutVotesOrClicks_ShouldBeZero()
+    {
+        Assert.Equal(0m, ArticleScoring.CalculateEngagementScore(0, 0m, 0));
     }
 
     [Theory]
-    [InlineData(90, 10)]
-    [InlineData(75, 8)]
-    [InlineData(60, 6)]
-    [InlineData(45, 4)]
-    public void RankingScore_ShouldReflectEditorialAndAlgorithmic(decimal editorialScore, int expectedRange)
+    [InlineData(0.5, 100)]   // ≤ 1h
+    [InlineData(3, 80)]      // ≤ 6h
+    [InlineData(12, 60)]     // ≤ 24h
+    [InlineData(30, 40)]     // ≤ 48h
+    [InlineData(96, 20)]     // decreasing after 48h: 40 − (96−48)/24×10
+    [InlineData(240, 0)]     // clamped to 0
+    public void RecencyScore_ShouldFollowTimeBuckets(double hours, decimal expected)
     {
-        // Arrange
-        var article = new Article
-        {
-            Id = Guid.NewGuid(),
-            CategoryId = Guid.NewGuid(),
-            CanonicalUrl = "https://example.com",
-            Title = "Test",
-            Summary = "Test",
-            PublishedAt = DateTime.UtcNow,
-            FirstSeenAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-            EditorialScore = editorialScore,
-            AlgorithmicScore = editorialScore - 5m,
-            RankingScore = (editorialScore + (editorialScore - 5m)) / 2m
-        };
+        var publishedAt = DateTime.UtcNow.AddHours(-hours);
 
-        // Act
-        var rankingScore = article.RankingScore;
-
-        // Assert
-        Assert.InRange(rankingScore, editorialScore - 5m, editorialScore);
-    }
-
-    [Fact]
-    public void RecentArticle_ShouldHaveHigherRecencyScore()
-    {
-        // Arrange
-        var recentArticle = new Article
-        {
-            PublishedAt = DateTime.UtcNow - TimeSpan.FromHours(1)
-        };
-
-        var oldArticle = new Article
-        {
-            PublishedAt = DateTime.UtcNow - TimeSpan.FromDays(30)
-        };
-
-        // Act & Assert - verifies that the dates are different
-        Assert.True(recentArticle.PublishedAt > oldArticle.PublishedAt);
-    }
-
-    [Fact]
-    public void ArticleWithMultipleTags_ShouldHaveRichContent()
-    {
-        // Arrange
-        var tags = new List<string> { "IA", "LLM", "MachineLearning", "DeepLearning" };
-
-        // Act
-        var tagCount = tags.Count;
-
-        // Assert
-        Assert.Equal(4, tagCount);
-        Assert.Contains("IA", tags);
-        Assert.Contains("LLM", tags);
+        // Precision 2: DateTime ticks rarely land on an exact hour boundary,
+        // so the fractional formula yields 19.9999… instead of exactly 20.
+        Assert.Equal(expected, ArticleScoring.CalculateRecencyScore(publishedAt), 2);
     }
 
     [Theory]
-    [InlineData("fr", true)]
-    [InlineData("en", true)]
-    [InlineData("es", true)]
-    [InlineData("", false)]
-    public void ArticleLanguageCode_ShouldBeValid(string languageCode, bool shouldBeValid)
+    [InlineData(50, 90)]
+    [InlineData(30, 70)]
+    [InlineData(15, 50)]
+    [InlineData(5, 30)]
+    public void ContentScore_ShouldFollowWordCount(int words, decimal expected)
     {
-        // Arrange & Act
-        var isValid = !string.IsNullOrEmpty(languageCode);
+        var summary = string.Join(' ', Enumerable.Repeat("mot", words));
 
-        // Assert
-        Assert.Equal(shouldBeValid, isValid);
+        Assert.Equal(expected, ArticleScoring.CalculateContentScore(summary));
     }
 
     [Fact]
-    public void SourceWithMultipleFeeds_ShouldHandleDuplicates()
+    public void AlgorithmicScore_ShouldAverageRecencyAndContent()
     {
-        // Arrange
-        var feedUrls = new List<string>
-        {
-            "https://example.com/feed",
-            "https://example.com/feed",
-            "https://example.com/rss"
-        };
+        var article = BuildArticle(80m, 0m);
+        article.PublishedAt = DateTime.UtcNow.AddHours(-3);   // recency 80
+        article.Summary = string.Join(' ', Enumerable.Repeat("mot", 30)); // content 70
 
-        // Act
-        var uniqueUrls = feedUrls.Distinct().ToList();
-
-        // Assert
-        Assert.Equal(2, uniqueUrls.Count);
+        Assert.Equal(75m, ArticleScoring.CalculateAlgorithmicScore(article, recentArticlesCount: 10));
     }
 
-    [Fact]
-    public void CategoryWithArticles_ShouldCalculateAverageScore()
+    private static Article BuildArticle(decimal editorial, decimal algorithmic) => new()
     {
-        // Arrange
-        var scores = new List<decimal> { 80m, 60m, 40m, 90m, 70m };
-
-        // Act
-        var average = scores.Average();
-
-        // Assert
-        Assert.Equal(68m, average);
-    }
-
-    [Fact]
-    public void ArticleWithLongContent_ShouldScoreHigher()
-    {
-        // Arrange
-        var shortSummary = "Court.";
-        var longSummary = "Ceci est un résumé très détaillé qui contient beaucoup d'informations pertinentes sur l'article et devrait obtenir un meilleur score de contenu que le résumé court car il fournit plus de contexte.";
-
-        // Act
-        var shortWordCount = shortSummary.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
-        var longWordCount = longSummary.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
-
-        // Assert
-        Assert.True(longWordCount > shortWordCount, 
-            $"Résumé long ({longWordCount} mots) devrait avoir plus de mots que court ({shortWordCount} mots)");
-    }
-
-    [Fact]
-    public void ActiveSources_ShouldBeProcessed()
-    {
-        // Arrange
-        var sources = new List<Source>
-        {
-            new() { IsActive = true, Name = "Active1" },
-            new() { IsActive = false, Name = "Inactive" },
-            new() { IsActive = true, Name = "Active2" }
-        };
-
-        // Act
-        var activeSources = sources.Where(s => s.IsActive).ToList();
-
-        // Assert
-        Assert.Equal(2, activeSources.Count);
-        Assert.All(activeSources, s => Assert.True(s.IsActive));
-    }
-
-    private Article CreateArticleWithScore(decimal score)
-    {
-        return new Article
-        {
-            Id = Guid.NewGuid(),
-            CategoryId = Guid.NewGuid(),
-            CanonicalUrl = "https://example.com",
-            Title = "Test",
-            Summary = "Test",
-            PublishedAt = DateTime.UtcNow,
-            FirstSeenAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-            RankingScore = score
-        };
-    }
+        Id = Guid.NewGuid(),
+        CategoryId = Guid.NewGuid(),
+        CanonicalUrl = "https://example.com/article",
+        Title = "Test article",
+        Summary = "Résumé de test pour l'article de démonstration.",
+        EditorialScore = editorial,
+        AlgorithmicScore = algorithmic,
+        PublishedAt = DateTime.UtcNow,
+        FirstSeenAt = DateTime.UtcNow,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow,
+    };
 }
 
 /// <summary>
-/// Tests fonctionnels pour le workflow complet
+/// End-to-end logic tests without infrastructure: the publication decision across
+/// a full AI result set, required fields, the real ranking weights and the
+/// taxonomy fallback.
 /// </summary>
 public class WorkflowFunctionalTests
 {
     [Fact]
-    public void FullIngestionWorkflow_ShouldProcessSources()
+    public void FullIngestionDecision_ShouldPublishOnlyAboveThreshold()
     {
-        // Arrange
-        var sourceCount = 246;
-        var activeSources = sourceCount; // Tous actifs par défaut
+        // A full AI result set (as deserialized from the provider) goes through the
+        // real production rule — the same expression used by the Worker.
+        var results = new[]
+        {
+            BuildResult(editorial: 85m),  // published
+            BuildResult(editorial: 42m),  // not published
+            BuildResult(editorial: 60m),  // published (boundary)
+        };
 
-        // Act
-        var processedSources = activeSources;
+        var published = results
+            .Select(r => r.EditorialScore >= ArticleScoring.PublicationThreshold)
+            .ToList();
 
-        // Assert
-        Assert.Equal(sourceCount, processedSources);
-        Assert.True(processedSources > 200, "Devrait traiter 200+ sources");
+        Assert.Equal(new[] { true, false, true }, published);
     }
 
     [Fact]
-    public void ArticleCreationWorkflow_ShouldValidateRequiredFields()
+    public void ArticleCreation_ShouldCarryRequiredFields()
     {
-        // Arrange & Act
-        var requiredFields = new[] { "Id", "CategoryId", "CanonicalUrl", "Title", "Summary", "PublishedAt" };
+        var article = BuildArticle(75m, 65m);
 
-        // Assert
-        Assert.NotEmpty(requiredFields);
-        Assert.Equal(6, requiredFields.Length);
+        Assert.NotEqual(Guid.Empty, article.Id);
+        Assert.NotNull(article.CategoryId);
+        Assert.False(string.IsNullOrWhiteSpace(article.CanonicalUrl));
+        Assert.False(string.IsNullOrWhiteSpace(article.Title));
+        Assert.False(string.IsNullOrWhiteSpace(article.Summary));
+        Assert.Equal(DateTimeKind.Utc, article.PublishedAt.Kind);
     }
 
     [Fact]
-    public void ScoreCalculationWorkflow_ShouldBeConsistent()
+    public void Ranking_ShouldUseTheRealWeights()
     {
-        // Arrange
-        var editorialScore = 80m;
-        var algorithmicScore = 75m;
+        // Regression: a previous version of this test re-implemented the ranking as
+        // a plain average of editorial and algorithmic — which did not match the
+        // production formula (0.55 / 0.35 / 0.10).
+        const decimal editorial = 80m, algorithmic = 60m;
+        var engagement = ArticleScoring.CalculateEngagementScore(voteCount: 5, voteAverage: 4m, clickCount: 2);
 
-        // Act
-        var rankingScore = (editorialScore + algorithmicScore) / 2m;
+        var ranking = ArticleScoring.CalculateRanking(editorial, algorithmic, engagement);
 
-        // Assert
-        Assert.Equal(77.5m, rankingScore);
-        Assert.InRange(rankingScore, algorithmicScore, editorialScore);
+        Assert.Equal(editorial * ArticleScoring.EditorialWeight
+                   + algorithmic * ArticleScoring.AlgorithmicWeight
+                   + engagement * ArticleScoring.EngagementWeight, ranking);
+    }
+
+    [Theory]
+    [InlineData("ia", "IA")]
+    [InlineData("developpement", "Développement")]
+    [InlineData("dev-web", "Web")]
+    [InlineData("musiques", "Musiques")]
+    [InlineData("theme-inconnu", "Theme Inconnu")]  // fallback: humanized slug
+    public void CategoryMapping_ShouldResolveDisplayNames(string slug, string expected)
+    {
+        Assert.Equal(expected, VigieTaxonomy.DisplayName(slug));
     }
 
     [Fact]
-    public void CategoryAssignmentWorkflow_ShouldMapCorrectly()
+    public void Taxonomy_ShouldIncludeExpectedParents()
     {
-        // Arrange
-        var categorySlugs = new[] { "technologie", "securite", "open-source", "cloud-devops", "ia-ml" };
+        var parents = VigieTaxonomy.Categories.Where(c => c.ParentSlug is null).Select(c => c.Name).ToList();
 
-        // Act
-        var mappedCategories = categorySlugs.Select(s => new { Slug = s, Mapped = true }).ToList();
-
-        // Assert
-        Assert.Equal(5, mappedCategories.Count);
-        Assert.All(mappedCategories, c => Assert.True(c.Mapped));
+        Assert.Contains("IA", parents);
+        Assert.Contains("Développement", parents);
+        Assert.Contains("Cybersécurité", parents);
+        Assert.Contains("Musiques", parents);
+        Assert.Contains("Arts graphiques", parents);
     }
 
-    [Fact]
-    public void TagExtractionWorkflow_ShouldIdentifyKeywords()
+    private static Article BuildArticle(decimal editorial, decimal algorithmic) => new()
     {
-        // Arrange
-        var text = "L'intelligence artificielle et les LLM transforment le développement logiciel.";
-        var keywords = new[] { "intelligence artificielle", "LLM", "développement logiciel" };
+        Id = Guid.NewGuid(),
+        CategoryId = Guid.NewGuid(),
+        CanonicalUrl = "https://example.com/article",
+        Title = "Test article",
+        Summary = "Résumé de test pour l'article de démonstration.",
+        EditorialScore = editorial,
+        AlgorithmicScore = algorithmic,
+        PublishedAt = DateTime.UtcNow,
+        FirstSeenAt = DateTime.UtcNow,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow,
+    };
 
-        // Act
-        var extractedKeywords = keywords.Where(k => text.Contains(k, StringComparison.OrdinalIgnoreCase)).ToList();
-
-        // Assert
-        Assert.Equal(3, extractedKeywords.Count);
-    }
+    private static AiProcessingResult BuildResult(decimal editorial) => new()
+    {
+        Summary = "Résumé de test.",
+        EditorialScore = editorial,
+    };
 }

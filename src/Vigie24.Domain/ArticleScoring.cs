@@ -15,6 +15,9 @@ public static class ArticleScoring
     public const decimal AlgorithmicWeight = 0.35m;
     public const decimal EngagementWeight = 0.10m;
 
+    /// <summary>Editorial score threshold above which an article is published (>= 60).</summary>
+    public const decimal PublicationThreshold = 60m;
+
     /// <summary>Recency: 100 (≤1h), 80 (≤6h), 60 (≤24h), 40 (≤48h), then decreasing</summary>
     public static decimal CalculateRecencyScore(DateTime publishedAt)
     {

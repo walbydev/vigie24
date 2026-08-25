@@ -551,7 +551,7 @@ public class Vigie24Worker : BackgroundService
             ImageUrl = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl,
             ImageAltText = string.IsNullOrWhiteSpace(imageUrl) ? null : item.Title,
             CategoryId = await GetOrCreateCategoryAsync(dbContext, aiResult, cancellationToken),
-            IsPublished = aiResult.EditorialScore >= 60, // Publication threshold
+            IsPublished = aiResult.EditorialScore >= ArticleScoring.PublicationThreshold, // Publication threshold
             PromptTokens = aiResult.PromptTokens > 0 ? aiResult.PromptTokens : null,
             CompletionTokens = aiResult.CompletionTokens > 0 ? aiResult.CompletionTokens : null,
             Topic = string.IsNullOrWhiteSpace(aiResult.Topic) ? null : aiResult.Topic.Trim(),

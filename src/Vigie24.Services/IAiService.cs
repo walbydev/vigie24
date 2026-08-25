@@ -33,6 +33,7 @@ public class AiProcessingResult
     public bool IsDuplicate { get; set; }
     
     /// <summary>ID of the duplicated article (if applicable)</summary>
+    [JsonPropertyName("duplicate_of")]
     public Guid? DuplicateOf { get; set; }
     
     /// <summary>List of extracted keywords</summary>
