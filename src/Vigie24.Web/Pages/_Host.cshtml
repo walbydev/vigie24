@@ -669,6 +669,79 @@
         @@media (prefers-reduced-motion: reduce) {
             .scroll-fab { transition: none; }
         }
+
+        /* ===== Timeline verticale de navigation ===== */
+        .browser-layout { display: flex; gap: 14px; align-items: stretch; }
+        .browser-grid-zone { flex: 1; min-width: 0; }
+        .article-timeline {
+            position: sticky;
+            top: 16px;
+            align-self: stretch;
+            width: 44px;
+            flex-shrink: 0;
+            border-left: 1px solid var(--border);
+            padding-left: 10px;
+            box-sizing: border-box;
+        }
+        .tl-track {
+            position: relative;
+            height: calc(100vh - 140px);   /* la page visible = la liste complète */
+            min-height: 200px;
+            background: linear-gradient(180deg, var(--surface-alt), var(--surface));
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            cursor: pointer;
+        }
+        .tl-tick {
+            position: absolute;
+            left: 4px; right: 4px;
+            height: 1px;
+            background: var(--border-strong);
+            opacity: 0.5;
+        }
+        .tl-thumb {
+            position: absolute;
+            left: 2px; right: 2px;
+            border-radius: 12px;
+            background: var(--accent);
+            border: 1px solid var(--accent-hover);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+            cursor: grab;
+            touch-action: none;
+            min-height: 18px;
+        }
+        .tl-thumb:active { cursor: grabbing; }
+        .tl-thumb:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+        .tl-thumb-knob {
+            display: block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-ink);
+            margin: 50% auto 0;
+            transform: translateY(-50%);
+        }
+        .tl-tooltip {
+            position: absolute;
+            right: 52px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--nav-bg);
+            color: var(--nav-ink);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            pointer-events: none;
+            z-index: 5;
+        }
+        [data-theme$="-hc"] .tl-track, [data-theme$="-hc"] .tl-thumb { border-width: 2px; }
+        [data-theme$="-hc"] .tl-tick { height: 2px; }
+        @@media (max-width: 767px) {
+            .article-timeline { display: none; }   /* mobile : pagination texte seule */
+        }
     </style>
     @if (isRadarBranding)
     {
