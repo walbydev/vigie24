@@ -23,6 +23,7 @@ public class AiProcessingResultSerializationTests
           "is_duplicate": false,
           "duplicate_of": null,
           "keywords": ["llm", "open source"],
+          "justification": "Cet article relève de l'IA : il traite des modèles de langage, sujet majeur de la veille.",
           "topic": "Réglementation de l'IA en Europe",
           "stance": "nuance",
           "anxiety_score": 4
@@ -38,6 +39,7 @@ public class AiProcessingResultSerializationTests
         Assert.False(result.IsDuplicate);
         Assert.Null(result.DuplicateOf);
         Assert.Equal(new[] { "llm", "open source" }, result.Keywords);
+        Assert.Equal("Cet article relève de l'IA : il traite des modèles de langage, sujet majeur de la veille.", result.Justification);
         Assert.Equal("Réglementation de l'IA en Europe", result.Topic);
         Assert.Equal("nuance", result.Stance);
         Assert.Equal(4, result.AnxietyScore);
@@ -56,6 +58,7 @@ public class AiProcessingResultSerializationTests
         Assert.Empty(result.DetectedCategories);
         Assert.False(result.IsDuplicate);
         Assert.Empty(result.Keywords);
+        Assert.Null(result.Justification);
         Assert.Null(result.Topic);
         Assert.Null(result.Stance);
         Assert.Equal(0, result.AnxietyScore);
@@ -96,6 +99,7 @@ public class AiProcessingResultSerializationTests
             EditorialScore = 66m,
             DetectedThemes = new List<string> { "IA" },
             AnxietyScore = 3,
+            Justification = "Justification courte.",
         };
 
         var json = JsonSerializer.Serialize(result);
@@ -104,5 +108,6 @@ public class AiProcessingResultSerializationTests
         Assert.Contains("\"editorial_score\":", json);
         Assert.Contains("\"anxiety_score\":", json);
         Assert.Contains("\"is_duplicate\":", json);
+        Assert.Contains("\"justification\":", json);
     }
 }

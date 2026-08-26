@@ -67,6 +67,10 @@ public class Vigie24DbContext : DbContext
             entity.Property(e => e.Title).HasMaxLength(500).IsRequired();
             entity.Property(e => e.Summary).IsRequired();
             entity.Property(e => e.CanonicalUrl).IsRequired();
+
+            // AI analysis trace stored as JSONB (raw model output kept for the
+            // « Réflexion & analyse » block on the article page).
+            entity.Property(e => e.AnalysisJson).HasColumnType("jsonb");
             
             entity.HasOne(e => e.Category)
                 .WithMany()

@@ -97,6 +97,50 @@ else
 
         <div class="reader-body">@_article.Summary</div>
 
+        @if (_article.Analysis is { } analysis &&
+             (!string.IsNullOrWhiteSpace(analysis.Justification) ||
+              analysis.DetectedCategories.Count > 0 ||
+              analysis.DetectedThemes.Count > 0 ||
+              analysis.Keywords.Count > 0))
+        {
+            <details class="reader-analysis">
+                <summary>🧠 Réflexion &amp; analyse — pourquoi cette catégorie ?</summary>
+                @if (!string.IsNullOrWhiteSpace(analysis.Justification))
+                {
+                    <p class="analysis-justification">@analysis.Justification</p>
+                }
+                <dl class="analysis-dl">
+                    @if (analysis.DetectedCategories.Count > 0)
+                    {
+                        <dt>Catégories détectées</dt>
+                        <dd>@string.Join(" › ", analysis.DetectedCategories)</dd>
+                    }
+                    @if (analysis.DetectedThemes.Count > 0)
+                    {
+                        <dt>Thèmes</dt>
+                        <dd>@string.Join(", ", analysis.DetectedThemes)</dd>
+                    }
+                    @if (analysis.Keywords.Count > 0)
+                    {
+                        <dt>Mots-clés</dt>
+                        <dd>@string.Join(", ", analysis.Keywords)</dd>
+                    }
+                    @if (!string.IsNullOrEmpty(_analysisMetaDisplay))
+                    {
+                        <dt>Modèle utilisé</dt>
+                        <dd>@_analysisMetaDisplay</dd>
+                    }
+                </dl>
+                @if (!string.IsNullOrWhiteSpace(analysis.Reasoning))
+                {
+                    <details class="analysis-reasoning">
+                        <summary>Raisonnement complet du modèle</summary>
+                        <p>@analysis.Reasoning</p>
+                    </details>
+                }
+            </details>
+        }
+
         <div class="reader-actions">
             <a class="chip" href="/api/articles/@_article.Id/track" target="_blank" rel="noopener">📖 Lire l'article original</a>
             @if (_article.DebateArticles.Any())
@@ -117,6 +161,7 @@ else
     private string _primarySourceName = "";
     private string _primarySourceUrl = "";
     private string _countryDisplay = "";
+    private string _analysisMetaDisplay = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -142,6 +187,17 @@ else
         _primarySourceName = primary?.Source?.Name ?? "";
         _primarySourceUrl = primary?.Source?.WebsiteUrl ?? "";
         _countryDisplay = CountryInfo.Display(primary?.Source?.CountryCode);
+
+        // « Réflexion & analyse » metadata line: provider · model · analysis date
+        if (_article.Analysis is { } analysis)
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(analysis.Provider)) parts.Add(analysis.Provider);
+            if (!string.IsNullOrWhiteSpace(analysis.Model)) parts.Add(analysis.Model);
+            if (analysis.AnalyzedAtUtc is { } analyzedAt)
+                parts.Add("analysé le " + analyzedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"));
+            _analysisMetaDisplay = string.Join(" · ", parts);
+        }
     }
 
     /// <summary>Coupe un texte à max caractères en ajoutant une ellipse (titres/meta SEO).</summary>

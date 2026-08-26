@@ -93,6 +93,7 @@ Fournis ta réponse au format JSON suivant (sans markdown, juste le JSON brut):
   ""categories"": [""catégorie parente"", ""sous-catégorie""],
   ""themes"": [""liste"", ""de"", ""themes""],
   ""keywords"": [""liste"", ""de"", ""mots-clés""],
+  ""justification"": ""Explication factuelle en 2-3 phrases : pourquoi cette catégorie et pourquoi ce score éditorial (arguments tirés de l'article)"",
   ""topic"": ""sujet précis du débat en 2-5 mots neutres sans opinion (ex: régulation IA Europe) — OU vide si l'article ne participe à aucun débat"",
   ""stance"": ""position de l'article sur ce sujet : pour / contre / nuance / neutre — OU vide si pas de débat"",
   ""is_duplicate"": false
@@ -151,7 +152,13 @@ IMPORTANT: Ne retourne QUE le JSON, sans texte supplémentaire.";
             result.PromptTokens = usage.PromptTokens;
             result.CompletionTokens = usage.CompletionTokens;
         }
-        
+
+        // Decision trace: keep the raw reasoning emitted by reasoning models
+        // (Qwen3…) when the final JSON was not extracted from it (content present).
+        result.Reasoning = string.IsNullOrWhiteSpace(apiResponse?.Choices?.FirstOrDefault()?.Message?.Content)
+            ? null
+            : Truncate(apiResponse.Choices.FirstOrDefault()!.Message!.Reasoning, 4000);
+
         _logger.LogInformation("Article processed successfully via Infomaniak. Score: {Score}, Themes: {Themes}",
             result.EditorialScore, string.Join(", ", result.DetectedThemes));
         

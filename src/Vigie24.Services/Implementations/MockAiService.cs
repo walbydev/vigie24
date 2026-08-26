@@ -79,7 +79,9 @@ public class MockAiService : IAiService
             CompletionTokens = 150 + _random.Next(0, 120),
             // The Mock sometimes simulates a debate topic with a stance
             Topic = _random.Next(4) == 0 ? "régulation IA Europe" : null,
-            Stance = _random.Next(4) == 0 ? new[] { "pour", "contre", "nuance" }[_random.Next(3)] : null
+            Stance = _random.Next(4) == 0 ? new[] { "pour", "contre", "nuance" }[_random.Next(3)] : null,
+            // Deterministic justification so the « Réflexion & analyse » block renders in mock mode
+            Justification = $"Cet article a été classé dans {category.Parent} / {category.Sub} : le sujet correspond aux critères éditoriaux de la veille, avec un score de pertinence de {editorialScore:0.0}/100."
         };
 
         _logger.LogDebug("Mock result: Score={Score}, Themes={Themes}", 

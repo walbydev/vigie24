@@ -40,6 +40,20 @@ public class AiProcessingResult
     [JsonPropertyName("keywords")]
     public List<string> Keywords { get; set; } = new();
 
+    /// <summary>
+    /// Model justification (2-3 factual sentences): why this category and why this
+    /// editorial score. Shown in the « Réflexion & analyse » block on the article page.
+    /// </summary>
+    [JsonPropertyName("justification")]
+    public string? Justification { get; set; }
+
+    /// <summary>
+    /// Raw reasoning text emitted by reasoning models (Qwen3…) — filled in by the AI
+    /// service from the API response, NOT part of the JSON contract. Kept as the
+    /// decision trace; may be null for non-reasoning models.
+    /// </summary>
+    public string? Reasoning { get; set; }
+
     /// <summary>Input tokens consumed by the API (usage.prompt_tokens) — filled in by the AI service</summary>
     public int PromptTokens { get; set; }
 

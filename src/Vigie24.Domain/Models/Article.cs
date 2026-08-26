@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
+
 namespace Vigie24.Domain.Models;
 
 /// <summary>
@@ -40,6 +43,43 @@ public class Article
 
     /// <summary>Output tokens consumed by the AI to analyze this article</summary>
     public int? CompletionTokens { get; set; }
+
+    /// <summary>Raw AI analysis trace (JSON, jsonb column) — see <see cref="Analysis"/></summary>
+    public string? AnalysisJson { get; set; }
+
+    /// <summary>
+    /// Typed view of the AI analysis trace (provider, model, justification, reasoning,
+    /// detected categories/themes/keywords). Serialized into <see cref="AnalysisJson"/>.
+    /// Not mapped: the column already carries the JSON.
+    /// </summary>
+    [NotMapped]
+    public ArticleAnalysis? Analysis
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(AnalysisJson))
+                return null;
+            try
+            {
+                return JsonSerializer.Deserialize<ArticleAnalysis>(AnalysisJson, AnalysisJsonOptions);
+            }
+            catch (JsonException)
+            {
+                // Defensive: a corrupted trace must never break the article page.
+                return null;
+            }
+        }
+        set => AnalysisJson = value is null ? null : JsonSerializer.Serialize(value, AnalysisJsonOptions);
+    }
+
+    /// <summary>JSON options used for the analysis trace (camelCase, readable in the DB)</summary>
+    /// <remarks>UnsafeRelaxedJsonEscaping keeps French accents raw in the jsonb column.
+    /// Safe here: the column is never embedded in HTML directly — the Razor renderer
+    /// (ArticleDetail.razor) escapes the text at display time.</remarks>
+    private static readonly JsonSerializerOptions AnalysisJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
 
     /// <summary>Specific debate topic (normalized) — empty if the article is not part of any debate</summary>
     public string? Topic { get; set; }

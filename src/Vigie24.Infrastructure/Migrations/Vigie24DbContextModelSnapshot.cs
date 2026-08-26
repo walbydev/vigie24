@@ -31,6 +31,9 @@ namespace Vigie24.Infrastructure.Migrations
                     b.Property<decimal>("AlgorithmicScore")
                         .HasColumnType("numeric");
 
+                    b.Property<string>("AnalysisJson")
+                        .HasColumnType("jsonb");
+
                     b.Property<int?>("AnxietyScore")
                         .HasColumnType("integer");
 

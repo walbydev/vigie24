@@ -560,6 +560,22 @@ public class Vigie24Worker : BackgroundService
             AnxietyScore = aiResult.AnxietyScore is >= 0 and <= 10 ? aiResult.AnxietyScore : null
         };
 
+        // Decision trace for the « Réflexion & analyse » block: keep the exact
+        // provider/model used and the raw model output (justification, reasoning,
+        // detected categories/themes/keywords) — the derived columns (CategoryId,
+        // tags…) only keep the final choices.
+        article.Analysis = new ArticleAnalysis
+        {
+            Provider = _aiService.ProviderName,
+            Model = _aiService.ModelName,
+            AnalyzedAtUtc = DateTime.UtcNow,
+            Justification = string.IsNullOrWhiteSpace(aiResult.Justification) ? null : aiResult.Justification.Trim(),
+            Reasoning = string.IsNullOrWhiteSpace(aiResult.Reasoning) ? null : aiResult.Reasoning.Trim(),
+            DetectedCategories = aiResult.DetectedCategories,
+            DetectedThemes = aiResult.DetectedThemes,
+            Keywords = aiResult.Keywords
+        };
+
         // Add the article to the context IMMEDIATELY (before the embedding and the
         // GetOrCreate* calls that perform intermediate SaveChanges) — otherwise the embedding
         // would be inserted before the article → foreign key violation.

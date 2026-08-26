@@ -514,6 +514,39 @@
         .reader-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
         .reader-actions .chip { font-size: 0.9rem; padding: 8px 16px; }
 
+        /* ===== Annexe « Réflexion & analyse » (fiche article) ===== */
+        .reader-analysis {
+            margin-top: 24px; padding: 12px 16px;
+            background: var(--surface-alt); border: 1px solid var(--border);
+            border-radius: 8px; font-size: 0.92rem;
+        }
+        .reader-analysis > summary {
+            cursor: pointer; font-weight: 600; color: var(--text);
+            user-select: none; list-style-position: outside;
+        }
+        .reader-analysis > summary:hover { color: var(--accent); }
+        .analysis-justification { margin: 10px 0 6px; line-height: 1.6; }
+        .analysis-dl {
+            display: grid; grid-template-columns: max-content 1fr;
+            gap: 4px 16px; margin: 8px 0 4px;
+        }
+        .analysis-dl dt {
+            color: var(--text-muted); font-size: 0.78rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.04em; padding-top: 2px;
+        }
+        .analysis-dl dd { margin: 0; }
+        .analysis-reasoning {
+            margin-top: 10px; padding: 10px 12px;
+            border: 1px dashed var(--border-strong); border-radius: 6px;
+        }
+        .analysis-reasoning summary { cursor: pointer; color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
+        .analysis-reasoning p {
+            margin: 8px 0 0; white-space: pre-line;
+            font-size: 0.85rem; line-height: 1.55; color: var(--text-muted);
+        }
+        [data-theme$="-hc"] .reader-analysis { border-width: 2px; }
+        [data-theme$="-hc"] .analysis-reasoning { border-width: 2px; }
+
         /* ===== Bandeau d'erreur Blazor (masqué par défaut) ===== */
         #blazor-error-ui {
             display: none;
