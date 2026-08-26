@@ -2,35 +2,124 @@
 
 <PageTitle>Le projet - Vigie24</PageTitle>
 <HeadContent>
-    <meta name="description" content="Vigie24 : projet de démonstration de développement assisté par agents (Hermes). Veille RSS francophone analysée par IA — architecture, choix, calcul du score en détail, outils et assistants utilisés." />
+    <meta name="description" content="Vigie24 : la veille technologique francophone lue, résumée et notée par une IA — avec un baromètre de l'anxiété, un journal qui explique chaque choix et des dossiers contradictoires. Open source (MIT)." />
     <link rel="canonical" href="https://vigie24.info/projet" />
     <meta property="og:title" content="Le projet Vigie24" />
-    <meta property="og:description" content="Un projet de veille RSS + IA, développé en collaboration avec des agents (Hermes) : architecture, score en détail, outils." />
+    <meta property="og:description" content="Une veille technologique francophone lue et notée par une IA — et qui explique chacun de ses choix." />
     <meta property="og:url" content="https://vigie24.info/projet" />
     <meta property="og:type" content="website" />
 </HeadContent>
 
+@* ================= PARTIE 1 — TOUT PUBLIC ================= *@
+
 <h1>Le projet Vigie24</h1>
-<p class="muted">
-    Vigie24 est une <strong>veille technologique francophone et internationale</strong> : des flux RSS publics sont
-    surveillés en continu, chaque article est <strong>analysé par une IA</strong> (résumé, score,
-    catégories, thèmes), et les meilleurs sont publiés. C'est aussi — volontairement — un
-    <strong>projet de démonstration</strong> de développement assisté par des agents comme
-    <strong>Hermes</strong>.
+
+<p class="project-lead">
+    Vigie24 est née d'une frustration simple : la veille technologique francophone est
+    <strong>dispersée</strong> — des centaines de flux, de la presse aux blogs, et personne n'a le
+    temps de tout lire. Et si une machine pouvait lire à notre place, résumer, noter… et surtout
+    <strong>expliquer ses choix</strong> ?
+</p>
+<p class="project-lead">
+    C'est l'idée : une veille qui surveille en continu <strong>250+ sources francophones</strong>
+    (presse, blogs, chaînes YouTube, Reddit — France, Suisse, Belgique, Québec, Luxembourg), où une
+    <strong>IA joue le rôle d'un comité de rédaction</strong> : elle lit chaque article, le résume,
+    le note sur 100 et décide de le publier. La différence avec une veille classique ?
+    <strong>Tout est transparent</strong> — les scores, les justifications, les hésitations, même
+    les coûts.
 </p>
 
 <div class="license-card">
-    <h2>Le concept</h2>
-    <ul>
-        <li>📡 <strong>246+ sources</strong> vérifiées une à une : presse, blogs, chaînes YouTube et Reddit — France, Suisse, Belgique, Québec, Luxembourg.</li>
-        <li>🤖 <strong>Analyse IA par article</strong> : résumé, score éditorial (0-100), catégories, thèmes, positionnements de débat.</li>
-        <li>⭐ <strong>Publication si score éditorial ≥ 60</strong> : l'IA agit comme un comité de rédaction automatisé.</li>
-        <li>💬 <strong>Engagement des lecteurs</strong> : votes 0-5 et clics (anonymes) qui entrent dans le classement.</li>
-        <li>🧘 <strong>Score d'anxiété</strong> : chaque article est noté 0-10 par l'IA (potentiel anxiogène) — filtrable pour une lecture sereine.</li>
-        <li>🥊 <strong>Débats</strong> : les articles contradictoires sur un même sujet sont mis en parallèle.</li>
-        <li>📊 <strong>Coûts mesurés</strong> et publiés en transparence (<a href="/couts">page Coûts IA</a>).</li>
-    </ul>
+    <h2>Comment ça marche, en trois étapes</h2>
+    <ol class="project-steps">
+        <li><strong>📡 On écoute.</strong> Des sources vérifiées une à une, interrogées en continu — la presse, les blogs, les vidéos et les discussions qui comptent dans la tech francophone.</li>
+        <li><strong>🤖 Une IA lit et note.</strong> Chaque article est résumé, classé par catégorie et thème, noté sur 100 — et évalué sur son potentiel anxiogène (0-10).</li>
+        <li><strong>📰 On publie le meilleur.</strong> Seuls les articles notés 60/100 ou plus sont publiés, et chaque choix est expliqué dans le journal du rédacteur.</li>
+    </ol>
 </div>
+
+<h2 class="project-section-title">Ce qui fait sa force</h2>
+<div class="project-strengths">
+
+    <div class="layer-card project-strength">
+        <div class="layer-head">
+            <span class="layer-icon">📰</span>
+            <h3 class="layer-title"><a href="/briefing">Le briefing du matin</a></h3>
+        </div>
+        <p class="layer-desc muted">Les 5 articles essentiels des dernières 24 h, le sujet de la semaine et les débats en cours — la veille en une page.</p>
+    </div>
+
+    <div class="layer-card project-strength">
+        <div class="layer-head">
+            <span class="layer-icon">🧘</span>
+            <h3 class="layer-title"><a href="/barometre">Le baromètre de l'anxiété</a></h3>
+        </div>
+        <p class="layer-desc muted">Chaque article est noté 0-10 sur son potentiel anxiogène. Le site suit l'humeur de l'actualité au jour le jour — et propose des antidotes.</p>
+    </div>
+
+    <div class="layer-card project-strength">
+        <div class="layer-head">
+            <span class="layer-icon">📖</span>
+            <h3 class="layer-title"><a href="/journal">Un journal qui explique tout</a></h3>
+        </div>
+        <p class="layer-desc muted">Pourquoi cet article est publié ou refusé ? L'IA justifie chaque décision, montre ses hésitations et ses réflexions.</p>
+    </div>
+
+    <div class="layer-card project-strength">
+        <div class="layer-head">
+            <span class="layer-icon">🥊</span>
+            <h3 class="layer-title"><a href="/debats">Les dossiers vivants</a></h3>
+        </div>
+        <p class="layer-desc muted">Sur les sujets contradictoires, les articles sont mis en parallèle : qui dit quoi, comment les positions évoluent, qui a parlé en premier.</p>
+    </div>
+
+    <div class="layer-card project-strength">
+        <div class="layer-head">
+            <span class="layer-icon">🧘</span>
+            <h3 class="layer-title"><a href="/">Le mode zen</a></h3>
+        </div>
+        <p class="layer-desc muted">Une lecture sereine : un clic sur « Zen » dans la barre de navigation masque les articles anxiogènes sur tout le site.</p>
+    </div>
+
+    <div class="layer-card project-strength">
+        <div class="layer-head">
+            <span class="layer-icon">⭐</span>
+            <h3 class="layer-title"><a href="/top">La communauté compte</a></h3>
+        </div>
+        <p class="layer-desc muted">Chaque lecteur peut noter les articles (0-5) : les votes et les lectures participent au classement, en toute simplicité.</p>
+    </div>
+
+    <div class="layer-card project-strength">
+        <div class="layer-head">
+            <span class="layer-icon">📡</span>
+            <h3 class="layer-title"><a href="/radar">Le radar des sujets chauds</a></h3>
+        </div>
+        <p class="layer-desc muted">Les thèmes qui montent ou retombent, semaine après semaine — pour sentir l'air du temps technologique.</p>
+    </div>
+
+    <div class="layer-card project-strength">
+        <div class="layer-head">
+            <span class="layer-icon">🗓️</span>
+            <h3 class="layer-title"><a href="/il-y-a-un-an">La mémoire de la veille</a></h3>
+        </div>
+        <p class="layer-desc muted">Dans un an, Vigie24 vous rappellera ce que disait la veille à la même date — pour mesurer le chemin parcouru.</p>
+    </div>
+
+</div>
+
+<p class="project-note muted">
+    Aucun compte obligatoire, aucun tracker : vos votes sont anonymes et rien n'est revendu.
+    Les détails techniques sont dans les coulisses, juste en dessous.
+</p>
+
+@* ================= SÉPARATION VISUELLE FORTE ================= *@
+
+<div class="project-tech-divider" role="presentation">
+    <span class="project-tech-divider-label">⚙️ Les coulisses techniques</span>
+    <span class="project-tech-divider-sub">architecture, algorithmes, code source, coûts — pour les plus curieux</span>
+</div>
+
+@* ================= PARTIE 2 — TECHNIQUE ================= *@
 
 <div class="license-card">
     <h2>Architecture</h2>
@@ -44,7 +133,7 @@
     <p class="muted">
         Code : <strong>.NET 10</strong> · <strong>ASP.NET Core</strong> · <strong>Blazor Server</strong> ·
         <strong>EF Core</strong> · <strong>Npgsql</strong> · <strong>PostgreSQL 16</strong> ·
-        <strong>xUnit</strong> (125+ tests) · licence <strong>MIT</strong> (<a href="/license">voir la licence</a>).
+        <strong>xUnit</strong> (170+ tests) · licence <strong>MIT</strong> (<a href="/license">voir la licence</a>).
     </p>
 </div>
 
@@ -90,6 +179,14 @@
         <li>Sans aucun vote ni clic, l'engagement est de 0 — le classement reste inchangé.</li>
     </ul>
 
+    <h3>4. Score d'anxiété (0-10) — attribué par l'IA</h3>
+    <p>
+        Chaque article est noté sur son <strong>potentiel anxiogène</strong>. Ce score ne pénalise ni
+        ne censure : il <strong>informe</strong> le lecteur. Il alimente le
+        <a href="/barometre">baromètre</a>, le <a href="/feed/zen">flux zen</a> (anxiété ≤ 6) et le
+        <a href="/">mode zen</a> global du site.
+    </p>
+
     <p class="muted">
         Chaque carte affiche son détail de calcul (ⓘ « Score : … »). Les formules ci-dessus sont la
         référence unique du code (<code>ArticleScoring</code>) — rien n'est figé dans l'interface.
@@ -102,10 +199,19 @@
         <li>🌍 <strong>Francophonie assumée</strong> : 5 pays, langue des articles forcée au français.</li>
         <li>✅ <strong>Sources vérifiées à la main</strong> : flux valide, dates parsables, contenu de qualité — les médias sans flux public ou anti-bot sont exclus.</li>
         <li>🧠 <strong>Curatelle par IA, pas par algorithme froid</strong> : le jugement éditorial (pertinence, nouveauté) est la clé, les métriques techniques ne sont qu'un complément.</li>
-        <li>🧘 <strong>Lecture sereine</strong> : le score d'anxiété (0-10, attribué par l'IA) est un signal de navigation — filtre « Anxiété max » dans l'interface et les flux RSS. Il ne pénalise ni ne censure : il informe.</li>
+        <li>🧘 <strong>Lecture sereine</strong> : le score d'anxiété est un signal de navigation — filtre « Anxiété max » dans l'interface, mode zen et flux RSS. Il ne pénalise ni ne censure : il informe.</li>
         <li>🔒 <strong>Vie privée</strong> : pas de compte obligatoire, votes anonymes (cookie local), aucun tracker tiers, aucune donnée personnelle stockée.</li>
         <li>🇨🇭 <strong>Données et IA hébergées en Suisse</strong> (Infomaniak), requêtes non stockées par le fournisseur.</li>
         <li>💸 <strong>Coût maîtrisé et transparent</strong> : ~0,04 CHF/jour pour une centaine d'articles, mesuré réellement (<a href="/couts">graphiques</a>).</li>
+    </ul>
+</div>
+
+<div class="license-card">
+    <h2>Sources et données</h2>
+    <ul>
+        <li>🗂 <strong>Liste des sources</strong> : <a href="/sources">page Sources</a> · <a href="/sources.json">sources.json</a> · <a href="/sources.xml">sources.xml</a></li>
+        <li>📡 <strong>Flux RSS</strong> : <a href="/feed">flux complet</a>, flux par catégorie, et <a href="/feed?minScore=60">flux personnalisés</a> (mêmes filtres que l'interface).</li>
+        <li>⚖️ Les articles proviennent de flux publics ; les droits appartiennent à leurs auteurs et médias d'origine (<a href="/license">licence</a>).</li>
     </ul>
 </div>
 
@@ -155,15 +261,6 @@
         aux graphiques de coûts) a été conçue et livrée en collaboration homme-machine. La charte
         graphique et ses choix sont expliqués sur la page <a href="/charte-graphique">Charte graphique</a>.
     </p>
-</div>
-
-<div class="license-card">
-    <h2>Sources et données</h2>
-    <ul>
-        <li>🗂 <strong>Liste des sources</strong> : <a href="/sources">page Sources</a> · <a href="/sources.json">sources.json</a> · <a href="/sources.xml">sources.xml</a></li>
-        <li>📡 <strong>Flux RSS</strong> : <a href="/feed">flux complet</a>, flux par catégorie, et <a href="/feed?minScore=60">flux personnalisés</a> (mêmes filtres que l'interface).</li>
-        <li>⚖️ Les articles proviennent de flux publics ; les droits appartiennent à leurs auteurs et médias d'origine (<a href="/license">licence</a>).</li>
-    </ul>
 </div>
 
 <div class="license-card">

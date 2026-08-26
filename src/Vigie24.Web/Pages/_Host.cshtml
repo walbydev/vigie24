@@ -695,6 +695,29 @@
             .home-layers { columns: 2; }
         }
 
+        /* ===== Page Projet : partie « tout public » ===== */
+        .project-lead { font-size: 1.08rem; line-height: 1.75; max-width: 78ch; }
+        .project-steps { margin: 8px 0 0; padding-left: 22px; line-height: 1.7; }
+        .project-steps li { margin: 8px 0; }
+        .project-section-title {
+            font-size: 1.5rem; margin: 26px 0 14px; padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-strong);
+        }
+        .project-strengths { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; margin: 0 0 10px; }
+        .project-strength { margin-bottom: 0; }
+        .project-note { font-size: 0.92rem; margin: 16px 0 4px; max-width: 78ch; }
+
+        /* Séparation forte : bande sombre entre la partie publique et la partie technique */
+        .project-tech-divider {
+            margin: 36px 0 28px; padding: 26px 24px; border-radius: 14px;
+            background: var(--nav-bg); color: var(--nav-ink);
+            border: 2px solid var(--border-strong);
+            display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px;
+        }
+        .project-tech-divider-label { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; }
+        .project-tech-divider-sub { font-size: 0.92rem; color: var(--nav-ink-hover); }
+        [data-theme$="-hc"] .project-tech-divider { border-width: 3px; }
+
         /* ===== Baromètre de l'anxiété ===== */
         /* Bandeau accueil : reprend la forme du bandeau débats, teinte selon le niveau */
         .barometer-banner { --c: var(--anxiety-med); border-color: var(--c); }
