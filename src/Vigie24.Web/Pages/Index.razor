@@ -31,11 +31,22 @@
     </p>
     <div class="stats-strip">
         <span class="stat-pill">🗞 <strong>@_sourceCount</strong> sources actives</span>
-        <span class="stat-pill">📄 <strong>@_totalArticles</strong> articles analysés</span>
         <span class="stat-pill">🥊 <strong>@_debateCount</strong> débats en cours</span>
-        <span class="stat-pill">💰 <strong>@FormatCost(_todayCostChf)</strong> CHF d'IA aujourd'hui</span>
     </div>
 </section>
+
+@if (AiService != null)
+{
+    <div class="status-card">
+        <strong>Fournisseur IA :</strong> @AiService.ProviderName (@AiService.GetType().Name)<br />
+        <strong>Modèle LLM :</strong> @AiService.ModelName<br />
+        <strong>Statut :</strong> <span class="@_status?.CssClass">@_status?.Label</span> · <strong>Dernière ingestion :</strong> @_lastIngestionText<br />
+        <strong>Articles en base :</strong> @_totalArticles<br />
+        <strong>Coût IA aujourd'hui :</strong> @FormatTokens(_todayTokens)&nbsp;tokens&nbsp;·&nbsp;≈&nbsp;CHF&nbsp;@FormatCost(_todayCostChf)&nbsp;·&nbsp;<a class="nowrap" href="/couts" title="Graphiques des coûts IA (1 semaine, 1 mois, 1 an)">📊&nbsp;voir les coûts</a>
+    </div>
+}
+
+<h2 class="home-section-title">Le site en un coup d'œil</h2>
 
 <div class="home-layers">
 
@@ -45,7 +56,7 @@
             <div class="layer-head">
                 <span class="layer-icon">📰</span>
                 <h2 class="layer-title"><a href="/briefing">Le briefing du matin</a></h2>
-                <a class="layer-cta" href="/briefing">Voir le briefing →</a>
+                <a class="layer-cta" href="/briefing">Voir →</a>
             </div>
             <p class="layer-desc muted">Les articles essentiels des dernières 24 heures, le sujet de la semaine et le baromètre du jour — la veille en une page.</p>
             <ul class="layer-items">
@@ -66,7 +77,7 @@
             <div class="layer-head">
                 <span class="layer-icon">🧘</span>
                 <h2 class="layer-title"><a href="/barometre">Le baromètre de l'anxiété</a></h2>
-                <a class="layer-cta" href="/barometre">Voir le baromètre →</a>
+                <a class="layer-cta" href="/barometre">Voir →</a>
             </div>
             <p class="layer-desc muted">
                 Chaque article est noté 0–10 sur son potentiel anxiogène. L'indice du jour :
@@ -82,7 +93,7 @@
             <div class="layer-head">
                 <span class="layer-icon">🥊</span>
                 <h2 class="layer-title"><a href="/debats">Les débats en cours</a></h2>
-                <a class="layer-cta" href="/debats">Voir les débats →</a>
+                <a class="layer-cta" href="/debats">Voir →</a>
             </div>
             <p class="layer-desc muted">Des articles contradictoires sur un même sujet, mis en parallèle — avec dossiers vivants, timeline et positions des médias.</p>
             <ul class="layer-items">
@@ -103,7 +114,7 @@
             <div class="layer-head">
                 <span class="layer-icon">📖</span>
                 <h2 class="layer-title"><a href="/journal">Le journal du rédacteur IA</a></h2>
-                <a class="layer-cta" href="/journal">Lire le journal →</a>
+                <a class="layer-cta" href="/journal">Lire →</a>
             </div>
             <p class="layer-desc muted">La transparence de la veille : les refus expliqués, les hésitations de catégorisation et les réflexions marquantes.</p>
             <ul class="layer-items">
@@ -127,7 +138,7 @@
             <div class="layer-head">
                 <span class="layer-icon">⭐</span>
                 <h2 class="layer-title"><a href="/top">Le top de la communauté</a></h2>
-                <a class="layer-cta" href="/top">Voir le classement →</a>
+                <a class="layer-cta" href="/top">Voir →</a>
             </div>
             <p class="layer-desc muted">Les articles les mieux notés par les lecteurs sur les 7 derniers jours.</p>
             <ul class="layer-items">
@@ -148,7 +159,7 @@
             <div class="layer-head">
                 <span class="layer-icon">📡</span>
                 <h2 class="layer-title"><a href="/radar">Le radar des sujets chauds</a></h2>
-                <a class="layer-cta" href="/radar">Voir le radar →</a>
+                <a class="layer-cta" href="/radar">Voir →</a>
             </div>
             <p class="layer-desc muted">Ce qui monte dans la veille : les thèmes en forte hausse sur 7 jours.</p>
             <ul class="layer-items">
@@ -182,29 +193,32 @@
 
 </div>
 
-@if (AiService != null)
-{
-    <p class="home-status muted">
-        Fournisseur IA : @AiService.ProviderName (@AiService.ModelName) ·
-        Statut : <span class="@_status?.CssClass">@_status?.Label</span> ·
-        Dernière ingestion : @_lastIngestionText ·
-        <a href="/couts">📊 Coûts IA</a> · <a href="/projet">📖 Le projet</a>
-    </p>
-}
+<div class="page-head home-articles-head">
+    <h2>📄 Derniers articles</h2>
+    <a class="chip chip-cat" href="/articles">Voir tous les articles →</a>
+</div>
+<div class="article-grid">
+    @foreach (var a in _recentArticles)
+    {
+        <ArticleCard Article="@a" />
+    }
+</div>
 
 @code {
     private int _totalArticles;
     private int _sourceCount;
     private int _debateCount;
+    private long _todayTokens;
+    private decimal _todayCostChf;
     private HealthStatus? _status;
     private string _lastIngestionText = "jamais";
-    private decimal _todayCostChf;
 
     private List<(Article Article, decimal EditorialScore)> _top3 = new();
     private List<Debate> _debates = new();
     private List<(Article Article, string Excerpt)> _journal = new();
     private List<CommunityTopEntry> _topCommunity = new();
     private List<TopicMomentum> _risingThemes = new();
+    private List<Article> _recentArticles = new();
 
     private double _barometerToday;
     private double _barometerDelta;
@@ -238,6 +252,7 @@
             var completion = await DbContext.Articles
                 .Where(a => a.CompletionTokens != null && a.UpdatedAt >= today)
                 .SumAsync(a => (long)a.CompletionTokens!);
+            _todayTokens = prompt + completion;
             _todayCostChf = AiCost.Calculate(
                 (int)prompt, (int)completion,
                 AiSettings.InputPricePerMillionTokens, AiSettings.OutputPricePerMillionTokens);
@@ -324,6 +339,18 @@
                 .Where(t => t.Score >= TopicMomentumCalculator.RisingThreshold)
                 .Take(3)
                 .ToList();
+
+            // Aperçu de la page articles : 6 derniers articles publiés (cartes complètes)
+            _recentArticles = await DbContext.Articles.AsNoTracking()
+                .Where(a => a.IsPublished)
+                .OrderByDescending(a => a.PublishedAt)
+                .Take(6)
+                .Include(a => a.Category!).ThenInclude(c => c.ParentCategory)
+                .Include(a => a.Tags).ThenInclude(t => t.Tag)
+                .Include(a => a.Sources).ThenInclude(s => s.Source)
+                .Include(a => a.Authors).ThenInclude(a => a.Author)
+                .Include(a => a.DebateArticles)
+                .ToListAsync();
         }
         catch (Exception ex)
         {
@@ -338,6 +365,9 @@
             .Select(g => new { Slug = g.Key, Count = g.Count() })
             .ToListAsync())
         .ToDictionary(x => x.Slug, x => x.Count);
+
+    private string FormatTokens(long tokens)
+        => tokens.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"));
 
     private string FormatCost(decimal cost)
         => cost >= 0.01m
