@@ -7,7 +7,7 @@
 ## 1. Vue d'ensemble
 
 Vigie24 est un système de veille RSS intelligent pour l'actualité technologique
-francophone. Il agrège 240+ sources vérifiées (presse, blogs, chaînes YouTube,
+francophone. Il agrège 250+ sources vérifiées (presse, blogs, chaînes YouTube,
 communautés Reddit), analyse chaque article avec un LLM, publie le meilleur
 contenu sur un site Blazor Server et expose des flux RSS granulaires — le tout en
 français, la langue du produit.

@@ -3,6 +3,15 @@
 ## Project Overview
 Vigie24 is an intelligent RSS monitoring system with AI processing, built with .NET 10 (Blazor Server + Worker Services). The product is **French-speaking by design**: UI copy, public URLs and AI-generated content stay in French. The codebase itself (identifiers, comments, logs, docs) is in English.
 
+## Product surfaces (August 2026)
+
+- **Home**: showcase — hero + AI status card (provider, model, ingestion, cost) + masonry layers (briefing top 3, barometer, debates, journal, community top, hot-topic radar, "Parcourir Vigie24" nav) + last-6-articles preview
+- **Content pages**: `/articles` (full browser with filters), `/categories`, `/themes`, `/debats` + `/debats/{id}` (living dossiers), `/briefing`, `/radar`, `/top`, `/sources` (with scoops), `/il-y-a-un-an`
+- **Signature pages**: `/barometre` (anxiety), `/journal` (AI editor transparency), `/projet` (public + technical parts), `/couts`, `/charte-graphique`
+- **Feeds**: `/feed`, `/categories/{slug}/feed`, `/feed/zen` (anxiety ≤ 6)
+- **Global Zen mode**: nav toggle (localStorage `vigie24.zen`) caps anxiety ≤ 6 on content surfaces — see `Vigie24.Web.Services.ZenModeService`
+- Navigation: two levels (identity nav + content subnav, "⋯ More" panel ≤ 720px)
+
 ## Architecture
 - **Vigie24.Web**: Blazor Server frontend (port 5000 in dev, 8080 in containers)
 - **Vigie24.Worker**: Background service for RSS polling and AI processing (15 min cycle)

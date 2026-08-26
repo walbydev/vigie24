@@ -7,7 +7,7 @@
 ## 1. System overview
 
 Vigie24 is an intelligent RSS monitoring system for French-speaking technology
-news. It aggregates 240+ vetted sources (press, blogs, YouTube channels, Reddit
+news. It aggregates 250+ vetted sources (press, blogs, YouTube channels, Reddit
 communities), analyzes each article with an LLM, publishes the best content on a
 Blazor Server website, and exposes granular RSS feeds — all in French, the product
 language.

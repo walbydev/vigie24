@@ -1,6 +1,6 @@
 # Vigie24 — Veille technologique francophone intelligente
 
-**Vigie24** est un système intelligent de surveillance RSS dédié à l'actualité technologique francophone. Il agrège 240+ sources vérifiées (presse, blogs, chaînes YouTube, communautés Reddit), analyse chaque article par IA (résumé, score éditorial, catégories, thèmes, mots-clés, positions de débat), détecte les doublons et sujets connexes, et publie le meilleur contenu sur un site Blazor Server avec des flux RSS granulaires.
+**Vigie24** est un système intelligent de surveillance RSS dédié à l'actualité technologique francophone. Il agrège 250+ sources vérifiées (presse, blogs, chaînes YouTube, communautés Reddit), analyse chaque article par IA (résumé, score éditorial, score d'anxiété, catégories, thèmes, mots-clés, positions de débat), détecte les doublons et sujets connexes, et publie le meilleur contenu sur un site Blazor Server avec des flux RSS granulaires.
 
 🌐 **Site web** : [vigie24.info](https://vigie24.info) — le produit est **francophone par conception** (textes d'interface, URLs publiques, contenus générés par IA)  
 📡 **Flux RSS** : global `/feed` + par catégorie `/categories/{slug}/feed`  
@@ -10,22 +10,25 @@
 
 ## ✨ Fonctionnalités
 
-- **Agrégation RSS** — 240+ sources vérifiées dans 5 catégories (IA, Dev, Science, Cybersécurité, Hardware), priorité francophone (CH > FR > BE > QC > Europe > Monde)
-- **Analyse IA** — par article : résumé concis en français, score éditorial (0–100), hiérarchie de catégories, thèmes, mots-clés, sujet et position de débat (pour / contre / nuance)
+- **Agrégation RSS** — 250+ sources vérifiées réparties dans 8 catégories parentes (IA, Développement, Cybersécurité, Science, Hardware, Divertissements, Musiques, Arts graphiques), priorité francophone (CH > FR > BE > QC > Europe > Monde), ouverte sur l'actualité internationale
+- **Analyse IA** — par article : résumé concis en français, score éditorial (0–100), score d'anxiété (0–10), hiérarchie de catégories, thèmes, mots-clés, sujet et position de débat — avec une **trace complète de l'analyse** (justification, raisonnement du modèle, LLM exact utilisé)
+- **Transparence IA** — bloc « Réflexion & analyse » sur chaque fiche article ; journal du rédacteur IA (`/journal`) : refusés expliqués, coups de cœur, hésitations de catégorisation, réflexions marquantes
+- **Lecture sereine** — baromètre de l'anxiété (`/barometre`) : indice quotidien, courbe 30 jours, par catégorie et pays, antidotes ; flux RSS zen `/feed/zen` ; **mode zen global** dans la navigation (masque les articles anxiogènes sur tout le site)
+- **Dossiers vivants** — `/debats/{id}` : timeline des positions, intensité de couverture, évolution des positions, carte des médias, premier sur le sujet ; scoops par média sur `/sources`
+- **Pages quotidiennes** — briefing du matin (`/briefing`), radar des sujets chauds (`/radar`), top de la communauté (`/top`), il y a un an (`/il-y-a-un-an`), accueil vitrine (maçonnerie + aperçu des articles) et page Articles dédiée
 - **Fournisseurs IA** — Infomaniak (principal, basé en Suisse) avec DeepSeek en secours, via une factory interchangeable (`IAiService`)
 - **Publication intelligente** — les articles sont publiés si le score éditorial ≥ 60 ; les doublons sont détectés sémantiquement (embeddings)
 - **Débats** — les articles traitant du même sujet avec des positions opposées sont regroupés en « débats » (`/debats`, `/debats/candidats`), via des embeddings multilingues (bge-multilingual-gemma2, 3584 dimensions)
 - **Engagement** — votes anonymes (0–5) et suivi des clics, intégrés au score de classement
 - **Transparence des coûts** — page `/couts` avec graphiques quotidiens/hebdomadaires de consommation de tokens et coût en CHF
-- **Health check** — fraîcheur de l'ingestion + disponibilité du fournisseur IA sur la page d'accueil
-- **SEO** — URLs françaises (`/categories`, `/themes`, `/debats`, `/projet`, `/charte-graphique`, `/couts`), sitemap XML, rich snippets BreadcrumbList, flux RSS
+- **SEO** — URLs françaises (`/articles`, `/categories`, `/themes`, `/debats`, `/projet`, `/charte-graphique`, `/couts`), sitemap XML, rich snippets BreadcrumbList, flux RSS
 
 ## 🏗️ Architecture
 
 | Composant | Technologie |
 |---|---|
 | Frontend | Blazor Server (ASP.NET Core, .NET 10) |
-| Worker | `BackgroundService` — polling RSS toutes les 15 min + traitement IA |
+| Worker | `BackgroundService` — polling RSS toutes les 15 min (5 min en production) + traitement IA |
 | Base de données | PostgreSQL 16 (Npgsql + EF Core 10) |
 | IA | API Infomaniak (compatible OpenAI) + fallback DeepSeek |
 | Déploiement | Docker Compose (une stack par environnement) + reverse proxy Caddy (prod) |
@@ -101,7 +104,7 @@ PostgreSQL doit être joignable (voir `docs/development.fr.md`).
 ```bash
 dotnet test tests/Vigie24.Tests --filter "FullyQualifiedName!~Integration"
 ```
-125 tests unitaires/fonctionnels (les tests d'intégration requièrent un conteneur PostgreSQL — voir `docs/testing.fr.md`).
+174 tests unitaires/fonctionnels (les tests d'intégration requièrent un conteneur PostgreSQL — voir `docs/testing.fr.md`).
 
 ## 📖 Documentation
 

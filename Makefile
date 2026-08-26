@@ -210,9 +210,9 @@ release:
 	@test -n "$(VERSION)" || { echo "❌ Usage: make release VERSION=x.y.z"; exit 1; }
 	@test -z "$$(git status --porcelain)" || { echo "❌ Working tree is not clean — commit or stash first"; exit 1; }
 	@git tag -a "v$(VERSION)" -m "Release v$(VERSION)"
-	@if [ -n "$(GITEA_TOKEN)" ]; then git -c http.extraHeader="Authorization: token $(GITEA_TOKEN)" push origin master --tags; else git push origin master --tags; fi
+	@if [ -n "$(GITEA_TOKEN)" ]; then git -c http.extraHeader="Authorization: token $(GITEA_TOKEN)" push origin master "v$(VERSION)"; else git push origin master "v$(VERSION)"; fi
 	@if [ -n "$(GITHUB_TOKEN)" ]; then \
 		GH_BASIC="$$(printf 'x-access-token:%s' "$(GITHUB_TOKEN)" | base64 | tr -d '\n')"; \
-		git -c "http.extraHeader=Authorization: Basic $$GH_BASIC" push github master --tags; \
-	else git push github master --tags; fi
+		git -c "http.extraHeader=Authorization: Basic $$GH_BASIC" push github master "v$(VERSION)"; \
+	else git push github master "v$(VERSION)"; fi
 	@echo "✅ Release v$(VERSION) pushed to Gitea (origin) and GitHub (github)"
