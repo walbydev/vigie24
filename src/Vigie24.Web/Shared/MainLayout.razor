@@ -19,9 +19,6 @@
         </button>
         <div class="nav-links @(_menuOpen ? "open" : "")" id="nav-links" @onclick="CloseMenu">
             <NavLink class="nav" href="/" Match="NavLinkMatch.All">Accueil</NavLink>
-            <NavLink class="nav" href="/articles">Articles</NavLink>
-            <NavLink class="nav" href="/categories">Catégories</NavLink>
-            <NavLink class="nav" href="/themes">Thématiques</NavLink>
             <NavLink class="nav" href="/briefing">Briefing</NavLink>
             <NavLink class="nav" href="/barometre">Baromètre</NavLink>
             <NavLink class="nav" href="/journal">Journal</NavLink>
@@ -32,6 +29,19 @@
             <FontSizeSwitcher />
             <ThemeSwitcher />
         </div>
+    </nav>
+    <nav class="subnav" aria-label="Navigation par contenu">
+        <NavLink class="subnav-link" href="/articles">📄 Articles</NavLink>
+        <NavLink class="subnav-link" href="/categories">🗂 Catégories</NavLink>
+        <NavLink class="subnav-link" href="/themes">🏷 Thématiques</NavLink>
+        <NavLink class="subnav-link" href="/debats">🥊 Débats</NavLink>
+        <NavLink class="subnav-link" href="/radar">📡 Radar</NavLink>
+        <NavLink class="subnav-link" href="/top">⭐ Top</NavLink>
+        <NavLink class="subnav-link" href="/sources">🗞 Sources</NavLink>
+        <NavLink class="subnav-link" href="/il-y-a-un-an">🗓️ Il y a un an</NavLink>
+        <span class="subnav-spacer"></span>
+        <a class="subnav-link subnav-feed" href="/feed" rel="alternate" type="application/rss+xml" title="Flux RSS complet">📡 RSS</a>
+        <a class="subnav-link subnav-feed" href="/feed/zen" rel="alternate" type="application/rss+xml" title="Flux RSS zen (anxiété ≤ 6)">🧘 RSS zen</a>
     </nav>
     <main id="main-content">
         <div class="content px-4">

@@ -300,6 +300,23 @@
         }
         .zen-banner strong { color: var(--anxiety-low); }
 
+        /* ===== Barre secondaire « bibliothèque » (contenu) ===== */
+        .subnav {
+            display: flex; align-items: center; gap: 2px;
+            background: var(--surface); border-bottom: 1px solid var(--border);
+            padding: 0 20px; overflow-x: auto; white-space: nowrap;
+        }
+        .subnav-link {
+            color: var(--text-muted); text-decoration: none; font-size: 0.86rem; font-weight: 600;
+            padding: 9px 11px; border-bottom: 2px solid transparent; display: inline-block; flex: none;
+        }
+        .subnav-link:hover { color: var(--text); }
+        .subnav-link.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .subnav-spacer { flex: 1; }
+        .subnav-feed { font-size: 0.8rem; }
+        [data-theme$="-hc"] .subnav { border-bottom-width: 2px; }
+        [data-theme$="-hc"] .subnav-link.active { text-decoration: underline; }
+
         /* ===== Alertes / statut ===== */
         .alert { padding: 12px 16px; margin: 16px 0; border-radius: 6px; border: 1px solid transparent; }
         .alert-danger { background-color: var(--alert-danger-bg); border-color: var(--alert-danger-border); color: var(--alert-danger-ink); }
