@@ -9,6 +9,7 @@
 @inject Vigie24DbContext DbContext
 @inject IHealthCheckService Health
 @inject AiServiceSettings AiSettings
+@inject ZenModeService Zen
 @inject ILogger<Index> Logger
 
 <PageTitle>Accueil - Vigie24</PageTitle>
@@ -43,6 +44,14 @@
         <strong>Statut :</strong> <span class="@_status?.CssClass">@_status?.Label</span> · <strong>Dernière ingestion :</strong> @_lastIngestionText<br />
         <strong>Articles en base :</strong> @_totalArticles<br />
         <strong>Coût IA aujourd'hui :</strong> @FormatTokens(_todayTokens)&nbsp;tokens&nbsp;·&nbsp;≈&nbsp;CHF&nbsp;@FormatCost(_todayCostChf)&nbsp;·&nbsp;<a class="nowrap" href="/couts" title="Graphiques des coûts IA (1 semaine, 1 mois, 1 an)">📊&nbsp;voir les coûts</a>
+    </div>
+}
+
+@if (Zen.IsEnabled)
+{
+    <div class="zen-banner">
+        🧘 <strong>Mode zen actif</strong> — les articles notés &gt; 6/10 d'anxiété sont masqués sur l'accueil, la page articles et le briefing.
+        Le bouton <strong>Zen</strong> dans la barre de navigation permet de le désactiver.
     </div>
 }
 
@@ -248,6 +257,22 @@
     private string _barometerLevelLabel = "modérée";
 
     protected override async Task OnInitializedAsync()
+        => await LoadDataAsync(zen: false);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Mode zen global : lu en localStorage après le prerender, puis rechargement
+            // des surfaces de contenu si actif.
+            await Zen.InitializeAsync();
+            if (Zen.IsEnabled)
+                await LoadDataAsync(zen: true);
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadDataAsync(bool zen)
     {
         var now = DateTime.UtcNow;
         var since24h = now.AddHours(-24);
@@ -278,9 +303,10 @@
                 (int)prompt, (int)completion,
                 AiSettings.InputPricePerMillionTokens, AiSettings.OutputPricePerMillionTokens);
 
-            // Couche briefing : top 3 des 24 h
+            // Couche briefing : top 3 des 24 h (mode zen : anxiété ≤ 6)
             _top3 = await DbContext.Articles.AsNoTracking()
-                .Where(a => a.IsPublished && a.PublishedAt >= since24h)
+                .Where(a => a.IsPublished && a.PublishedAt >= since24h
+                    && (!zen || a.AnxietyScore == null || a.AnxietyScore <= ZenModeService.ZenMaxAnxiety))
                 .OrderByDescending(a => a.EditorialScore)
                 .Take(3)
                 .Select(a => new HomeArticleLink(
@@ -376,9 +402,10 @@
                 .Take(3)
                 .ToList();
 
-            // Aperçu de la page articles : 6 derniers articles publiés (cartes complètes)
+            // Aperçu de la page articles : 6 derniers articles publiés (mode zen : anxiété ≤ 6)
             _recentArticles = await DbContext.Articles.AsNoTracking()
-                .Where(a => a.IsPublished)
+                .Where(a => a.IsPublished
+                    && (!zen || a.AnxietyScore == null || a.AnxietyScore <= ZenModeService.ZenMaxAnxiety))
                 .OrderByDescending(a => a.PublishedAt)
                 .Take(6)
                 .Include(a => a.Category!).ThenInclude(c => c.ParentCategory)

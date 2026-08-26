@@ -22,6 +22,7 @@ builder.Services.AddHttpContextAccessor();
 // Reader engagement (votes 0-5, clicks) — direct DB access in the circuit
 builder.Services.AddScoped<IEngagementService, EngagementService>();
 builder.Services.AddScoped<IHealthCheckService, HealthCheckService>();
+builder.Services.AddScoped<ZenModeService>(); // mode zen global (localStorage)
 builder.Services.Configure<HealthCheckOptions>(builder.Configuration.GetSection("HealthCheck"));
 
 // Database
