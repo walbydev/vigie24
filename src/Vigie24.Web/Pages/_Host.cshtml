@@ -707,15 +707,20 @@
 
         /* ===== Top de la communauté ===== */
         .top-list { list-style: none; margin: 0; padding: 0; counter-reset: top; }
-        .top-item { display: flex; gap: 14px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--border); }
+        .top-item { display: flex; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); }
         .top-rank {
             font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.3rem; font-weight: 800;
             color: var(--accent); min-width: 34px; text-align: center; line-height: 1.2;
         }
-        .top-body { flex: 1; }
+        .top-body { flex: 1; min-width: 0; }
         .top-title { color: var(--text); text-decoration: none; font-weight: 600; }
         .top-title:hover { color: var(--accent); text-decoration: underline; }
         .top-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+
+        /* Entrées « journal » avec vignette (briefing, journal, il y a un an) */
+        .journal-entry-thumb { display: flex; gap: 14px; align-items: flex-start; }
+        .journal-entry-thumb .layer-thumb { margin-top: 2px; }
+        .journal-entry-main { flex: 1; min-width: 0; }
 
         /* ===== Bandeau d'erreur Blazor (masqué par défaut) ===== */
         #blazor-error-ui {

@@ -34,16 +34,19 @@
     <p class="muted">Articles juste sous le seuil de publication (score 50–59,9) : voici pourquoi ils n'ont pas été retenus.</p>
     @foreach (var a in _refused)
     {
-        <div class="journal-entry">
-            <div class="journal-head">
-                <a href="/articles/@a.Id">@a.Title</a>
-                <span class="chip chip-refused">🚫 Refusé · @a.EditorialScore.ToString("0.0")</span>
+        <div class="journal-entry journal-entry-thumb">
+            <ArticleThumb ImageUrl="@a.ImageUrl" Title="@a.Title" CategorySlug="@a.Category?.Slug" />
+            <div class="journal-entry-main">
+                <div class="journal-head">
+                    <a href="/articles/@a.Id">@a.Title</a>
+                    <span class="chip chip-refused">🚫 Refusé · @a.EditorialScore.ToString("0.0")</span>
+                </div>
+                @if (a.Analysis?.Justification is { Length: > 0 } justif)
+                {
+                    <p class="journal-justif">@justif</p>
+                }
+                <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
             </div>
-            @if (a.Analysis?.Justification is { Length: > 0 } justif)
-            {
-                <p class="journal-justif">@justif</p>
-            }
-            <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
         </div>
     }
 }
@@ -54,16 +57,19 @@
     <p class="muted">Les articles les mieux notés par l'IA cette semaine, avec sa justification.</p>
     @foreach (var a in _favorites)
     {
-        <div class="journal-entry">
-            <div class="journal-head">
-                <a href="/articles/@a.Id">@a.Title</a>
-                <span class="chip chip-cat">💚 @a.EditorialScore.ToString("0.0")</span>
+        <div class="journal-entry journal-entry-thumb">
+            <ArticleThumb ImageUrl="@a.ImageUrl" Title="@a.Title" CategorySlug="@a.Category?.Slug" />
+            <div class="journal-entry-main">
+                <div class="journal-head">
+                    <a href="/articles/@a.Id">@a.Title</a>
+                    <span class="chip chip-cat">💚 @a.EditorialScore.ToString("0.0")</span>
+                </div>
+                @if (a.Analysis?.Justification is { Length: > 0 } justif)
+                {
+                    <p class="journal-justif">@justif</p>
+                }
+                <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
             </div>
-            @if (a.Analysis?.Justification is { Length: > 0 } justif)
-            {
-                <p class="journal-justif">@justif</p>
-            }
-            <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
         </div>
     }
 }
@@ -74,19 +80,22 @@
     <p class="muted">Quand l'IA balance entre plusieurs catégories, elle le dit — et le journal le montre.</p>
     @foreach (var a in _hesitations)
     {
-        <div class="journal-entry">
-            <div class="journal-head">
-                <a href="/articles/@a.Id">@a.Title</a>
+        <div class="journal-entry journal-entry-thumb">
+            <ArticleThumb ImageUrl="@a.ImageUrl" Title="@a.Title" CategorySlug="@a.Category?.Slug" />
+            <div class="journal-entry-main">
+                <div class="journal-head">
+                    <a href="/articles/@a.Id">@a.Title</a>
+                </div>
+                <p class="journal-justif">
+                    A hésité entre :
+                    <strong>@string.Join(" · ", a.Analysis!.AlternativeCategories.Select(p => string.Join(" / ", p)))</strong>
+                    @if (a.Analysis?.Justification is { Length: > 0 } justif)
+                    {
+                        <text> — @justif</text>
+                    }
+                </p>
+                <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
             </div>
-            <p class="journal-justif">
-                A hésité entre :
-                <strong>@string.Join(" · ", a.Analysis!.AlternativeCategories.Select(p => string.Join(" / ", p)))</strong>
-                @if (a.Analysis?.Justification is { Length: > 0 } justif)
-                {
-                    <text> — @justif</text>
-                }
-            </p>
-            <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
         </div>
     }
 }
@@ -97,16 +106,19 @@
     <p class="muted">Les justifications les plus développées de la semaine — là où l'IA a le plus « réfléchi ».</p>
     @foreach (var a in _notable)
     {
-        <div class="journal-entry">
-            <div class="journal-head">
-                <a href="/articles/@a.Id">@a.Title</a>
-                <span class="chip chip-tag">Score @a.EditorialScore.ToString("0.0")</span>
+        <div class="journal-entry journal-entry-thumb">
+            <ArticleThumb ImageUrl="@a.ImageUrl" Title="@a.Title" CategorySlug="@a.Category?.Slug" />
+            <div class="journal-entry-main">
+                <div class="journal-head">
+                    <a href="/articles/@a.Id">@a.Title</a>
+                    <span class="chip chip-tag">Score @a.EditorialScore.ToString("0.0")</span>
+                </div>
+                @if (a.Analysis?.Justification is { Length: > 0 } justif)
+                {
+                    <p class="journal-justif">@justif</p>
+                }
+                <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
             </div>
-            @if (a.Analysis?.Justification is { Length: > 0 } justif)
-            {
-                <p class="journal-justif">@justif</p>
-            }
-            <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
         </div>
     }
 }
@@ -129,6 +141,7 @@
                 .Where(a => !a.IsPublished && a.EditorialScore >= 50m && a.EditorialScore < 60m && a.PublishedAt >= since7)
                 .OrderByDescending(a => a.EditorialScore)
                 .Take(8)
+                .Include(a => a.Category)
                 .ToListAsync();
 
             // Coups de cœur : les mieux notés de la semaine, avec trace
@@ -136,6 +149,7 @@
                 .Where(a => a.IsPublished && a.PublishedAt >= since7 && a.AnalysisJson != null)
                 .OrderByDescending(a => a.EditorialScore)
                 .Take(5)
+                .Include(a => a.Category)
                 .ToListAsync();
 
             // Hésitations + réflexions marquantes : filtrées en mémoire depuis les traces récentes
@@ -143,6 +157,7 @@
                 .Where(a => a.PublishedAt >= since7 && a.AnalysisJson != null)
                 .OrderByDescending(a => a.PublishedAt)
                 .Take(60)
+                .Include(a => a.Category)
                 .ToListAsync();
 
             _hesitations = recent.Where(a => a.Analysis?.AlternativeCategories.Count > 0).Take(8).ToList();

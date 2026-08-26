@@ -34,8 +34,10 @@ else
         @for (var i = 0; i < _entries.Count; i++)
         {
             var e = _entries[i];
+            var thumb = _thumbByArticleId.GetValueOrDefault(e.ArticleId);
             <li class="top-item">
                 <span class="top-rank">@(i + 1)</span>
+                <ArticleThumb ImageUrl="@thumb.ImageUrl" Title="@e.Title" CategorySlug="@thumb.CategorySlug" />
                 <div class="top-body">
                     <a class="top-title" href="/articles/@e.ArticleId">@e.Title</a>
                     <div class="top-meta">
@@ -54,6 +56,7 @@ else
 
 @code {
     private List<CommunityTopEntry> _entries = new();
+    private Dictionary<Guid, (string? ImageUrl, string CategorySlug)> _thumbByArticleId = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -73,9 +76,20 @@ else
             var ids = votes.Select(v => v.ArticleId).ToList();
             var articles = await DbContext.Articles.AsNoTracking()
                 .Where(a => ids.Contains(a.Id))
-                .Select(a => new { a.Id, a.Title, a.ClickCount, a.EditorialScore })
+                .Select(a => new
+                {
+                    a.Id,
+                    a.Title,
+                    a.ClickCount,
+                    a.EditorialScore,
+                    a.ImageUrl,
+                    CategorySlug = a.Category != null ? a.Category.Slug : ""
+                })
                 .ToListAsync();
             var byId = articles.ToDictionary(a => a.Id);
+            _thumbByArticleId = articles.ToDictionary(
+                a => a.Id,
+                a => (a.ImageUrl, a.CategorySlug));
 
             _entries = CommunityTop.Compute(votes
                 .Where(v => byId.ContainsKey(v.ArticleId))

@@ -45,12 +45,15 @@ else
     <h2>Ce que la veille disait il y a un an</h2>
     @foreach (var a in _articles)
     {
-        <div class="journal-entry">
-            <div class="journal-head">
-                <a href="/articles/@a.Article.Id">@a.Article.Title</a>
-                <span class="chip chip-cat">Score @a.Article.EditorialScore.ToString("0.0")</span>
+        <div class="journal-entry journal-entry-thumb">
+            <ArticleThumb ImageUrl="@a.Article.ImageUrl" Title="@a.Article.Title" CategorySlug="@a.Article.Category?.Slug" />
+            <div class="journal-entry-main">
+                <div class="journal-head">
+                    <a href="/articles/@a.Article.Id">@a.Article.Title</a>
+                    <span class="chip chip-cat">Score @a.Article.EditorialScore.ToString("0.0")</span>
+                </div>
+                <p class="journal-meta">@a.Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @a.SourceName</p>
             </div>
-            <p class="journal-meta">@a.Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @a.SourceName</p>
         </div>
     }
 }
@@ -81,6 +84,7 @@ else
                 .Where(a => a.IsPublished && a.PublishedAt >= from && a.PublishedAt < to)
                 .OrderByDescending(a => a.EditorialScore)
                 .Take(Vigie24.Domain.YearAgo.TakeCount)
+                .Include(a => a.Category)
                 .Include(a => a.Sources).ThenInclude(s => s.Source)
                 .ToListAsync();
 

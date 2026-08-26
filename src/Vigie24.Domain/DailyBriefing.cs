@@ -8,7 +8,9 @@ public record BriefingArticle(
     int ClickCount,
     int VoteCount,
     decimal VoteAverage,
-    DateTime PublishedAt);
+    DateTime PublishedAt,
+    string? ImageUrl = null,
+    string CategorySlug = "");
 
 /// <summary>Dominant theme of the week (tag slug + article count).</summary>
 public record BriefingTheme(string TagSlug, int ArticleCount);
