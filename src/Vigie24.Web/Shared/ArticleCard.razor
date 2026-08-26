@@ -168,12 +168,6 @@
     private ArticleSource? _primarySource;
     private string _countryDisplay = "";
     private string _sourceFaviconUrl = "";
-    private static readonly (string Prefix, string C1, string C2)[] _palettes =
-    {
-        ("ia", "#4f46e5", "#9333ea"), ("developpement", "#0891b2", "#2563eb"),
-        ("cyber", "#dc2626", "#7c3aed"), ("science", "#059669", "#0d9488"),
-        ("hardware", "#d97706", "#dc2626"), ("", "#475569", "#64748b")
-    };
 
     // Engagement state: aggregates from the entity (already loaded) + my vote provided by the page
     private EngagementState _state = new(null, 0, 0, 0, 0);
@@ -181,13 +175,10 @@
     protected override void OnParametersSet()
     {
         // Fallback illustration: colored gradient by category + title initial
-        var catSlug = Article.Category?.Slug ?? "";
-        var palette = _palettes.FirstOrDefault(p => catSlug.StartsWith(p.Prefix));
-        if (palette.Prefix.Length == 0)
-            palette = _palettes[^1];
-        _color1 = palette.C1;
-        _color2 = palette.C2;
-        _initial = Article.Title.Length > 0 ? Article.Title[..1].ToUpperInvariant() : "?";
+        var (c1, c2) = ArticlePalette.ForCategory(Article.Category?.Slug);
+        _color1 = c1;
+        _color2 = c2;
+        _initial = ArticlePalette.Initial(Article.Title);
 
         // Source principale : lien vers l'article sur le site de la source (via /track)
         _primarySource = Article.Sources.FirstOrDefault(s => s.IsPrimary) ?? Article.Sources.FirstOrDefault();

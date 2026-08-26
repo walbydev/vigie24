@@ -1,0 +1,28 @@
+@using Vigie24.Web.Services
+
+@* Miniature d'article : image du flux RSS, ou dégradé par catégorie + initiale du titre *@
+<div class="layer-thumb">
+    @if (!string.IsNullOrEmpty(ImageUrl))
+    {
+        <img src="@ImageUrl" alt="" loading="lazy" class="layer-thumb-img" />
+    }
+    else
+    {
+        var (c1, c2) = ArticlePalette.ForCategory(CategorySlug);
+        <div class="layer-thumb-fallback" style="background: linear-gradient(135deg, @c1, @c2);">@ArticlePalette.Initial(Title)</div>
+    }
+</div>
+
+@code {
+    /// <summary>Article illustration URL (feed image), if any.</summary>
+    [Parameter]
+    public string? ImageUrl { get; set; }
+
+    /// <summary>Article title — used for the fallback initial.</summary>
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    /// <summary>Category slug — used for the fallback gradient palette.</summary>
+    [Parameter]
+    public string? CategorySlug { get; set; }
+}

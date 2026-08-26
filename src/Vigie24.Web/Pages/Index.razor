@@ -63,8 +63,11 @@
                 @foreach (var a in _top3)
                 {
                     <li>
-                        <a href="/articles/@a.Article.Id">@a.Article.Title</a>
-                        <span class="muted">· @a.EditorialScore.ToString("0.0")</span>
+                        <ArticleThumb ImageUrl="@a.ImageUrl" Title="@a.Title" CategorySlug="@a.CategorySlug" />
+                        <span class="layer-item-main">
+                            <a href="/articles/@a.Id">@a.Title</a>
+                            <span class="muted">· @a.Score.ToString("0.0")</span>
+                        </span>
                     </li>
                 }
             </ul>
@@ -121,11 +124,14 @@
                 @foreach (var (title, excerpt) in _journal)
                 {
                     <li>
-                        <a href="/articles/@title.Id">@title.Title</a>
-                        @if (!string.IsNullOrEmpty(excerpt))
-                        {
-                            <span class="layer-excerpt">— @excerpt</span>
-                        }
+                        <ArticleThumb ImageUrl="@title.ImageUrl" Title="@title.Title" CategorySlug="@title.Category?.Slug" />
+                        <span class="layer-item-main">
+                            <a href="/articles/@title.Id">@title.Title</a>
+                            @if (!string.IsNullOrEmpty(excerpt))
+                            {
+                                <span class="layer-excerpt">— @excerpt</span>
+                            }
+                        </span>
                     </li>
                 }
             </ul>
@@ -144,9 +150,13 @@
             <ul class="layer-items">
                 @foreach (var e in _topCommunity)
                 {
+                    var thumb = _thumbByArticleId.GetValueOrDefault(e.ArticleId);
                     <li>
-                        <a href="/articles/@e.ArticleId">@e.Title</a>
-                        <span class="muted">· ⭐ @e.VoteAverage.ToString("0.0") (@e.VoteCount vote(s))</span>
+                        <ArticleThumb ImageUrl="@thumb.ImageUrl" Title="@e.Title" CategorySlug="@thumb.CategorySlug" />
+                        <span class="layer-item-main">
+                            <a href="/articles/@e.ArticleId">@e.Title</a>
+                            <span class="muted">· ⭐ @e.VoteAverage.ToString("0.0") (@e.VoteCount vote(s))</span>
+                        </span>
                     </li>
                 }
             </ul>
@@ -174,20 +184,30 @@
         </section>
     }
 
-    <section class="layer-card">
+    <section class="layer-card layer-nav">
         <div class="layer-head">
             <span class="layer-icon">🧭</span>
-            <h2 class="layer-title">Explorer la veille</h2>
+            <h2 class="layer-title">Parcourir Vigie24</h2>
         </div>
-        <p class="layer-desc muted">Tous les articles, les catégories, les sources surveillées, les archives et les flux à suivre.</p>
-        <div class="chips layer-chips">
-            <a class="chip chip-cat" href="/articles">📄 Tous les articles</a>
-            <a class="chip chip-cat" href="/categories">🗂 Catégories</a>
-            <a class="chip chip-tag" href="/themes">🏷 Thématiques</a>
-            <a class="chip chip-tag" href="/sources">🗂 Sources</a>
-            <a class="chip chip-tag" href="/il-y-a-un-an">🗓️ Il y a un an</a>
-            <a class="chip chip-tag" href="/feed" rel="alternate" type="application/rss+xml">📡 Flux RSS</a>
-            <a class="chip chip-tag" href="/feed/zen" rel="alternate" type="application/rss+xml">🧘 Flux zen</a>
+        <p class="layer-desc muted">Où trouver quoi : le contenu, les coulisses et les abonnements.</p>
+        <div class="layer-nav-grid">
+            <div class="layer-nav-col">
+                <h3>Le contenu</h3>
+                <a href="/articles">📄 Tous les articles <span class="muted">— la liste complète, avec filtres et recherche</span></a>
+                <a href="/categories">🗂 Catégories <span class="muted">— les 8 familles de la veille</span></a>
+                <a href="/themes">🏷 Thématiques <span class="muted">— les sujets transverses</span></a>
+            </div>
+            <div class="layer-nav-col">
+                <h3>Les coulisses</h3>
+                <a href="/sources">🗞 Sources <span class="muted">— les médias surveillés, leurs scoops</span></a>
+                <a href="/il-y-a-un-an">🗓️ Il y a un an <span class="muted">— la mémoire de la veille</span></a>
+                <a href="/couts">💰 Coûts IA <span class="muted">— la transparence des coûts</span></a>
+            </div>
+            <div class="layer-nav-col">
+                <h3>S'abonner</h3>
+                <a href="/feed" rel="alternate" type="application/rss+xml">📡 Flux RSS <span class="muted">— tous les articles</span></a>
+                <a href="/feed/zen" rel="alternate" type="application/rss+xml">🧘 Flux zen <span class="muted">— sans les articles anxiogènes</span></a>
+            </div>
         </div>
     </section>
 
@@ -213,10 +233,11 @@
     private HealthStatus? _status;
     private string _lastIngestionText = "jamais";
 
-    private List<(Article Article, decimal EditorialScore)> _top3 = new();
+    private List<HomeArticleLink> _top3 = new();
     private List<Debate> _debates = new();
     private List<(Article Article, string Excerpt)> _journal = new();
     private List<CommunityTopEntry> _topCommunity = new();
+    private Dictionary<Guid, (string? ImageUrl, string CategorySlug)> _thumbByArticleId = new();
     private List<TopicMomentum> _risingThemes = new();
     private List<Article> _recentArticles = new();
 
@@ -258,14 +279,17 @@
                 AiSettings.InputPricePerMillionTokens, AiSettings.OutputPricePerMillionTokens);
 
             // Couche briefing : top 3 des 24 h
-            _top3 = (await DbContext.Articles.AsNoTracking()
+            _top3 = await DbContext.Articles.AsNoTracking()
                 .Where(a => a.IsPublished && a.PublishedAt >= since24h)
                 .OrderByDescending(a => a.EditorialScore)
                 .Take(3)
-                .Select(a => new { a.Id, a.Title, a.EditorialScore, a.PublishedAt })
-                .ToListAsync())
-                .Select(a => (Article: new Article { Id = a.Id, Title = a.Title }, a.EditorialScore))
-                .ToList();
+                .Select(a => new HomeArticleLink(
+                    a.Id,
+                    a.Title,
+                    a.EditorialScore,
+                    a.ImageUrl,
+                    a.Category != null ? a.Category.Slug : ""))
+                .ToListAsync();
 
             // Couche baromètre
             var anxietyRows = (await DbContext.Articles.AsNoTracking()
@@ -298,6 +322,7 @@
                 .Where(a => a.IsPublished && a.PublishedAt >= since7d && a.AnalysisJson != null)
                 .OrderByDescending(a => a.PublishedAt)
                 .Take(20)
+                .Include(a => a.Category)
                 .ToListAsync();
             _journal = journal
                 .Where(a => !string.IsNullOrWhiteSpace(a.Analysis?.Justification))
@@ -316,9 +341,20 @@
                 var ids = votes.Select(v => v.ArticleId).ToList();
                 var arts = await DbContext.Articles.AsNoTracking()
                     .Where(a => ids.Contains(a.Id))
-                    .Select(a => new { a.Id, a.Title, a.ClickCount, a.EditorialScore })
+                    .Select(a => new
+                    {
+                        a.Id,
+                        a.Title,
+                        a.ClickCount,
+                        a.EditorialScore,
+                        a.ImageUrl,
+                        CategorySlug = a.Category != null ? a.Category.Slug : ""
+                    })
                     .ToListAsync();
                 var byId = arts.ToDictionary(a => a.Id);
+                _thumbByArticleId = arts.ToDictionary(
+                    a => a.Id,
+                    a => (a.ImageUrl, a.CategorySlug));
                 _topCommunity = CommunityTop.Compute(votes
                     .Where(v => byId.ContainsKey(v.ArticleId))
                     .Select(v => new CommunityTopEntry(v.ArticleId, byId[v.ArticleId].Title, v.Avg, v.Count, byId[v.ArticleId].ClickCount, byId[v.ArticleId].EditorialScore)))
@@ -376,4 +412,12 @@
 
     private static string Truncate(string s, int max)
         => s.Length <= max ? s : s[..max].TrimEnd() + "…";
+
+    /// <summary>Article link shown in a homepage layer (with thumbnail data).</summary>
+    private sealed record HomeArticleLink(
+        Guid Id,
+        string Title,
+        decimal Score,
+        string? ImageUrl,
+        string CategorySlug);
 }
