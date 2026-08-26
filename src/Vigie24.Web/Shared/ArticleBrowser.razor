@@ -6,6 +6,7 @@
 @using Vigie24.Web.Services
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.AspNetCore.Http
 @using Microsoft.JSInterop
 @inject IDbContextFactory<Vigie24DbContext> DbFactory
 @inject IEngagementService Engagement
@@ -13,6 +14,7 @@
 @inject ProtectedLocalStorage Storage
 @inject IJSRuntime JS
 @inject ZenModeService Zen
+@inject IHttpContextAccessor HttpAccessor
 @inject ILogger<ArticleBrowser> Logger
 
 @* Navigation d'articles : recherche plein-texte, tri, réglette d'anxiété, plage de dates, pagination.
@@ -44,7 +46,7 @@
         <option value="100">100 / page</option>
     </select>
     <div class="toolbar-slider" title="Plafonner le score d'anxiété des articles (0 = non anxiogène uniquement, 10 = aucun filtre)">
-        <label for="max-anxiety">@(Zen.IsEnabled ? "🧘 " : "")Anxiété max : <span class="af-value">@(_maxAnxiety < 10 ? _maxAnxiety.ToString() : "—")</span></label>
+        <label for="max-anxiety">@((Zen.IsEnabled || ZenModeService.IsEnabledFromCookie(HttpAccessor)) ? "🧘 " : "")Anxiété max : <span class="af-value">@(_maxAnxiety < 10 ? _maxAnxiety.ToString() : "—")</span></label>
         <input id="max-anxiety" type="range" min="0" max="10" step="1" @bind="_maxAnxiety" @bind:after="OnFilterChanged" />
     </div>
     <button class="btn-toggle @(_advancedOpen ? "open" : "")" @onclick="ToggleAdvanced"
@@ -311,7 +313,10 @@ else
         MinScore = _minScore,
         MinRating = _minRating,
         // Mode zen global : plafonne l'anxiété à 6 quoi que choisisse le slider local.
-        MaxAnxiety = Zen.IsEnabled ? Math.Min(_maxAnxiety, ZenModeService.ZenMaxAnxiety) : _maxAnxiety,
+        // (cookie = état serveur au prerender ; localStorage = état après interaction)
+        MaxAnxiety = (Zen.IsEnabled || ZenModeService.IsEnabledFromCookie(HttpAccessor))
+            ? Math.Min(_maxAnxiety, ZenModeService.ZenMaxAnxiety)
+            : _maxAnxiety,
         RangeFrom = _range?.From,
         RangeTo = _range?.To,
         SortField = SortField,

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.AspNetCore.Http;
 
 namespace Vigie24.Web.Services;
 
@@ -15,11 +16,22 @@ public class ZenModeService
 
     private const string StorageKey = "vigie24.zen";
 
+    /// <summary>
+    /// Cookie name — server-visible mirror of the zen state, set by the nav toggle
+    /// (JS) so the prerender can filter content from the FIRST HTML (no flash of
+    /// anxiety-inducing articles, no double query).
+    /// </summary>
+    public const string CookieName = "vigie24_zen";
+
     private readonly ProtectedLocalStorage _storage;
 
     public bool IsEnabled { get; private set; }
 
     public ZenModeService(ProtectedLocalStorage storage) => _storage = storage;
+
+    /// <summary>True when the zen cookie (readable server-side during prerender) is active.</summary>
+    public static bool IsEnabledFromCookie(IHttpContextAccessor http)
+        => http.HttpContext?.Request.Cookies.TryGetValue(CookieName, out var v) == true && v == "1";
 
     /// <summary>Reads the persisted state (browser storage — only after first render).</summary>
     public async Task InitializeAsync()

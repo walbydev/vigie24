@@ -1,10 +1,12 @@
 @using Vigie24.Web.Services
+@using Microsoft.JSInterop
 @inject ZenModeService Zen
+@inject IJSRuntime JS
 @inject NavigationManager Nav
 
 @* Mode zen global : masque les articles anxiogènes (> 6/10) sur tout le site.
-   Persistant (localStorage) — le toggle recharge la page pour que toutes les
-   surfaces relisent l'état au démarrage. *@
+   Persistant (localStorage via ZenModeService) + cookie vigie24_zen (lu par le serveur
+   au prerender → filtrage dès le premier HTML). Le toggle recharge la page. *@
 <button type="button" class="zen-toggle @(Zen.IsEnabled ? "zen-on" : "")"
         @onclick="Toggle"
         title="Mode zen : masque les articles anxiogènes (anxiété > 6/10) sur l'accueil, la page articles et le briefing"
@@ -18,14 +20,19 @@
         if (firstRender)
         {
             await Zen.InitializeAsync();
+            // Synchronise le cookie (visible côté serveur au prochain prerender) avec l'état
+            // localStorage — couvre les visiteurs ayant activé zen avant ce déploiement.
+            try { await JS.InvokeVoidAsync("vigie24Zen.set", Zen.IsEnabled); } catch { }
             StateHasChanged();
         }
     }
 
     private async Task Toggle()
     {
-        await Zen.SetAsync(!Zen.IsEnabled);
-        // Rechargement complet : chaque page relit le mode zen à son démarrage.
+        var next = !Zen.IsEnabled;
+        await Zen.SetAsync(next);
+        try { await JS.InvokeVoidAsync("vigie24Zen.set", next); } catch { }
+        // Rechargement complet : chaque page relit le mode zen (cookie) à son démarrage.
         Nav.NavigateTo(Nav.Uri, forceLoad: true);
     }
 }

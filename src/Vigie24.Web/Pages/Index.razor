@@ -4,12 +4,14 @@
 @using Vigie24.Services.Interfaces
 @using Vigie24.Infrastructure.Data
 @using Vigie24.Web.Services
+@using Microsoft.AspNetCore.Http
 @using Microsoft.EntityFrameworkCore
 @inject IAiService AiService
 @inject Vigie24DbContext DbContext
 @inject IHealthCheckService Health
 @inject AiServiceSettings AiSettings
 @inject ZenModeService Zen
+@inject IHttpContextAccessor HttpAccessor
 @inject ILogger<Index> Logger
 
 <PageTitle>Accueil - Vigie24</PageTitle>
@@ -48,7 +50,7 @@
     </div>
 }
 
-@if (Zen.IsEnabled)
+@if (ZenActive)
 {
     <div class="zen-banner">
         🧘 <strong>Mode zen actif</strong> — les articles notés &gt; 6/10 d'anxiété sont masqués sur l'accueil, la page articles et le briefing.
@@ -233,6 +235,9 @@
         <ArticleCard Article="@a" />
     }
 </div>
+<div class="home-articles-more">
+    <a class="chip chip-cat" href="/articles">Voir tous les articles →</a>
+</div>
 
 @code {
     private int _totalArticles;
@@ -258,20 +263,24 @@
     private string _barometerLevelLabel = "modérée";
 
     protected override async Task OnInitializedAsync()
-        => await LoadDataAsync(zen: false);
+        // Le cookie zen est lisible pendant le prerender → filtrage dès le premier HTML.
+        => await LoadDataAsync(zen: ZenModeService.IsEnabledFromCookie(HttpAccessor));
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // Mode zen global : lu en localStorage après le prerender, puis rechargement
-            // des surfaces de contenu si actif.
             await Zen.InitializeAsync();
-            if (Zen.IsEnabled)
+            // Cas limite : zen localStorage actif mais cookie absent (premier chargement
+            // depuis le déploiement) → rechargement filtré une fois (ZenToggle posera le cookie).
+            if (!ZenModeService.IsEnabledFromCookie(HttpAccessor) && Zen.IsEnabled)
                 await LoadDataAsync(zen: true);
             StateHasChanged();
         }
     }
+
+    /// <summary>Mode zen actif : cookie (serveur, prerender) ou localStorage (après interaction).</summary>
+    private bool ZenActive => Zen.IsEnabled || ZenModeService.IsEnabledFromCookie(HttpAccessor);
 
     private async Task LoadDataAsync(bool zen)
     {

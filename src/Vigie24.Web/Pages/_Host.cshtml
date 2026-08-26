@@ -691,6 +691,8 @@
 
         .home-articles-head { margin-top: 26px; }
         .home-articles-head h2 { font-size: 1.5rem; margin: 0; }
+        .home-articles-more { text-align: center; margin: 16px 0 4px; }
+        .home-articles-more .chip { font-size: 0.95rem; padding: 8px 18px; }
 
         @@media (min-width: 920px) {
             .home-layers { columns: 2; }
@@ -1179,6 +1181,15 @@
             set: function (f) {
                 document.documentElement.setAttribute('data-font', f);
                 try { localStorage.setItem('vigie24-font', f); } catch (e) {}
+            }
+        };
+        // Mode zen : le cookie est lu par le serveur au prerender (filtrage dès le 1er HTML —
+        // pas de flash d'articles anxiogènes). Le localStorage reste géré par ZenModeService.
+        window.vigie24Zen = {
+            set: function (on) {
+                var d = new Date();
+                d.setTime(on ? d.getTime() + 365 * 24 * 3600 * 1000 : 0);
+                document.cookie = 'vigie24_zen=' + (on ? '1' : '0') + '; path=/; expires=' + d.toUTCString() + '; SameSite=Lax';
             }
         };
     </script>
