@@ -619,10 +619,13 @@ public class Vigie24Worker : BackgroundService
         // NB: the source comes from an AsNoTracking() query — using the navigation
         // property would make EF Core attempt a duplicate INSERT (sources_pkey violation).
         // Only the foreign key is therefore used.
+        // SourcePublishedAt = the feed item's date: needed for the « premier sur le
+        // sujet » / scoop features (first source to cover a topic).
         article.Sources.Add(new ArticleSource
         {
             SourceId = source.Id,
             SourceArticleUrl = item.Url,
+            SourcePublishedAt = item.PublishedAt,
             IsPrimary = true
         });
 

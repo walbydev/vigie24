@@ -200,15 +200,18 @@ else
                 .OrderByDescending(m => m.Pour + m.Contre + m.Nuance + m.Neutre)
                 .ToList();
 
-            // Premier sur le sujet : date de publication la plus ancienne parmi les sources du dossier
-            var all = _articles
-                .SelectMany(da => da.Article.Sources)
-                .Where(s => s.SourcePublishedAt != null && s.Source != null)
-                .OrderBy(s => s.SourcePublishedAt)
-                .FirstOrDefault();
-            if (all != null)
+            // Premier sur le sujet : dans la pratique les articles sont mono-source,
+            // donc le « premier » = source du plus ancien article du dossier (celle qui
+            // a couvert le sujet avant les autres médias).
+            var earliest = _articles.OrderBy(a => a.Article.PublishedAt).FirstOrDefault();
+            if (earliest != null)
             {
-                _firstCover = (all.Source!.Name, all.SourcePublishedAt!.Value);
+                var primary = earliest.Article.Sources.FirstOrDefault(s => s.IsPrimary)
+                    ?? earliest.Article.Sources.FirstOrDefault();
+                if (primary?.Source != null)
+                {
+                    _firstCover = (primary.Source.Name, earliest.Article.PublishedAt);
+                }
             }
         }
         catch (Exception ex)
