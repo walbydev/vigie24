@@ -4,8 +4,9 @@
 @using Microsoft.AspNetCore.Components.Web
 @inject Microsoft.Extensions.Configuration.IConfiguration Config
 @{
-    // "Mode Radar" brand theme (petrol blue / teal / amber):
-    // enabled only when Branding:Theme=radar (staging) — prod stays on "classic".
+    // "Mode Radar" brand theme (petrol blue / teal / amber) — utilisé en staging ET en prod.
+    // Les palettes haut contraste sont redéfinies dans ce bloc (après :root) pour ne pas être
+    // écrasées par lui (même spécificité, ordre source).
     var isRadarBranding = string.Equals(Config["Branding:Theme"], "radar", StringComparison.OrdinalIgnoreCase);
 }
 <!DOCTYPE html>
@@ -1054,6 +1055,73 @@
                 --shadow: rgba(0, 0, 0, 0.35);
                 --code-bg: #0a1a20;
                 --code-ink: #d5e4e8;
+            }
+
+            /* Haut contraste (Radar) : le :root radar (ci-dessus) écrase les blocs HC du thème
+               principal (même spécificité, ordre source) → on redéfinit les palettes HC ICI,
+               APRÈS :root, pour qu'elles gagnent (sinon « rien ne change » en choisissant un
+               thème haut contraste). Base noir/blanc WCAG + accent radar pétrole / jaune. */
+            [data-theme="light-hc"] {
+                --bg: #ffffff;
+                --surface: #ffffff;
+                --surface-alt: #ffffff;
+                --text: #000000;
+                --text-muted: #000000;
+                --border: #000000;
+                --border-strong: #000000;
+                --accent: #00333f;
+                --accent-hover: #00222b;
+                --accent-ink: #ffffff;
+                --focus: #000000;
+                --nav-bg: #000000;
+                --nav-ink: #ffffff;
+                --nav-ink-hover: #ffffff;
+                --brand-accent: #ffff00;
+                --chip-sep: #000000;
+                --vote-bad: #8b0000;
+                --vote-good: #006400;
+                --vote-ink: #ffffff;
+                --success: #006400;
+                --alert-danger-bg: #ffffff;
+                --alert-danger-border: #000000;
+                --alert-danger-ink: #8b0000;
+                --alert-warning-bg: #ffffff;
+                --alert-warning-border: #000000;
+                --alert-warning-ink: #5c3d00;
+                --shadow: none;
+                --code-bg: #ffffff;
+                --code-ink: #000000;
+            }
+            [data-theme="dark-hc"] {
+                --bg: #000000;
+                --surface: #000000;
+                --surface-alt: #000000;
+                --text: #ffffff;
+                --text-muted: #ffffff;
+                --border: #ffffff;
+                --border-strong: #ffffff;
+                --accent: #ffd400;
+                --accent-hover: #ffe14d;
+                --accent-ink: #000000;
+                --focus: #ffd400;
+                --nav-bg: #000000;
+                --nav-ink: #ffffff;
+                --nav-ink-hover: #ffffff;
+                --brand-accent: #ffff00;
+                --chip-sep: #ffffff;
+                --vote-bad: #ff6b6b;
+                --vote-good: #6bff6b;
+                --vote-ink: #000000;
+                --success: #6bff6b;
+                --alert-danger-bg: #000000;
+                --alert-danger-border: #ffffff;
+                --alert-danger-ink: #ff6b6b;
+                --alert-warning-bg: #000000;
+                --alert-warning-border: #ffffff;
+                --alert-warning-ink: #ffd400;
+                --shadow: none;
+                --code-bg: #000000;
+                --code-ink: #ffffff;
             }
 
             /* Haut contraste (Radar) : on garde l'identité ambre (catégorie) / sarcelle (thématique)
