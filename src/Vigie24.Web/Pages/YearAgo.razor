@@ -1,0 +1,98 @@
+@page "/il-y-a-un-an"
+@using Vigie24.Domain
+@using Vigie24.Domain.Models
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
+@inject ILogger<YearAgo> Logger
+
+<PageTitle>Il y a un an - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="La mémoire de la veille Vigie24 : ce que disait l'actualité technologique il y a un an." />
+    <link rel="canonical" href="https://vigie24.info/il-y-a-un-an" />
+    <meta property="og:title" content="Il y a un an - Vigie24" />
+    <meta property="og:description" content="La mémoire de la veille : les articles d'il y a un an, revisitée par Vigie24." />
+    <meta property="og:url" content="https://vigie24.info/il-y-a-un-an" />
+    <meta property="og:type" content="website" />
+</HeadContent>
+
+<h1>🗓️ Il y a un an</h1>
+<p class="muted">La mémoire de la veille : ce que disait l'actualité technologique un an en arrière, à la même période.</p>
+
+@if (_articles.Count == 0)
+{
+    <div class="status-card">
+        <h2>⏳ L'archive se construit</h2>
+        @if (_oldestArticle is { } oldest)
+        {
+            <p>
+                La veille a commencé le <strong>@oldest.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy")</strong>
+                — encore <strong>@_monthsUntil mois</strong> avant de pouvoir comparer avec l'année précédente.
+            </p>
+            <p class="muted">
+                Premier article archivé :
+                <a href="/articles/@oldest.Id">@oldest.Title</a>
+            </p>
+        }
+        else
+        {
+            <p class="muted">La veille n'a pas encore d'articles archivés.</p>
+        }
+    </div>
+}
+else
+{
+    <h2>Ce que la veille disait il y a un an</h2>
+    @foreach (var a in _articles)
+    {
+        <div class="journal-entry">
+            <div class="journal-head">
+                <a href="/articles/@a.Article.Id">@a.Article.Title</a>
+                <span class="chip chip-cat">Score @a.Article.EditorialScore.ToString("0.0")</span>
+            </div>
+            <p class="journal-meta">@a.Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @a.SourceName</p>
+        </div>
+    }
+}
+
+@code {
+    private List<(Article Article, string SourceName)> _articles = new();
+    private Article? _oldestArticle;
+    private int _monthsUntil;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            var (from, to) = Vigie24.Domain.YearAgo.Window(now);
+
+            _oldestArticle = await DbContext.Articles.AsNoTracking()
+                .OrderBy(a => a.PublishedAt)
+                .Select(a => new Article { Id = a.Id, Title = a.Title, PublishedAt = a.PublishedAt })
+                .FirstOrDefaultAsync();
+
+            if (_oldestArticle != null)
+            {
+                _monthsUntil = Vigie24.Domain.YearAgo.MonthsUntil(_oldestArticle.PublishedAt, now);
+            }
+
+            var yearAgo = await DbContext.Articles.AsNoTracking()
+                .Where(a => a.IsPublished && a.PublishedAt >= from && a.PublishedAt < to)
+                .OrderByDescending(a => a.EditorialScore)
+                .Take(Vigie24.Domain.YearAgo.TakeCount)
+                .Include(a => a.Sources).ThenInclude(s => s.Source)
+                .ToListAsync();
+
+            _articles = yearAgo
+                .Select(a => (Article: a,
+                    SourceName: a.Sources.FirstOrDefault(s => s.IsPrimary)?.Source?.Name
+                        ?? a.Sources.FirstOrDefault()?.Source?.Name ?? ""))
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Impossible de charger la page « il y a un an »");
+        }
+    }
+}

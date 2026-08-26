@@ -1,0 +1,160 @@
+@page "/briefing"
+@using Vigie24.Domain
+@using Vigie24.Domain.Models
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
+@inject ILogger<Briefing> Logger
+
+<PageTitle>Briefing du matin - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="Le briefing du matin Vigie24 : les 5 articles essentiels des dernières 24 heures, le baromètre de l'anxiété, le sujet de la semaine et les débats en cours." />
+    <link rel="canonical" href="https://vigie24.info/briefing" />
+    <meta property="og:title" content="Briefing du matin - Vigie24" />
+    <meta property="og:description" content="Les 5 essentiels du jour, le baromètre de l'anxiété et le sujet de la semaine — la veille tech en une page." />
+    <meta property="og:url" content="https://vigie24.info/briefing" />
+    <meta property="og:type" content="website" />
+</HeadContent>
+
+<h1>📰 Briefing du matin</h1>
+<p class="muted">
+    Les 5 articles essentiels des dernières 24 heures, l'indice d'anxiété du jour,
+    le sujet le plus couvert de la semaine et les débats en cours — la veille en une page.
+</p>
+
+@if (_briefing.TopArticles.Count == 0)
+{
+    <div class="status-card">
+        <p class="muted">Aucun article publié dans les dernières 24 heures. Le briefing se remplit au fil de l'ingestion.</p>
+    </div>
+}
+
+@if (_barometerToday > 0)
+{
+    <a class="debate-banner barometer-banner chip-anxiety-@_barometerLevel" href="/barometre" title="Voir le baromètre complet">
+        <span class="debate-banner-icon">@_barometerIcon</span>
+        <span class="debate-banner-text">
+            <strong>Baromètre de l'anxiété</strong> — @_barometerToday.ToString("0.0")/10
+            (@(_barometerDelta > 0 ? "+" : "")@_barometerDelta.ToString("0.0") vs moyenne 30 j)
+        </span>
+        <span class="debate-banner-cta">Voir le baromètre →</span>
+    </a>
+}
+
+@if (_briefing.TopArticles.Count > 0)
+{
+    <h2>⭐ Les 5 essentiels des dernières 24 h</h2>
+    @foreach (var a in _briefing.TopArticles)
+    {
+        <div class="journal-entry">
+            <div class="journal-head">
+                <a href="/articles/@a.Id">@a.Title</a>
+                <span class="chip chip-cat">Score @a.EditorialScore.ToString("0.0")</span>
+            </div>
+            <p class="journal-meta">
+                @a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                @if (a.VoteCount > 0)
+                {
+                    <text> · ⭐ @a.VoteAverage.ToString("0.0") (@a.VoteCount vote(s))</text>
+                }
+                @if (a.ClickCount > 0)
+                {
+                    <text> · 👁 @a.ClickCount clic(s)</text>
+                }
+            </p>
+        </div>
+    }
+}
+
+@if (_briefing.TopTheme is { } theme)
+{
+    <h2>🏷 Sujet de la semaine</h2>
+    <div class="status-card">
+        <p>
+            Le thème le plus couvert des 7 derniers jours :
+            <a class="chip chip-tag" href="/themes/@theme.TagSlug">🏷 @VigieTaxonomy.DisplayName(theme.TagSlug)</a>
+            — <strong>@theme.ArticleCount article(s)</strong>.
+        </p>
+    </div>
+}
+
+<h2>🥊 Débats en cours</h2>
+@if (_debates.Count == 0)
+{
+    <p class="muted">Aucun débat détecté pour le moment.</p>
+}
+else
+{
+    <div class="debate-camps">
+        @foreach (var d in _debates)
+        {
+            <div class="status-card dossier-media-card">
+                <a class="dossier-title" href="/debats/@d.Id">🥊 @d.DisplayTopic</a>
+                <span class="muted"> · @d.Articles.Count article(s)</span>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private DailyBriefing _briefing = new(new List<BriefingArticle>(), null, 0, 0);
+    private List<Debate> _debates = new();
+    private double _barometerToday;
+    private double _barometerDelta;
+    private string _barometerLevel = "med";
+    private string _barometerIcon = "😟";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            var since24h = now.AddHours(-24);
+            var since7d = now.AddDays(-7);
+            var since30d = now.Date.AddDays(-30);
+
+            var last24h = await DbContext.Articles.AsNoTracking()
+                .Where(a => a.IsPublished && a.PublishedAt >= since24h)
+                .Select(a => new BriefingArticle(a.Id, a.Title, a.EditorialScore, a.ClickCount, a.VoteCount, a.VoteAverage, a.PublishedAt))
+                .ToListAsync();
+
+            var themes = await DbContext.ArticleTags.AsNoTracking()
+                .Where(at => at.Article.IsPublished && at.Article.PublishedAt >= since7d)
+                .GroupBy(at => at.Tag.Slug)
+                .Select(g => new { Slug = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            var debateCount = await DbContext.Debates.CountAsync(d => d.UpdatedAt >= since30d);
+
+            _briefing = DailyBriefingBuilder.Build(last24h, themes.Select(t => (t.Slug, t.Count)), debateCount);
+
+            _debates = await DbContext.Debates.AsNoTracking()
+                .Where(d => d.UpdatedAt >= since30d)
+                .OrderByDescending(d => d.UpdatedAt)
+                .Take(5)
+                .Include(d => d.Articles)
+                .ToListAsync();
+
+            // Bandeau baromètre (même calcul que l'accueil)
+            var anxietyRows = (await DbContext.Articles.AsNoTracking()
+                .Where(a => a.IsPublished && a.AnxietyScore != null && a.PublishedAt >= since30d)
+                .Select(a => new { a.PublishedAt, Anxiety = (decimal)a.AnxietyScore!.Value })
+                .ToListAsync())
+                .Select(r => (r.PublishedAt, r.Anxiety))
+                .ToList();
+            if (anxietyRows.Count > 0)
+            {
+                var summary = AnxietyBarometer.Compute(anxietyRows);
+                _barometerToday = summary.TodayAverage;
+                _barometerDelta = summary.Delta;
+                _barometerLevel = summary.TodayAverage >= AnxietyBarometer.AnxietyThreshold ? "high"
+                    : summary.TodayAverage <= AnxietyBarometer.CalmThreshold ? "low" : "med";
+                _barometerIcon = _barometerLevel == "high" ? "🚨" : _barometerLevel == "low" ? "🧘" : "😟";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Impossible de charger le briefing du matin");
+        }
+    }
+}

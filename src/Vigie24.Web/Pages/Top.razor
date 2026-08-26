@@ -1,0 +1,95 @@
+@page "/top"
+@using Vigie24.Domain
+@using Vigie24.Domain.Models
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
+@inject ILogger<Top> Logger
+
+<PageTitle>Top de la communauté - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="Le top de la communauté Vigie24 : les articles les mieux notés par les lecteurs sur les 7 derniers jours." />
+    <link rel="canonical" href="https://vigie24.info/top" />
+    <meta property="og:title" content="Top de la communauté - Vigie24" />
+    <meta property="og:description" content="Les articles les mieux notés par les lecteurs de la veille, sur 7 jours." />
+    <meta property="og:url" content="https://vigie24.info/top" />
+    <meta property="og:type" content="website" />
+</HeadContent>
+
+<h1>⭐ Top de la communauté</h1>
+<p class="muted">
+    Les articles les mieux notés par les lecteurs sur les 7 derniers jours (votes 0-5,
+    minimum @CommunityTop.MinVotes votes pour figurer au classement).
+</p>
+
+@if (_entries.Count == 0)
+{
+    <div class="status-card">
+        <p class="muted">Pas encore assez de votes cette semaine. Notez les articles qui vous parlent — ils rejoindront ce classement.</p>
+    </div>
+}
+else
+{
+    <ol class="top-list">
+        @for (var i = 0; i < _entries.Count; i++)
+        {
+            var e = _entries[i];
+            <li class="top-item">
+                <span class="top-rank">@(i + 1)</span>
+                <div class="top-body">
+                    <a class="top-title" href="/articles/@e.ArticleId">@e.Title</a>
+                    <div class="top-meta">
+                        <span class="chip chip-cat">⭐ @e.VoteAverage.ToString("0.0") (@e.VoteCount vote(s))</span>
+                        @if (e.ClickCount > 0)
+                        {
+                            <span class="muted">👁 @e.ClickCount clic(s)</span>
+                        }
+                        <span class="muted">score éditorial @e.EditorialScore.ToString("0.0")</span>
+                    </div>
+                </div>
+            </li>
+        }
+    </ol>
+}
+
+@code {
+    private List<CommunityTopEntry> _entries = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var since7d = DateTime.UtcNow.AddDays(-7);
+
+            var votes = await DbContext.ArticleVotes.AsNoTracking()
+                .Where(v => v.CreatedAt >= since7d)
+                .GroupBy(v => v.ArticleId)
+                .Select(g => new { ArticleId = g.Key, Avg = g.Average(v => (decimal)v.VoteValue), Count = g.Count() })
+                .ToListAsync();
+
+            if (votes.Count == 0)
+                return;
+
+            var ids = votes.Select(v => v.ArticleId).ToList();
+            var articles = await DbContext.Articles.AsNoTracking()
+                .Where(a => ids.Contains(a.Id))
+                .Select(a => new { a.Id, a.Title, a.ClickCount, a.EditorialScore })
+                .ToListAsync();
+            var byId = articles.ToDictionary(a => a.Id);
+
+            _entries = CommunityTop.Compute(votes
+                .Where(v => byId.ContainsKey(v.ArticleId))
+                .Select(v => new CommunityTopEntry(
+                    v.ArticleId,
+                    byId[v.ArticleId].Title,
+                    v.Avg,
+                    v.Count,
+                    byId[v.ArticleId].ClickCount,
+                    byId[v.ArticleId].EditorialScore)));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Impossible de charger le top de la communauté");
+        }
+    }
+}

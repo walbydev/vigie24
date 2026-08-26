@@ -1,0 +1,105 @@
+@page "/radar"
+@using Vigie24.Domain
+@using Vigie24.Domain.Models
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
+@inject ILogger<Radar> Logger
+
+<PageTitle>Radar des sujets chauds - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="Le radar des sujets chauds de Vigie24 : les thèmes de la veille technologique en forte hausse ou en baisse sur 7 jours." />
+    <link rel="canonical" href="https://vigie24.info/radar" />
+    <meta property="og:title" content="Radar des sujets chauds - Vigie24" />
+    <meta property="og:description" content="Ce qui bouge dans la veille tech : thèmes en hausse et en baisse sur 7 jours." />
+    <meta property="og:url" content="https://vigie24.info/radar" />
+    <meta property="og:type" content="website" />
+</HeadContent>
+
+<h1>📡 Radar des sujets chauds</h1>
+<p class="muted">
+    Ce qui bouge dans la veille : la fréquence de chaque thème sur les 7 derniers jours,
+    comparée à sa moyenne des 28 derniers jours. &gt; 1 = en hausse, &lt; 1 = en baisse.
+</p>
+
+@if (_rising.Count == 0 && _falling.Count == 0)
+{
+    <div class="status-card">
+        <p class="muted">Pas encore assez de données. Le radar se remplit au fil de l'ingestion.</p>
+    </div>
+}
+
+@if (_rising.Count > 0)
+{
+    <h2>🔥 En hausse</h2>
+    @foreach (var t in _rising)
+    {
+        var width = Math.Clamp(t.Score / 4.0 * 100.0, 8.0, 100.0);
+        <div class="radar-row">
+            <a class="radar-label" href="/themes/@t.Slug">@VigieTaxonomy.DisplayName(t.Slug)</a>
+            <div class="radar-track">
+                <div class="radar-bar radar-bar-up" style="width: @width.ToString("0.0")%;"></div>
+            </div>
+            <span class="radar-score">× @t.Score.ToString("0.0")</span>
+            <span class="muted">@t.Count7d / 7 j</span>
+        </div>
+    }
+}
+
+@if (_falling.Count > 0)
+{
+    <h2>❄️ En baisse</h2>
+    @foreach (var t in _falling)
+    {
+        var width = Math.Clamp(t.Score / 1.0 * 100.0, 8.0, 100.0);
+        <div class="radar-row">
+            <a class="radar-label" href="/themes/@t.Slug">@VigieTaxonomy.DisplayName(t.Slug)</a>
+            <div class="radar-track">
+                <div class="radar-bar radar-bar-down" style="width: @width.ToString("0.0")%;"></div>
+            </div>
+            <span class="radar-score">× @t.Score.ToString("0.0")</span>
+            <span class="muted">@t.Count7d / 7 j</span>
+        </div>
+    }
+}
+
+@code {
+    private List<TopicMomentum> _rising = new();
+    private List<TopicMomentum> _falling = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            var since7d = now.AddDays(-7);
+            var since28d = now.AddDays(-28);
+
+            // Comptages par thème (tag) sur 7 j et 28 j, puis fusion en mémoire
+            var count7d = await CountByTag(since7d);
+            var count28d = await CountByTag(since28d);
+
+            var momentum = TopicMomentumCalculator.Compute(count28d
+                .Select(c => (c.Key, Count7d: count7d.TryGetValue(c.Key, out var c7) ? c7 : 0, Count28d: c.Value))
+                .Concat(count7d
+                    .Where(c => !count28d.ContainsKey(c.Key))
+                    .Select(c => (c.Key, Count7d: c.Value, Count28d: 0)))
+                .ToList());
+
+            _rising = momentum.Where(t => t.Score >= TopicMomentumCalculator.RisingThreshold).ToList();
+            _falling = momentum.Where(t => t.Score <= TopicMomentumCalculator.FallingThreshold).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Impossible de charger le radar des sujets chauds");
+        }
+    }
+
+    private async Task<Dictionary<string, int>> CountByTag(DateTime since)
+        => (await DbContext.ArticleTags.AsNoTracking()
+            .Where(at => at.Article.IsPublished && at.Article.PublishedAt >= since)
+            .GroupBy(at => at.Tag.Slug)
+            .Select(g => new { Slug = g.Key, Count = g.Count() })
+            .ToListAsync())
+        .ToDictionary(x => x.Slug, x => x.Count);
+}
