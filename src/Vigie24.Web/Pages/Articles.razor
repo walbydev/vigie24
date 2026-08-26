@@ -1,0 +1,31 @@
+@page "/articles"
+@using Vigie24.Domain.Models
+
+<PageTitle>Articles - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="Tous les articles de la veille Vigie24 : recherche, filtres par catégorie, pays, score éditorial et anxiété." />
+    <link rel="canonical" href="https://vigie24.info/articles" />
+    <meta property="og:title" content="Articles - Vigie24" />
+    <meta property="og:description" content="Tous les articles de la veille technologique francophone, sélectionnés et analysés par IA." />
+    <meta property="og:url" content="https://vigie24.info/articles" />
+    <meta property="og:type" content="website" />
+</HeadContent>
+
+<div class="page-head">
+    <h1>Articles</h1>
+    <div class="chips">
+        <a class="chip chip-cat" href="/categories">🗂 Catégories</a>
+        <a class="chip chip-tag" href="/themes">🏷 Thématiques</a>
+    </div>
+</div>
+<p class="muted">
+    Tous les articles sélectionnés et analysés par l'IA — recherche, filtres (catégorie, pays,
+    score, anxiété), tri et pagination disponibles.
+</p>
+
+<ArticleBrowser Filter="@BuildFilter" />
+
+@code {
+    /// <summary>Base filter: published articles (search/sort/pagination handled by ArticleBrowser on its own context)</summary>
+    private System.Linq.Expressions.Expression<Func<Article, bool>> BuildFilter() => a => a.IsPublished;
+}

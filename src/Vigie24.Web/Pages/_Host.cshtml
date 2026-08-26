@@ -564,6 +564,37 @@
         }
         [data-theme$="-hc"] .journal-entry { border-width: 2px; }
 
+        /* ===== Accueil : hero + couches ===== */
+        .home-hero { margin: 8px 0 4px; }
+        .home-hero h1 { font-size: 2.2rem; margin-bottom: 6px; }
+        .home-tagline { font-size: 1.05rem; line-height: 1.7; max-width: 70ch; color: var(--text); }
+        .stats-strip { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 4px; }
+        .stat-pill {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+            padding: 6px 14px; font-size: 0.88rem; color: var(--text-muted);
+        }
+        .stat-pill strong { color: var(--text); }
+
+        .home-layers { display: flex; flex-direction: column; gap: 14px; margin: 18px 0 8px; }
+        .layer-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+            padding: 14px 18px;
+        }
+        .layer-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+        .layer-icon { font-size: 1.25rem; line-height: 1; }
+        .layer-title { margin: 0; font-size: 1.1rem; flex: 1; }
+        .layer-title a { color: var(--text); text-decoration: none; }
+        .layer-title a:hover { color: var(--accent); text-decoration: underline; }
+        .layer-cta { font-weight: 700; font-size: 0.85rem; white-space: nowrap; }
+        .layer-desc { margin: 6px 0 8px; font-size: 0.92rem; line-height: 1.55; }
+        .layer-items { list-style: none; margin: 0; padding: 0; }
+        .layer-items li { padding: 5px 0; border-top: 1px solid var(--border); font-size: 0.95rem; }
+        .layer-items a { color: var(--text); text-decoration: none; font-weight: 500; }
+        .layer-items a:hover { color: var(--accent); text-decoration: underline; }
+        .layer-excerpt { color: var(--text-muted); font-size: 0.88rem; }
+        .layer-chips { margin-top: 4px; }
+        .home-status { margin: 18px 0 4px; font-size: 0.8rem; }
+
         /* ===== Baromètre de l'anxiété ===== */
         /* Bandeau accueil : reprend la forme du bandeau débats, teinte selon le niveau */
         .barometer-banner { --c: var(--anxiety-med); border-color: var(--c); }

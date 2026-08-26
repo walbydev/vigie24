@@ -13,7 +13,7 @@
 
 <PageTitle>Accueil - Vigie24</PageTitle>
 <HeadContent>
-    <meta name="description" content="Vigie24 — veille technologique francophone : articles sélectionnés et analysés par IA (France, Suisse, Belgique, Québec, Luxembourg)." />
+    <meta name="description" content="Vigie24 — veille technologique francophone : articles sélectionnés et analysés par IA (France, Suisse, Belgique, Québec, Luxembourg). Briefing du matin, baromètre de l'anxiété, journal du rédacteur IA, débats." />
     <link rel="canonical" href="https://vigie24.info/" />
     <meta property="og:title" content="Vigie24 - Surveillance RSS et analyse IA" />
     <meta property="og:description" content="Veille technologique francophone : articles sélectionnés et analysés par IA." />
@@ -21,64 +21,191 @@
     <meta property="og:type" content="website" />
 </HeadContent>
 
-<h1>Vigie24</h1>
-<p class="muted">Surveillance RSS et analyse IA</p>
-
-@if (AiService == null)
-{
-    <div class="alert alert-danger" role="alert">
-        <strong>⚠️ Erreur critique :</strong> Le service IA n'est pas configuré.
+<section class="home-hero">
+    <h1>Vigie24</h1>
+    <p class="home-tagline">
+        Une veille technologique francophone <strong>lue, résumée et notée par une IA</strong> —
+        presse, blogs, YouTube et Reddit de France, Suisse, Belgique, Québec et Luxembourg.
+        Chaque article est analysé (score éditorial, anxiété, catégories), chaque décision est
+        <strong>expliquée</strong>, et les positions contradictoires sont mises en parallèle.
+    </p>
+    <div class="stats-strip">
+        <span class="stat-pill">🗞 <strong>@_sourceCount</strong> sources actives</span>
+        <span class="stat-pill">📄 <strong>@_totalArticles</strong> articles analysés</span>
+        <span class="stat-pill">🥊 <strong>@_debateCount</strong> débats en cours</span>
+        <span class="stat-pill">💰 <strong>@FormatCost(_todayCostChf)</strong> CHF d'IA aujourd'hui</span>
     </div>
-}
-else
-{
-    <div class="status-card">
-        <strong>Fournisseur IA :</strong> @AiService.ProviderName (@AiService.GetType().Name)<br />
-        <strong>Modèle LLM :</strong> @AiService.ModelName<br />
-        <strong>Statut :</strong> <span class="@_status?.CssClass">@_status?.Label</span> · <strong>Dernière ingestion :</strong> @_lastIngestionText<br />
-        <strong>Articles en base :</strong> @_totalArticles<br />
-        <strong>Coût IA aujourd'hui :</strong> @FormatTokens(_todayTokens)&nbsp;tokens&nbsp;·&nbsp;≈&nbsp;CHF&nbsp;@FormatCost(_todayCostChf)&nbsp;·&nbsp;<a class="nowrap" href="/couts" title="Graphiques des coûts IA (1 semaine, 1 mois, 1 an)">📊&nbsp;voir les coûts</a>
-    </div>
-}
+</section>
 
-<a class="debate-banner" href="/debats" title="Voir les articles contradictoires mis en parallèle">
-    <span class="debate-banner-icon">🥊</span>
-    <span class="debate-banner-text">
-        <strong>Débats en cours</strong> — @_debateCount débat(s) actif(s) : des articles contradictoires sur un même sujet, mis en parallèle
-    </span>
-    <span class="debate-banner-cta">Voir les débats →</span>
-</a>
+<div class="home-layers">
 
-@if (_barometerToday > 0)
-{
-    <a class="debate-banner barometer-banner chip-anxiety-@_barometerLevel" href="/barometre" title="L'indice d'anxiété de l'actualité tech mesuré par l'IA">
-        <span class="debate-banner-icon">@_barometerIcon</span>
-        <span class="debate-banner-text">
-            <strong>Baromètre de l'anxiété</strong> — @_barometerToday.ToString("0.0")/10
-            (@(_barometerDelta > 0 ? "+" : "")@_barometerDelta.ToString("0.0") vs moyenne 30 j)
-            : l'actualité tech est @_barometerLevelLabel aujourd'hui
-        </span>
-        <span class="debate-banner-cta">Voir le baromètre →</span>
-    </a>
-}
+    @if (_top3.Count > 0)
+    {
+        <section class="layer-card">
+            <div class="layer-head">
+                <span class="layer-icon">📰</span>
+                <h2 class="layer-title"><a href="/briefing">Le briefing du matin</a></h2>
+                <a class="layer-cta" href="/briefing">Voir le briefing →</a>
+            </div>
+            <p class="layer-desc muted">Les articles essentiels des dernières 24 heures, le sujet de la semaine et le baromètre du jour — la veille en une page.</p>
+            <ul class="layer-items">
+                @foreach (var a in _top3)
+                {
+                    <li>
+                        <a href="/articles/@a.Article.Id">@a.Article.Title</a>
+                        <span class="muted">· @a.EditorialScore.ToString("0.0")</span>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
 
-<div class="page-head">
-    <h2>Derniers articles</h2>
-    <div class="chips">
-        <a class="chip chip-cat" href="/categories">🗂 Catégories</a>
-        <a class="chip chip-tag" href="/themes">🏷 Thématiques</a>
-    </div>
+    @if (_barometerToday > 0)
+    {
+        <section class="layer-card">
+            <div class="layer-head">
+                <span class="layer-icon">🧘</span>
+                <h2 class="layer-title"><a href="/barometre">Le baromètre de l'anxiété</a></h2>
+                <a class="layer-cta" href="/barometre">Voir le baromètre →</a>
+            </div>
+            <p class="layer-desc muted">
+                Chaque article est noté 0–10 sur son potentiel anxiogène. L'indice du jour :
+                <strong class="nowrap">@_barometerIcon @_barometerToday.ToString("0.0")/10</strong>
+                (@(_barometerDelta > 0 ? "+" : "")@_barometerDelta.ToString("0.0") vs moyenne 30 j) — l'actualité tech est @_barometerLevelLabel.
+            </p>
+        </section>
+    }
+
+    @if (_debates.Count > 0)
+    {
+        <section class="layer-card">
+            <div class="layer-head">
+                <span class="layer-icon">🥊</span>
+                <h2 class="layer-title"><a href="/debats">Les débats en cours</a></h2>
+                <a class="layer-cta" href="/debats">Voir les débats →</a>
+            </div>
+            <p class="layer-desc muted">Des articles contradictoires sur un même sujet, mis en parallèle — avec dossiers vivants, timeline et positions des médias.</p>
+            <ul class="layer-items">
+                @foreach (var d in _debates)
+                {
+                    <li>
+                        <a href="/debats/@d.Id">🥊 @d.DisplayTopic</a>
+                        <span class="muted">· @d.Articles.Count article(s)</span>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
+    @if (_journal.Count > 0)
+    {
+        <section class="layer-card">
+            <div class="layer-head">
+                <span class="layer-icon">📖</span>
+                <h2 class="layer-title"><a href="/journal">Le journal du rédacteur IA</a></h2>
+                <a class="layer-cta" href="/journal">Lire le journal →</a>
+            </div>
+            <p class="layer-desc muted">La transparence de la veille : les refus expliqués, les hésitations de catégorisation et les réflexions marquantes.</p>
+            <ul class="layer-items">
+                @foreach (var (title, excerpt) in _journal)
+                {
+                    <li>
+                        <a href="/articles/@title.Id">@title.Title</a>
+                        @if (!string.IsNullOrEmpty(excerpt))
+                        {
+                            <span class="layer-excerpt">— @excerpt</span>
+                        }
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
+    @if (_topCommunity.Count > 0)
+    {
+        <section class="layer-card">
+            <div class="layer-head">
+                <span class="layer-icon">⭐</span>
+                <h2 class="layer-title"><a href="/top">Le top de la communauté</a></h2>
+                <a class="layer-cta" href="/top">Voir le classement →</a>
+            </div>
+            <p class="layer-desc muted">Les articles les mieux notés par les lecteurs sur les 7 derniers jours.</p>
+            <ul class="layer-items">
+                @foreach (var e in _topCommunity)
+                {
+                    <li>
+                        <a href="/articles/@e.ArticleId">@e.Title</a>
+                        <span class="muted">· ⭐ @e.VoteAverage.ToString("0.0") (@e.VoteCount vote(s))</span>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
+    @if (_risingThemes.Count > 0)
+    {
+        <section class="layer-card">
+            <div class="layer-head">
+                <span class="layer-icon">📡</span>
+                <h2 class="layer-title"><a href="/radar">Le radar des sujets chauds</a></h2>
+                <a class="layer-cta" href="/radar">Voir le radar →</a>
+            </div>
+            <p class="layer-desc muted">Ce qui monte dans la veille : les thèmes en forte hausse sur 7 jours.</p>
+            <ul class="layer-items">
+                @foreach (var t in _risingThemes)
+                {
+                    <li>
+                        <a href="/themes/@t.Slug">🔥 @VigieTaxonomy.DisplayName(t.Slug)</a>
+                        <span class="muted">· × @t.Score.ToString("0.0")</span>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
+    <section class="layer-card">
+        <div class="layer-head">
+            <span class="layer-icon">🧭</span>
+            <h2 class="layer-title">Explorer la veille</h2>
+        </div>
+        <p class="layer-desc muted">Tous les articles, les catégories, les sources surveillées, les archives et les flux à suivre.</p>
+        <div class="chips layer-chips">
+            <a class="chip chip-cat" href="/articles">📄 Tous les articles</a>
+            <a class="chip chip-cat" href="/categories">🗂 Catégories</a>
+            <a class="chip chip-tag" href="/themes">🏷 Thématiques</a>
+            <a class="chip chip-tag" href="/sources">🗂 Sources</a>
+            <a class="chip chip-tag" href="/il-y-a-un-an">🗓️ Il y a un an</a>
+            <a class="chip chip-tag" href="/feed" rel="alternate" type="application/rss+xml">📡 Flux RSS</a>
+            <a class="chip chip-tag" href="/feed/zen" rel="alternate" type="application/rss+xml">🧘 Flux zen</a>
+        </div>
+    </section>
+
 </div>
 
-<ArticleBrowser Filter="@BuildFilter" />
+@if (AiService != null)
+{
+    <p class="home-status muted">
+        Fournisseur IA : @AiService.ProviderName (@AiService.ModelName) ·
+        Statut : <span class="@_status?.CssClass">@_status?.Label</span> ·
+        Dernière ingestion : @_lastIngestionText ·
+        <a href="/couts">📊 Coûts IA</a> · <a href="/projet">📖 Le projet</a>
+    </p>
+}
 
 @code {
     private int _totalArticles;
+    private int _sourceCount;
+    private int _debateCount;
     private HealthStatus? _status;
     private string _lastIngestionText = "jamais";
-    private long _todayTokens;
     private decimal _todayCostChf;
-    private int _debateCount;
+
+    private List<(Article Article, decimal EditorialScore)> _top3 = new();
+    private List<Debate> _debates = new();
+    private List<(Article Article, string Excerpt)> _journal = new();
+    private List<CommunityTopEntry> _topCommunity = new();
+    private List<TopicMomentum> _risingThemes = new();
+
     private double _barometerToday;
     private double _barometerDelta;
     private string _barometerLevel = "med";
@@ -87,54 +214,136 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _totalArticles = await DbContext.Articles.CountAsync();
-        _status = await Health.GetStatusAsync();
-        _debateCount = await DbContext.Debates.CountAsync();
-        _lastIngestionText = _status.LastIngestionUtc is { } last
-            ? HealthEvaluator.FormatAge(DateTime.UtcNow - last)
-            : "jamais";
+        var now = DateTime.UtcNow;
+        var since24h = now.AddHours(-24);
+        var since7d = now.AddDays(-7);
+        var since28d = now.AddDays(-28);
+        var since30d = now.Date.AddDays(-30);
 
-        // Today's AI cost: sum of tokens consumed by today's analyses, converted to CHF
-        var today = DateTime.UtcNow.Date;
-        var prompt = await DbContext.Articles
-            .Where(a => a.PromptTokens != null && a.UpdatedAt >= today)
-            .SumAsync(a => (long)a.PromptTokens!);
-        var completion = await DbContext.Articles
-            .Where(a => a.CompletionTokens != null && a.UpdatedAt >= today)
-            .SumAsync(a => (long)a.CompletionTokens!);
-        _todayTokens = prompt + completion;
-        _todayCostChf = AiCost.Calculate(
-            (int)prompt, (int)completion,
-            AiSettings.InputPricePerMillionTokens, AiSettings.OutputPricePerMillionTokens);
-
-        // Baromètre de l'anxiété : indice du jour et écart vs moyenne 30 jours
-        var since30 = DateTime.UtcNow.Date.AddDays(-30);
-        var anxietyRows = await DbContext.Articles.AsNoTracking()
-            .Where(a => a.IsPublished && a.AnxietyScore != null && a.PublishedAt >= since30)
-            .Select(a => new { a.PublishedAt, Anxiety = a.AnxietyScore!.Value })
-            .ToListAsync();
-        if (anxietyRows.Count > 0)
+        try
         {
-            var summary = AnxietyBarometer.Compute(anxietyRows.Select(r => (r.PublishedAt, (decimal)r.Anxiety)).ToList());
-            _barometerToday = summary.TodayAverage;
-            _barometerDelta = summary.Delta;
-            _barometerLevel = summary.TodayAverage >= AnxietyBarometer.AnxietyThreshold ? "high"
-                : summary.TodayAverage <= AnxietyBarometer.CalmThreshold ? "low" : "med";
-            _barometerIcon = _barometerLevel == "high" ? "🚨" : _barometerLevel == "low" ? "🧘" : "😟";
-            _barometerLevelLabel = _barometerLevel == "high" ? "anxiogène" : _barometerLevel == "low" ? "calme" : "modérée";
-        }
+            _totalArticles = await DbContext.Articles.CountAsync();
+            _sourceCount = await DbContext.Sources.CountAsync(s => s.IsActive);
+            _debateCount = await DbContext.Debates.CountAsync(d => d.UpdatedAt >= since30d);
+            _status = await Health.GetStatusAsync();
+            _lastIngestionText = _status.LastIngestionUtc is { } last
+                ? HealthEvaluator.FormatAge(DateTime.UtcNow - last)
+                : "jamais";
 
-        Logger.LogInformation("Index : {Count} articles en base, statut santé {Status}", _totalArticles, _status.Label);
+            // Coût IA du jour (tokens consommés aujourd'hui)
+            var today = DateTime.UtcNow.Date;
+            var prompt = await DbContext.Articles
+                .Where(a => a.PromptTokens != null && a.UpdatedAt >= today)
+                .SumAsync(a => (long)a.PromptTokens!);
+            var completion = await DbContext.Articles
+                .Where(a => a.CompletionTokens != null && a.UpdatedAt >= today)
+                .SumAsync(a => (long)a.CompletionTokens!);
+            _todayCostChf = AiCost.Calculate(
+                (int)prompt, (int)completion,
+                AiSettings.InputPricePerMillionTokens, AiSettings.OutputPricePerMillionTokens);
+
+            // Couche briefing : top 3 des 24 h
+            _top3 = (await DbContext.Articles.AsNoTracking()
+                .Where(a => a.IsPublished && a.PublishedAt >= since24h)
+                .OrderByDescending(a => a.EditorialScore)
+                .Take(3)
+                .Select(a => new { a.Id, a.Title, a.EditorialScore, a.PublishedAt })
+                .ToListAsync())
+                .Select(a => (Article: new Article { Id = a.Id, Title = a.Title }, a.EditorialScore))
+                .ToList();
+
+            // Couche baromètre
+            var anxietyRows = (await DbContext.Articles.AsNoTracking()
+                .Where(a => a.IsPublished && a.AnxietyScore != null && a.PublishedAt >= since30d)
+                .Select(a => new { a.PublishedAt, Anxiety = (decimal)a.AnxietyScore!.Value })
+                .ToListAsync())
+                .Select(r => (r.PublishedAt, r.Anxiety))
+                .ToList();
+            if (anxietyRows.Count > 0)
+            {
+                var summary = AnxietyBarometer.Compute(anxietyRows);
+                _barometerToday = summary.TodayAverage;
+                _barometerDelta = summary.Delta;
+                _barometerLevel = summary.TodayAverage >= AnxietyBarometer.AnxietyThreshold ? "high"
+                    : summary.TodayAverage <= AnxietyBarometer.CalmThreshold ? "low" : "med";
+                _barometerIcon = _barometerLevel == "high" ? "🚨" : _barometerLevel == "low" ? "🧘" : "😟";
+                _barometerLevelLabel = _barometerLevel == "high" ? "anxiogène" : _barometerLevel == "low" ? "calme" : "modérée";
+            }
+
+            // Couche débats : 3 plus récents
+            _debates = await DbContext.Debates.AsNoTracking()
+                .Where(d => d.UpdatedAt >= since30d)
+                .OrderByDescending(d => d.UpdatedAt)
+                .Take(3)
+                .Include(d => d.Articles)
+                .ToListAsync();
+
+            // Couche journal : 2 réflexions récentes avec justification
+            var journal = await DbContext.Articles.AsNoTracking()
+                .Where(a => a.IsPublished && a.PublishedAt >= since7d && a.AnalysisJson != null)
+                .OrderByDescending(a => a.PublishedAt)
+                .Take(20)
+                .ToListAsync();
+            _journal = journal
+                .Where(a => !string.IsNullOrWhiteSpace(a.Analysis?.Justification))
+                .Take(2)
+                .Select(a => (a, Excerpt: Truncate(a.Analysis!.Justification!, 110)))
+                .ToList();
+
+            // Couche top communauté : top 3
+            var votes = await DbContext.ArticleVotes.AsNoTracking()
+                .Where(v => v.CreatedAt >= since7d)
+                .GroupBy(v => v.ArticleId)
+                .Select(g => new { ArticleId = g.Key, Avg = g.Average(v => (decimal)v.VoteValue), Count = g.Count() })
+                .ToListAsync();
+            if (votes.Count > 0)
+            {
+                var ids = votes.Select(v => v.ArticleId).ToList();
+                var arts = await DbContext.Articles.AsNoTracking()
+                    .Where(a => ids.Contains(a.Id))
+                    .Select(a => new { a.Id, a.Title, a.ClickCount, a.EditorialScore })
+                    .ToListAsync();
+                var byId = arts.ToDictionary(a => a.Id);
+                _topCommunity = CommunityTop.Compute(votes
+                    .Where(v => byId.ContainsKey(v.ArticleId))
+                    .Select(v => new CommunityTopEntry(v.ArticleId, byId[v.ArticleId].Title, v.Avg, v.Count, byId[v.ArticleId].ClickCount, byId[v.ArticleId].EditorialScore)))
+                    .Take(3)
+                    .ToList();
+            }
+
+            // Couche radar : top 3 en hausse
+            var count7d = await CountByTag(since7d);
+            var count28d = await CountByTag(since28d);
+            var momentum = TopicMomentumCalculator.Compute(count28d
+                .Select(c => (c.Key, Count7d: count7d.TryGetValue(c.Key, out var c7) ? c7 : 0, Count28d: c.Value))
+                .Concat(count7d
+                    .Where(c => !count28d.ContainsKey(c.Key))
+                    .Select(c => (c.Key, Count7d: c.Value, Count28d: 0)))
+                .ToList());
+            _risingThemes = momentum
+                .Where(t => t.Score >= TopicMomentumCalculator.RisingThreshold)
+                .Take(3)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Index : erreur de chargement");
+        }
     }
 
-    private string FormatTokens(long tokens)
-        => tokens.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"));
+    private async Task<Dictionary<string, int>> CountByTag(DateTime since)
+        => (await DbContext.ArticleTags.AsNoTracking()
+            .Where(at => at.Article.IsPublished && at.Article.PublishedAt >= since)
+            .GroupBy(at => at.Tag.Slug)
+            .Select(g => new { Slug = g.Key, Count = g.Count() })
+            .ToListAsync())
+        .ToDictionary(x => x.Slug, x => x.Count);
 
     private string FormatCost(decimal cost)
         => cost >= 0.01m
             ? cost.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))
             : cost.ToString("0.0000", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"));
 
-    /// <summary>Base filter: published articles (search/sort/pagination handled by ArticleBrowser on its own context)</summary>
-    private System.Linq.Expressions.Expression<Func<Article, bool>> BuildFilter() => a => a.IsPublished;
+    private static string Truncate(string s, int max)
+        => s.Length <= max ? s : s[..max].TrimEnd() + "…";
 }
