@@ -32,5 +32,6 @@ public class MockAiServiceTests
         Assert.False(string.IsNullOrWhiteSpace(service.ModelName));
         Assert.NotEmpty(result.DetectedCategories);
         Assert.NotEmpty(result.DetectedThemes);
+        Assert.NotNull(result.AlternativeCategories);
     }
 }

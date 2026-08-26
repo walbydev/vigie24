@@ -1,0 +1,234 @@
+@page "/barometre"
+@using System.Text
+@using Vigie24.Domain
+@using Vigie24.Domain.Models
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
+@inject ILogger<Barometer> Logger
+
+<PageTitle>Baromètre de l'anxiété - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="Le baromètre de l'anxiété de l'actualité technologique : l'indice quotidien mesuré par Vigie24, son évolution sur 30 jours, par catégorie et par pays." />
+    <link rel="canonical" href="https://vigie24.info/barometre" />
+    <meta property="og:title" content="Baromètre de l'anxiété - Vigie24" />
+    <meta property="og:description" content="L'indice d'anxiété de l'actu tech : chaque article est noté 0-10 par l'IA ; le baromètre agrège ces notes dans le temps." />
+    <meta property="og:url" content="https://vigie24.info/barometre" />
+    <meta property="og:type" content="website" />
+</HeadContent>
+
+<h1>🧘 Baromètre de l'anxiété</h1>
+<p class="muted">
+    Chaque article est noté 0–10 par l'IA sur son potentiel anxiogène (0 = rassurant, 10 = alarmiste).
+    Le baromètre agrège ces notes : voici comment l'actualité technologique respire — ou stresse — jour après jour.
+</p>
+
+@if (_summary.Days.Count == 0)
+{
+    <div class="status-card">
+        <p class="muted">Pas encore assez d'articles analysés. Le baromètre se remplit au fil des analyses.</p>
+    </div>
+}
+else
+{
+    <div class="barometer-hero chip-anxiety-@LevelClass(_summary.TodayAverage)">
+        <div class="barometer-main">
+            <div class="stat-label">Indice d'anxiété du jour</div>
+            <div class="barometer-value">@_summary.TodayAverage.ToString("0.0")<span class="barometer-unit">/10</span></div>
+        </div>
+        <div class="barometer-side">
+            <span class="chip chip-anxiety chip-anxiety-@LevelClass(_summary.TodayAverage)">@LevelIcon(_summary.TodayAverage) @LevelLabel(_summary.TodayAverage)</span>
+            <div class="barometer-delta @(_summary.Delta > 0 ? "delta-up" : "delta-down")">
+                @(_summary.Delta > 0 ? "▲" : "▼") @Math.Abs(_summary.Delta).ToString("0.0") pt
+                (@(_summary.DeltaPercent > 0 ? "+" : "")@_summary.DeltaPercent.ToString("0.0")%)
+                vs moyenne 30 jours
+            </div>
+            <div class="muted">@_summary.Days[^1].Day.ToString("dddd dd MMMM") · @_summary.Days[^1].ArticleCount article(s) analysé(s)</div>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <h2>Évolution sur 30 jours</h2>
+        <div class="barometer-legend">
+            <span><i class="legend-line" style="--lc: var(--anxiety-low)"></i> calme (&le; 3)</span>
+            <span><i class="legend-line" style="--lc: var(--anxiety-med)"></i> anxiogène (&ge; 6)</span>
+            <span><i class="legend-dot"></i> indice quotidien</span>
+        </div>
+        @BuildLineChart(_summary.Days)
+        <p class="chart-note">Lignes de repère : 3 (calme) et 6 (anxiogène). Chaque point = moyenne des notes d'anxiété des articles publiés ce jour.</p>
+    </div>
+
+    <div class="barometer-cols">
+        <div class="barometer-col">
+            <h2>Par catégorie <span class="muted">(30 j)</span></h2>
+            @if (_summary.ByCategory.Count == 0)
+            {
+                <p class="muted">Aucune donnée.</p>
+            }
+            @foreach (var c in _summary.ByCategory)
+            {
+                <div class="barometer-row">
+                    <span class="chip chip-anxiety chip-anxiety-@LevelClass(c.Average)">@c.Average.ToString("0.0")</span>
+                    <span class="barometer-row-label">@c.Label</span>
+                    <span class="muted">@c.ArticleCount art.</span>
+                </div>
+            }
+        </div>
+        <div class="barometer-col">
+            <h2>Par pays <span class="muted">(30 j)</span></h2>
+            @if (_summary.ByCountry.Count == 0)
+            {
+                <p class="muted">Aucune donnée.</p>
+            }
+            @foreach (var c in _summary.ByCountry)
+            {
+                <div class="barometer-row">
+                    <span class="chip chip-anxiety chip-anxiety-@LevelClass(c.Average)">@c.Average.ToString("0.0")</span>
+                    <span class="barometer-row-label">@c.Label</span>
+                    <span class="muted">@c.ArticleCount art.</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (_antidote.Count > 0)
+    {
+        <div class="status-card">
+            <h2>🧘 L'antidote</h2>
+            <p class="muted">L'actualité est anxiogène aujourd'hui — voici 3 articles constructifs publiés dans les dernières 24 h pour reprendre son souffle.</p>
+            <ul class="antidote-list">
+                @foreach (var a in _antidote)
+                {
+                    <li>
+                        <a href="/articles/@a.Id">@a.Title</a>
+                        <span class="muted">(score @a.EditorialScore.ToString("0.0") · anxiété @a.AnxietyScore/10)</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+}
+
+@code {
+    private AnxietySummary _summary = new(0, 0, 0, 0, new List<AnxietyDay>(), new List<AnxietyCategory>(), new List<AnxietyCategory>());
+    private List<Article> _antidote = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var since30 = DateTime.UtcNow.Date.AddDays(-30);
+
+            var rows = await DbContext.Articles.AsNoTracking()
+                .Where(a => a.IsPublished && a.AnxietyScore != null && a.PublishedAt >= since30)
+                .Select(a => new { a.PublishedAt, Anxiety = a.AnxietyScore!.Value })
+                .ToListAsync();
+
+            if (rows.Count == 0)
+                return;
+
+            var anxietyRows = rows.Select(r => (r.PublishedAt, (decimal)r.Anxiety)).ToList();
+
+            // Par catégorie : groupée sur la catégorie parente (les 8 grandes familles)
+            var categories = await DbContext.Categories.AsNoTracking().ToListAsync();
+            var catById = categories.ToDictionary(c => c.Id);
+            var catRows = await DbContext.Articles.AsNoTracking()
+                .Where(a => a.IsPublished && a.AnxietyScore != null && a.PublishedAt >= since30)
+                .Select(a => new { a.CategoryId, Anxiety = a.AnxietyScore!.Value })
+                .ToListAsync();
+            var byCategory = catRows
+                .Select(r =>
+                {
+                    var parentSlug = catById.TryGetValue(r.CategoryId, out var cat) && cat.ParentCategoryId is { } pid && catById.TryGetValue(pid, out var parent)
+                        ? parent.Slug
+                        : cat?.Slug;
+                    return (Label: parentSlug is null ? "" : VigieTaxonomy.DisplayName(parentSlug), Anxiety: (decimal)r.Anxiety);
+                })
+                .ToList();
+
+            // Par pays : source primaire de l'article
+            var countryRows = await DbContext.ArticleSources.AsNoTracking()
+                .Where(art => art.IsPrimary && art.Article.IsPublished && art.Article.AnxietyScore != null && art.Article.PublishedAt >= since30)
+                .Select(art => new { art.Source.CountryCode, Anxiety = art.Article.AnxietyScore!.Value })
+                .ToListAsync();
+            var byCountry = countryRows
+                .Where(r => !string.IsNullOrWhiteSpace(r.CountryCode))
+                .Select(r => (Label: CountryInfo.Display(r.CountryCode!), Anxiety: (decimal)r.Anxiety))
+                .ToList();
+
+            _summary = AnxietyBarometer.Compute(anxietyRows, byCategory, byCountry);
+
+            // L'antidote : si l'indice du jour est anxiogène, 3 articles calmes des dernières 24 h
+            if (_summary.TodayAverage >= AnxietyBarometer.AnxietyThreshold)
+            {
+                var since24 = DateTime.UtcNow.AddHours(-24);
+                _antidote = await DbContext.Articles.AsNoTracking()
+                    .Where(a => a.IsPublished && a.PublishedAt >= since24 && a.AnxietyScore != null && a.AnxietyScore <= 3)
+                    .OrderByDescending(a => a.EditorialScore)
+                    .Take(3)
+                    .ToListAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Impossible de charger le baromètre de l'anxiété");
+        }
+    }
+
+    private static string LevelClass(double v)
+        => v >= AnxietyBarometer.AnxietyThreshold ? "high" : v <= AnxietyBarometer.CalmThreshold ? "low" : "med";
+
+    private static string LevelLabel(double v)
+        => v >= AnxietyBarometer.AnxietyThreshold ? "Anxiogène" : v <= AnxietyBarometer.CalmThreshold ? "Calme" : "Modéré";
+
+    private static string LevelIcon(double v)
+        => v >= AnxietyBarometer.AnxietyThreshold ? "🚨" : v <= AnxietyBarometer.CalmThreshold ? "🧘" : "😟";
+
+    // ===== Courbe SVG pure (pattern de la page Coûts, échelle fixe 0-10) =====
+    private const int ChartWidth = 720;
+    private const int ChartHeight = 200;
+    private const int PadLeft = 26;
+    private const int PadRight = 14;
+    private const int PadTop = 14;
+    private const int PadBottom = 22;
+
+    private MarkupString BuildLineChart(IReadOnlyList<AnxietyDay> days)
+    {
+        var sb = new StringBuilder();
+        var plotW = ChartWidth - PadLeft - PadRight;
+        var plotH = ChartHeight - PadTop - PadBottom;
+        var slot = plotW / (double)days.Count;
+
+        double Y(double v) => PadTop + plotH - v / 10.0 * plotH;
+
+        sb.Append($"""<svg class="cost-chart barometer-chart" viewBox="0 0 {ChartWidth} {ChartHeight}" role="img" aria-label="Indice d'anxiété quotidien sur 30 jours">""");
+        sb.Append("<title>Indice d'anxiété quotidien (0-10) — 30 jours</title>");
+
+        // Lignes de repère : calme (3) et anxiogène (6)
+        sb.Append($"""<line x1="{PadLeft}" y1="{Y(3):0.0}" x2="{ChartWidth - PadRight}" y2="{Y(3):0.0}" class="barometer-ref barometer-ref-low" />""");
+        sb.Append($"""<line x1="{PadLeft}" y1="{Y(6):0.0}" x2="{ChartWidth - PadRight}" y2="{Y(6):0.0}" class="barometer-ref barometer-ref-high" />""");
+        sb.Append($"""<line x1="{PadLeft}" y1="{PadTop + plotH}" x2="{ChartWidth - PadRight}" y2="{PadTop + plotH}" class="chart-axis" />""");
+
+        // Courbe des moyennes quotidiennes
+        var pts = string.Join(" ", days.Select((d, i) => $"{PadLeft + i * slot + slot / 2:0.0},{Y(d.Average):0.0}"));
+        sb.Append($"""<polyline points="{pts}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" />""");
+
+        for (var i = 0; i < days.Count; i++)
+        {
+            var x = PadLeft + i * slot + slot / 2;
+            sb.Append($"""<circle cx="{x:0.0}" cy="{Y(days[i].Average):0.0}" r="2.6" class="barometer-dot"><title>{days[i].Day:dd/MM} : {days[i].Average:0.0}/10 · {days[i].ArticleCount} article(s)</title></circle>""");
+        }
+
+        // Étiquettes de dates : première, médiane, dernière
+        var labelIndexes = new[] { 0, days.Count / 2, days.Count - 1 }.Distinct().ToArray();
+        foreach (var i in labelIndexes)
+        {
+            var anchor = i == 0 ? "start" : i == days.Count - 1 ? "end" : "middle";
+            var x = PadLeft + i * slot + slot / 2;
+            sb.Append($"""<text x="{x:0.0}" y="{ChartHeight - 6}" text-anchor="{anchor}" class="chart-label">{days[i].Day:dd/MM}</text>""");
+        }
+
+        sb.Append("</svg>");
+        return new MarkupString(sb.ToString());
+    }
+}

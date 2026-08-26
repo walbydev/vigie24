@@ -88,6 +88,10 @@
                         {
                             <span>Jamais ingérée</span>
                         }
+                        @if (_scoops.TryGetValue(source.Id, out var scoops) && scoops > 0)
+                        {
+                            <span class="source-scoop" title="Nombre d'articles où cette source a été la première à couvrir le sujet">🏁 @scoops scoop(s)</span>
+                        }
                     </div>
                 </div>
             </div>
@@ -98,6 +102,7 @@
 @code {
     private List<Source> _sources = new();
     private List<(string Emoji, string Label, List<Source> Sources)> _groups = new();
+    private Dictionary<Guid, int> _scoops = new();
     private int _activeCount;
     private int _inactiveCount;
 
@@ -116,6 +121,23 @@
 
         _activeCount = _sources.Count(s => s.IsActive);
         _inactiveCount = _sources.Count - _activeCount;
+
+        // « Scoops » : nombre d'articles publiés où cette source a été la première à couvrir le sujet
+        // (SourcePublishedAt = date la plus ancienne parmi les sources du même article).
+        var articleSources = await DbContext.ArticleSources.AsNoTracking()
+            .Where(art => art.Article.IsPublished)
+            .Select(art => new { art.ArticleId, art.SourceId, art.SourcePublishedAt })
+            .ToListAsync();
+        var firstByArticle = articleSources
+            .Where(r => r.SourcePublishedAt != null)
+            .GroupBy(r => r.ArticleId)
+            .ToDictionary(g => g.Key, g => g.Min(r => r.SourcePublishedAt));
+        _scoops = articleSources
+            .Where(r => r.SourcePublishedAt != null
+                && firstByArticle.TryGetValue(r.ArticleId, out var first)
+                && r.SourcePublishedAt == first)
+            .GroupBy(r => r.SourceId)
+            .ToDictionary(g => g.Key, g => g.Count());
 
         _groups = new List<(string, string, List<Source>)>
         {

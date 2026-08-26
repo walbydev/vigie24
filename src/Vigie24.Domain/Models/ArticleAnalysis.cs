@@ -32,4 +32,10 @@ public class ArticleAnalysis
 
     /// <summary>Keywords exactly as returned by the model (not persisted anywhere else)</summary>
     public List<string> Keywords { get; set; } = new();
+
+    /// <summary>
+    /// 1-2 alternative [parent, subcategory] pairs the model hesitated between
+    /// (empty = clear choice). Used by the AI editor's journal (« hésitations »).
+    /// </summary>
+    public List<string[]> AlternativeCategories { get; set; } = new();
 }

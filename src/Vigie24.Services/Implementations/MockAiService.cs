@@ -81,7 +81,11 @@ public class MockAiService : IAiService
             Topic = _random.Next(4) == 0 ? "régulation IA Europe" : null,
             Stance = _random.Next(4) == 0 ? new[] { "pour", "contre", "nuance" }[_random.Next(3)] : null,
             // Deterministic justification so the « Réflexion & analyse » block renders in mock mode
-            Justification = $"Cet article a été classé dans {category.Parent} / {category.Sub} : le sujet correspond aux critères éditoriaux de la veille, avec un score de pertinence de {editorialScore:0.0}/100."
+            Justification = $"Cet article a été classé dans {category.Parent} / {category.Sub} : le sujet correspond aux critères éditoriaux de la veille, avec un score de pertinence de {editorialScore:0.0}/100.",
+            // The Mock sometimes simulates a category hesitation (for the AI editor's journal)
+            AlternativeCategories = _random.Next(4) == 0
+                ? new List<string[]> { new[] { "IA", "Agents IA" }, new[] { "Développement", "Web" } }
+                : new List<string[]>()
         };
 
         _logger.LogDebug("Mock result: Score={Score}, Themes={Themes}", 

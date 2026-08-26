@@ -1,0 +1,240 @@
+@page "/debats/{Id:guid}"
+@using Vigie24.Domain.Models
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
+@inject ILogger<DebateDetail> Logger
+
+<PageTitle>@_title - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="@_metaDescription" />
+    <link rel="canonical" href="https://vigie24.info/debats/@Id" />
+    <meta property="og:title" content="@_title - Vigie24" />
+    <meta property="og:description" content="@_metaDescription" />
+    <meta property="og:url" content="https://vigie24.info/debats/@Id" />
+    <meta property="og:type" content="article" />
+</HeadContent>
+
+@if (_debate == null)
+{
+    <div class="alert alert-warning" role="alert">Débat introuvable. <a href="/debats">← Retour aux débats</a></div>
+}
+else
+{
+    <p class="muted"><a href="/debats">← Retour aux débats</a></p>
+    <h1>🥊 @_debate.DisplayTopic</h1>
+    @if (_articles.Count > 0)
+    {
+        <p class="muted">
+            Dossier vivant : @_articles.Count article(s) —
+            du @_articles[^1].Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") au @_articles[0].Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy")
+        </p>
+    }
+
+    <div class="debate-camps">
+        @foreach (var camp in _camps)
+        {
+            if (camp.Count == 0) { continue; }
+            <div class="debate-camp debate-camp-@camp.Stance">
+                <h3>@camp.Icon @camp.Label <span class="count">@camp.Count</span></h3>
+            </div>
+        }
+    </div>
+
+    <h2>📅 Timeline du dossier</h2>
+    <div class="dossier-timeline">
+        @foreach (var da in _articles)
+        {
+            var src = da.Article.Sources.FirstOrDefault()?.Source;
+            <div class="dossier-item">
+                <div class="dossier-date">@da.Article.PublishedAt.ToLocalTime().ToString("dd/MM")</div>
+                <div class="dossier-content">
+                    <span class="chip chip-stance chip-stance-@da.Stance">@StanceIcon(da.Stance) @StanceLabel(da.Stance)</span>
+                    <a class="dossier-title" href="/articles/@da.Article.Id">@da.Article.Title</a>
+                    @if (src != null)
+                    {
+                        <a class="muted" href="@src.WebsiteUrl" target="_blank" rel="noopener" title="Lire l'article original">@src.Name</a>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <h2>📊 Intensité de couverture</h2>
+    <div class="dossier-coverage">
+        @foreach (var day in _coverage)
+        {
+            <div class="dossier-day" title="@day.Date.ToString("dd/MM/yyyy") : @day.Count article(s)">
+                <div class="dossier-bar" style="height: @Math.Max(day.Count == 0 ? 2 : (double)day.Count / _maxDay * 60, 2):0.0px;"></div>
+                <div class="dossier-day-label">@day.Date.ToString("dd/MM")</div>
+            </div>
+        }
+    </div>
+
+    <h2>🔄 Évolution des positions</h2>
+    <p class="muted">Cumul des prises de position au fil du temps : qui est pour, contre, nuancé, neutre.</p>
+    <div class="dossier-stances">
+        @foreach (var step in _stanceSteps)
+        {
+            <div class="dossier-step">
+                <span class="dossier-step-date">@step.Date.ToString("dd/MM")</span>
+                <span class="chip chip-stance chip-stance-pour">🟢 @step.Pour</span>
+                <span class="chip chip-stance chip-stance-contre">🔴 @step.Contre</span>
+                <span class="chip chip-stance chip-stance-nuance">🟡 @step.Nuance</span>
+                <span class="chip chip-stance chip-stance-neutre">⚪ @step.Neutre</span>
+            </div>
+        }
+    </div>
+
+    <h2>🗞️ Les médias du dossier</h2>
+    <div class="dossier-media">
+        @foreach (var m in _media)
+        {
+            <div class="status-card dossier-media-card">
+                <strong>@m.Name</strong>
+                <div class="chips">
+                    @if (m.Pour > 0) { <span class="chip chip-stance chip-stance-pour">🟢 @m.Pour</span> }
+                    @if (m.Contre > 0) { <span class="chip chip-stance chip-stance-contre">🔴 @m.Contre</span> }
+                    @if (m.Nuance > 0) { <span class="chip chip-stance chip-stance-nuance">🟡 @m.Nuance</span> }
+                    @if (m.Neutre > 0) { <span class="chip chip-stance chip-stance-neutre">⚪ @m.Neutre</span> }
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (_firstCover is { } fc)
+    {
+        <div class="status-card">
+            <h2>🏁 Premier sur le sujet</h2>
+            <p>
+                <strong>@fc.SourceName</strong> a été la première source à couvrir ce sujet,
+                le @fc.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy à HH:mm").
+            </p>
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Debate? _debate;
+    private List<DebateArticle> _articles = new();
+    private string _title = "Dossier - Vigie24";
+    private string _metaDescription = "";
+    private int _maxDay = 1;
+    private (string Stance, string Icon, string Label, int Count)[] _camps = [];
+    private List<(DateTime Date, int Count)> _coverage = new();
+    private List<(DateTime Date, int Pour, int Contre, int Nuance, int Neutre)> _stanceSteps = new();
+    private List<(string Name, int Pour, int Contre, int Nuance, int Neutre)> _media = new();
+    private (string SourceName, DateTime PublishedAt)? _firstCover;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _debate = await DbContext.Debates.AsNoTracking()
+                .Include(d => d.Articles)
+                    .ThenInclude(da => da.Article)
+                    .ThenInclude(a => a.Sources)
+                    .ThenInclude(s => s.Source)
+                .FirstOrDefaultAsync(d => d.Id == Id);
+
+            if (_debate == null)
+            {
+                _title = "Débat introuvable - Vigie24";
+                return;
+            }
+
+            _articles = _debate.Articles
+                .OrderByDescending(da => da.Article.PublishedAt)
+                .ToList();
+
+            _title = Truncate(_debate.DisplayTopic, 60) + " - Vigie24";
+            _metaDescription = $"Le dossier vivant sur « {_debate.DisplayTopic} » : les positions contradictoires de la presse francophone, leur évolution et les médias qui couvrent le sujet.";
+
+            _camps = new[]
+            {
+                ("pour", "🟢", "Pour", _articles.Count(a => a.Stance == "pour")),
+                ("contre", "🔴", "Contre", _articles.Count(a => a.Stance == "contre")),
+                ("nuance", "🟡", "Nuancé", _articles.Count(a => a.Stance == "nuance")),
+                ("neutre", "⚪", "Neutre", _articles.Count(a => a.Stance == "neutre"))
+            };
+
+            // Couverture par jour (du premier au dernier article)
+            if (_articles.Count > 0)
+            {
+                var first = _articles.Min(a => a.Article.PublishedAt).Date;
+                var last = _articles.Max(a => a.Article.PublishedAt).Date;
+                var counts = _articles
+                    .GroupBy(a => a.Article.PublishedAt.Date)
+                    .ToDictionary(g => g.Key, g => g.Count());
+                _coverage = Enumerable.Range(0, (last - first).Days + 1)
+                    .Select(i => (Date: first.AddDays(i), Count: counts.TryGetValue(first.AddDays(i), out var c) ? c : 0))
+                    .ToList();
+                _maxDay = Math.Max(_coverage.Max(d => d.Count), 1);
+            }
+
+            // Évolution des positions : cumul par jour
+            var pour = 0; var contre = 0; var nuance = 0; var neutre = 0;
+            foreach (var day in _articles.OrderBy(a => a.Article.PublishedAt).GroupBy(a => a.Article.PublishedAt.Date))
+            {
+                pour += day.Count(a => a.Stance == "pour");
+                contre += day.Count(a => a.Stance == "contre");
+                nuance += day.Count(a => a.Stance == "nuance");
+                neutre += day.Count(a => a.Stance == "neutre");
+                _stanceSteps.Add((day.Key, pour, contre, nuance, neutre));
+            }
+
+            // Médias du dossier : répartition des positions par source
+            _media = _articles
+                .SelectMany(da => da.Article.Sources.Select(s => (Stance: da.Stance, Source: s.Source)))
+                .Where(x => x.Source != null)
+                .GroupBy(x => x.Source!.Name)
+                .Select(g => (
+                    Name: g.Key,
+                    Pour: g.Count(x => x.Stance == "pour"),
+                    Contre: g.Count(x => x.Stance == "contre"),
+                    Nuance: g.Count(x => x.Stance == "nuance"),
+                    Neutre: g.Count(x => x.Stance == "neutre")))
+                .OrderByDescending(m => m.Pour + m.Contre + m.Nuance + m.Neutre)
+                .ToList();
+
+            // Premier sur le sujet : date de publication la plus ancienne parmi les sources du dossier
+            var all = _articles
+                .SelectMany(da => da.Article.Sources)
+                .Where(s => s.SourcePublishedAt != null && s.Source != null)
+                .OrderBy(s => s.SourcePublishedAt)
+                .FirstOrDefault();
+            if (all != null)
+            {
+                _firstCover = (all.Source!.Name, all.SourcePublishedAt!.Value);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Impossible de charger le dossier {DebateId}", Id);
+        }
+    }
+
+    private static string StanceLabel(string stance) => stance switch
+    {
+        "pour" => "Pour",
+        "contre" => "Contre",
+        "nuance" => "Nuancé",
+        "neutre" => "Neutre",
+        _ => stance
+    };
+
+    private static string StanceIcon(string stance) => stance switch
+    {
+        "pour" => "🟢",
+        "contre" => "🔴",
+        "nuance" => "🟡",
+        "neutre" => "⚪",
+        _ => "⚪"
+    };
+
+    private static string Truncate(string s, int max)
+        => s.Length <= max ? s : s[..max].TrimEnd() + "…";
+}

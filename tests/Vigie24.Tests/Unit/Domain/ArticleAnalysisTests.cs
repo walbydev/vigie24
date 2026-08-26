@@ -61,7 +61,8 @@ public class ArticleAnalysisTests
                 Reasoning = null,
                 DetectedCategories = new List<string> { "Développement", "Backend" },
                 DetectedThemes = new List<string> { ".NET", "API" },
-                Keywords = new List<string> { "aspnet", "efcore" }
+                Keywords = new List<string> { "aspnet", "efcore" },
+                AlternativeCategories = new List<string[]> { new[] { "Développement", "Frontend" } }
             }
         };
 
@@ -76,6 +77,8 @@ public class ArticleAnalysisTests
         Assert.Equal(new[] { "Développement", "Backend" }, analysis.DetectedCategories);
         Assert.Equal(new[] { ".NET", "API" }, analysis.DetectedThemes);
         Assert.Equal(new[] { "aspnet", "efcore" }, analysis.Keywords);
+        Assert.Single(analysis.AlternativeCategories);
+        Assert.Equal(new[] { "Développement", "Frontend" }, analysis.AlternativeCategories[0]);
     }
 
     [Fact]

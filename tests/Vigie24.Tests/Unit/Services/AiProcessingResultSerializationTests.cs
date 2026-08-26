@@ -23,6 +23,7 @@ public class AiProcessingResultSerializationTests
           "is_duplicate": false,
           "duplicate_of": null,
           "keywords": ["llm", "open source"],
+          "alternative_categories": [["IA", "Agents IA"]],
           "justification": "Cet article relève de l'IA : il traite des modèles de langage, sujet majeur de la veille.",
           "topic": "Réglementation de l'IA en Europe",
           "stance": "nuance",
@@ -39,6 +40,8 @@ public class AiProcessingResultSerializationTests
         Assert.False(result.IsDuplicate);
         Assert.Null(result.DuplicateOf);
         Assert.Equal(new[] { "llm", "open source" }, result.Keywords);
+        Assert.Single(result.AlternativeCategories);
+        Assert.Equal(new[] { "IA", "Agents IA" }, result.AlternativeCategories[0]);
         Assert.Equal("Cet article relève de l'IA : il traite des modèles de langage, sujet majeur de la veille.", result.Justification);
         Assert.Equal("Réglementation de l'IA en Europe", result.Topic);
         Assert.Equal("nuance", result.Stance);
@@ -58,6 +61,7 @@ public class AiProcessingResultSerializationTests
         Assert.Empty(result.DetectedCategories);
         Assert.False(result.IsDuplicate);
         Assert.Empty(result.Keywords);
+        Assert.Empty(result.AlternativeCategories);
         Assert.Null(result.Justification);
         Assert.Null(result.Topic);
         Assert.Null(result.Stance);

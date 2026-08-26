@@ -1,0 +1,177 @@
+@page "/journal"
+@using Vigie24.Domain.Models
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
+@inject ILogger<Journal> Logger
+
+<PageTitle>Journal du rédacteur IA - Vigie24</PageTitle>
+<HeadContent>
+    <meta name="description" content="Le journal du rédacteur IA de Vigie24 : les articles refusés et pourquoi, les coups de cœur de la semaine, les hésitations de catégorisation et les réflexions marquantes de l'analyse automatique." />
+    <link rel="canonical" href="https://vigie24.info/journal" />
+    <meta property="og:title" content="Journal du rédacteur IA - Vigie24" />
+    <meta property="og:description" content="La transparence de la veille : ce que l'IA a pensé, refusé, hésité — et pourquoi." />
+    <meta property="og:url" content="https://vigie24.info/journal" />
+    <meta property="og:type" content="website" />
+</HeadContent>
+
+<h1>📖 Journal du rédacteur IA</h1>
+<p class="muted">
+    La transparence de la veille : ce que l'IA a lu, refusé, hésité — et pourquoi.
+    Chaque décision de catégorisation et de score est expliquée, y compris celles qui n'ont pas abouti à une publication.
+</p>
+
+@if (_refused.Count == 0 && _favorites.Count == 0 && _hesitations.Count == 0 && _notable.Count == 0)
+{
+    <div class="status-card">
+        <p class="muted">Le journal se remplit au fil des analyses. Revenez dans quelques jours.</p>
+    </div>
+}
+
+@if (_refused.Count > 0)
+{
+    <h2>🚫 Refusés expliqués</h2>
+    <p class="muted">Articles juste sous le seuil de publication (score 50–59,9) : voici pourquoi ils n'ont pas été retenus.</p>
+    @foreach (var a in _refused)
+    {
+        <div class="journal-entry">
+            <div class="journal-head">
+                <a href="/articles/@a.Id">@a.Title</a>
+                <span class="chip chip-refused">🚫 Refusé · @a.EditorialScore.ToString("0.0")</span>
+            </div>
+            @if (a.Analysis?.Justification is { Length: > 0 } justif)
+            {
+                <p class="journal-justif">@justif</p>
+            }
+            <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
+        </div>
+    }
+}
+
+@if (_favorites.Count > 0)
+{
+    <h2>💚 Coups de cœur de la semaine</h2>
+    <p class="muted">Les articles les mieux notés par l'IA cette semaine, avec sa justification.</p>
+    @foreach (var a in _favorites)
+    {
+        <div class="journal-entry">
+            <div class="journal-head">
+                <a href="/articles/@a.Id">@a.Title</a>
+                <span class="chip chip-cat">💚 @a.EditorialScore.ToString("0.0")</span>
+            </div>
+            @if (a.Analysis?.Justification is { Length: > 0 } justif)
+            {
+                <p class="journal-justif">@justif</p>
+            }
+            <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
+        </div>
+    }
+}
+
+@if (_hesitations.Count > 0)
+{
+    <h2>🤔 Hésitations de catégorisation</h2>
+    <p class="muted">Quand l'IA balance entre plusieurs catégories, elle le dit — et le journal le montre.</p>
+    @foreach (var a in _hesitations)
+    {
+        <div class="journal-entry">
+            <div class="journal-head">
+                <a href="/articles/@a.Id">@a.Title</a>
+            </div>
+            <p class="journal-justif">
+                A hésité entre :
+                <strong>@string.Join(" · ", a.Analysis!.AlternativeCategories.Select(p => string.Join(" / ", p)))</strong>
+                @if (a.Analysis?.Justification is { Length: > 0 } justif)
+                {
+                    <text> — @justif</text>
+                }
+            </p>
+            <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
+        </div>
+    }
+}
+
+@if (_notable.Count > 0)
+{
+    <h2>🧠 Réflexions marquantes</h2>
+    <p class="muted">Les justifications les plus développées de la semaine — là où l'IA a le plus « réfléchi ».</p>
+    @foreach (var a in _notable)
+    {
+        <div class="journal-entry">
+            <div class="journal-head">
+                <a href="/articles/@a.Id">@a.Title</a>
+                <span class="chip chip-tag">Score @a.EditorialScore.ToString("0.0")</span>
+            </div>
+            @if (a.Analysis?.Justification is { Length: > 0 } justif)
+            {
+                <p class="journal-justif">@justif</p>
+            }
+            <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
+        </div>
+    }
+}
+
+@code {
+    private List<Article> _refused = new();
+    private List<Article> _favorites = new();
+    private List<Article> _hesitations = new();
+    private List<Article> _notable = new();
+    private Dictionary<Guid, string> _sourceNames = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var since7 = DateTime.UtcNow.AddDays(-7);
+
+            // Refusés expliqués : juste sous le seuil de publication (50-59,9)
+            _refused = await DbContext.Articles.AsNoTracking()
+                .Where(a => !a.IsPublished && a.EditorialScore >= 50m && a.EditorialScore < 60m && a.PublishedAt >= since7)
+                .OrderByDescending(a => a.EditorialScore)
+                .Take(8)
+                .ToListAsync();
+
+            // Coups de cœur : les mieux notés de la semaine, avec trace
+            _favorites = await DbContext.Articles.AsNoTracking()
+                .Where(a => a.IsPublished && a.PublishedAt >= since7 && a.AnalysisJson != null)
+                .OrderByDescending(a => a.EditorialScore)
+                .Take(5)
+                .ToListAsync();
+
+            // Hésitations + réflexions marquantes : filtrées en mémoire depuis les traces récentes
+            var recent = await DbContext.Articles.AsNoTracking()
+                .Where(a => a.PublishedAt >= since7 && a.AnalysisJson != null)
+                .OrderByDescending(a => a.PublishedAt)
+                .Take(60)
+                .ToListAsync();
+
+            _hesitations = recent.Where(a => a.Analysis?.AlternativeCategories.Count > 0).Take(8).ToList();
+            _notable = recent
+                .Where(a => (a.Analysis?.Justification?.Length ?? 0) >= 180)
+                .OrderByDescending(a => a.Analysis!.Justification!.Length)
+                .Take(6)
+                .ToList();
+
+            // Noms des sources primaires pour l'affichage
+            var ids = _refused.Concat(_favorites).Concat(_hesitations).Concat(_notable)
+                .Select(a => a.Id).Distinct().ToList();
+            if (ids.Count > 0)
+            {
+                var rows = await DbContext.ArticleSources.AsNoTracking()
+                    .Where(art => ids.Contains(art.ArticleId))
+                    .Select(art => new { art.ArticleId, art.IsPrimary, Name = art.Source.Name })
+                    .ToListAsync();
+                _sourceNames = rows
+                    .GroupBy(r => r.ArticleId)
+                    .ToDictionary(g => g.Key, g => (g.FirstOrDefault(r => r.IsPrimary) ?? g.First()).Name);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Impossible de charger le journal du rédacteur IA");
+        }
+    }
+
+    private string SourceName(Article a)
+        => _sourceNames.TryGetValue(a.Id, out var name) ? name : "";
+}

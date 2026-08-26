@@ -49,6 +49,19 @@ else
     <span class="debate-banner-cta">Voir les débats →</span>
 </a>
 
+@if (_barometerToday > 0)
+{
+    <a class="debate-banner barometer-banner chip-anxiety-@_barometerLevel" href="/barometre" title="L'indice d'anxiété de l'actualité tech mesuré par l'IA">
+        <span class="debate-banner-icon">@_barometerIcon</span>
+        <span class="debate-banner-text">
+            <strong>Baromètre de l'anxiété</strong> — @_barometerToday.ToString("0.0")/10
+            (@(_barometerDelta > 0 ? "+" : "")@_barometerDelta.ToString("0.0") vs moyenne 30 j)
+            : l'actualité tech est @_barometerLevelLabel aujourd'hui
+        </span>
+        <span class="debate-banner-cta">Voir le baromètre →</span>
+    </a>
+}
+
 <div class="page-head">
     <h2>Derniers articles</h2>
     <div class="chips">
@@ -66,6 +79,11 @@ else
     private long _todayTokens;
     private decimal _todayCostChf;
     private int _debateCount;
+    private double _barometerToday;
+    private double _barometerDelta;
+    private string _barometerLevel = "med";
+    private string _barometerIcon = "😟";
+    private string _barometerLevelLabel = "modérée";
 
     protected override async Task OnInitializedAsync()
     {
@@ -88,6 +106,23 @@ else
         _todayCostChf = AiCost.Calculate(
             (int)prompt, (int)completion,
             AiSettings.InputPricePerMillionTokens, AiSettings.OutputPricePerMillionTokens);
+
+        // Baromètre de l'anxiété : indice du jour et écart vs moyenne 30 jours
+        var since30 = DateTime.UtcNow.Date.AddDays(-30);
+        var anxietyRows = await DbContext.Articles.AsNoTracking()
+            .Where(a => a.IsPublished && a.AnxietyScore != null && a.PublishedAt >= since30)
+            .Select(a => new { a.PublishedAt, Anxiety = a.AnxietyScore!.Value })
+            .ToListAsync();
+        if (anxietyRows.Count > 0)
+        {
+            var summary = AnxietyBarometer.Compute(anxietyRows.Select(r => (r.PublishedAt, (decimal)r.Anxiety)).ToList());
+            _barometerToday = summary.TodayAverage;
+            _barometerDelta = summary.Delta;
+            _barometerLevel = summary.TodayAverage >= AnxietyBarometer.AnxietyThreshold ? "high"
+                : summary.TodayAverage <= AnxietyBarometer.CalmThreshold ? "low" : "med";
+            _barometerIcon = _barometerLevel == "high" ? "🚨" : _barometerLevel == "low" ? "🧘" : "😟";
+            _barometerLevelLabel = _barometerLevel == "high" ? "anxiogène" : _barometerLevel == "low" ? "calme" : "modérée";
+        }
 
         Logger.LogInformation("Index : {Count} articles en base, statut santé {Status}", _totalArticles, _status.Label);
     }

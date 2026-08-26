@@ -41,6 +41,13 @@ public class AiProcessingResult
     public List<string> Keywords { get; set; } = new();
 
     /// <summary>
+    /// 1-2 alternative [parent, subcategory] pairs the model hesitated between
+    /// (empty = clear choice). Shown in the AI editor's journal (« hésitations »).
+    /// </summary>
+    [JsonPropertyName("alternative_categories")]
+    public List<string[]> AlternativeCategories { get; set; } = new();
+
+    /// <summary>
     /// Model justification (2-3 factual sentences): why this category and why this
     /// editorial score. Shown in the « Réflexion & analyse » block on the article page.
     /// </summary>

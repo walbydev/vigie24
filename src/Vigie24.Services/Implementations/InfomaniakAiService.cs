@@ -91,6 +91,7 @@ Fournis ta réponse au format JSON suivant (sans markdown, juste le JSON brut):
   ""editorial_score"": 0-100 (note de pertinence éditoriale),
   ""anxiety_score"": 0-10 (potentiel anxiogène du sujet pour un lecteur de veille tech : 0 = neutre/rassurant, 10 = alarmiste/effrayant. Exemples : faille zero-day massive = 8-10 ; crise géopolitique = 6-8 ; lancement produit = 1-2 ; tutoriel = 0-1),
   ""categories"": [""catégorie parente"", ""sous-catégorie""],
+  ""alternative_categories"": [[""parent"", ""sous-catégorie""]] — 1-2 paires alternatives si hésitation entre plusieurs catégories, sinon [],
   ""themes"": [""liste"", ""de"", ""themes""],
   ""keywords"": [""liste"", ""de"", ""mots-clés""],
   ""justification"": ""Explication factuelle en 2-3 phrases : pourquoi cette catégorie et pourquoi ce score éditorial (arguments tirés de l'article)"",

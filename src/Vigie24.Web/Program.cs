@@ -219,6 +219,28 @@ app.MapGet("/feed", async (Vigie24DbContext db, HttpContext http) =>
     return Results.Content(xml, "application/rss+xml; charset=utf-8");
 });
 
+// /feed/zen → flux « zen » : uniquement les articles peu anxiogènes (anxiété ≤ 6),
+// même filtres que /feed (q, country, minScore…).
+app.MapGet("/feed/zen", async (Vigie24DbContext db, HttpContext http) =>
+{
+    if (!FilterCriteria.TryParse(http.Request.QueryString.Value, out var criteria))
+        return Results.BadRequest(new { error = "Query string de filtres invalide." });
+
+    criteria = criteria with { MaxAnxiety = 6 };
+
+    var baseUrl = $"{http.Request.Scheme}://{http.Request.Host}";
+    var articles = await RssFeedService.GetItemsAsync(db, criteria);
+
+    var xml = RssFeedBuilder.Build(
+        "Vigie24 — Flux zen (anxiété ≤ 6)",
+        baseUrl,
+        "Veille technologique francophone — version « zen » : articles peu anxiogènes, sélectionnés et analysés par IA.",
+        articles);
+
+    http.Response.Headers.CacheControl = "public, max-age=300";
+    return Results.Content(xml, "application/rss+xml; charset=utf-8");
+});
+
 app.MapGet("/categories/{slug}/feed", async (string slug, Vigie24DbContext db, HttpContext http) =>
 {
     var category = await db.Categories.FirstOrDefaultAsync(c => c.Slug == slug);

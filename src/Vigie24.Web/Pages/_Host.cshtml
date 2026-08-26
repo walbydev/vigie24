@@ -547,6 +547,86 @@
         [data-theme$="-hc"] .reader-analysis { border-width: 2px; }
         [data-theme$="-hc"] .analysis-reasoning { border-width: 2px; }
 
+        /* ===== Journal du rédacteur IA ===== */
+        .journal-entry {
+            background: var(--surface); border: 1px solid var(--border);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px; padding: 12px 16px; margin: 10px 0;
+        }
+        .journal-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+        .journal-head a { color: var(--text); text-decoration: none; font-weight: 600; }
+        .journal-head a:hover { color: var(--accent); text-decoration: underline; }
+        .journal-justif { margin: 8px 0 4px; line-height: 1.6; font-size: 0.95rem; }
+        .journal-meta { margin: 0; font-size: 0.8rem; }
+        .chip-refused {
+            background: var(--alert-danger-bg); color: var(--alert-danger-ink);
+            border: 1px solid var(--alert-danger-border); border-radius: 6px; font-weight: 600;
+        }
+        [data-theme$="-hc"] .journal-entry { border-width: 2px; }
+
+        /* ===== Baromètre de l'anxiété ===== */
+        /* Bandeau accueil : reprend la forme du bandeau débats, teinte selon le niveau */
+        .barometer-banner { --c: var(--anxiety-med); border-color: var(--c); }
+        .barometer-banner.chip-anxiety-low { --c: var(--anxiety-low); }
+        .barometer-banner.chip-anxiety-med { --c: var(--anxiety-med); }
+        .barometer-banner.chip-anxiety-high { --c: var(--anxiety-high); }
+        .barometer-banner .debate-banner-text strong { color: var(--c); }
+        .barometer-banner .debate-banner-cta { color: var(--c); }
+
+        .barometer-hero {
+            --c: var(--anxiety-med);
+            display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+            background: color-mix(in srgb, var(--c) 10%, var(--surface));
+            border: 1px solid var(--c); border-radius: 12px;
+            padding: 20px 24px; margin: 16px 0;
+        }
+        .barometer-main { flex: 1; min-width: 180px; }
+        .barometer-value {
+            font-size: 3rem; font-weight: 800; line-height: 1;
+            font-family: 'JetBrains Mono', ui-monospace, monospace; color: var(--c);
+        }
+        .barometer-unit { font-size: 1.2rem; font-weight: 600; color: var(--text-muted); margin-left: 4px; }
+        .barometer-side { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+        .barometer-delta { font-weight: 700; font-size: 0.95rem; }
+        .barometer-delta.delta-up { color: var(--anxiety-high); }
+        .barometer-delta.delta-down { color: var(--anxiety-low); }
+        .barometer-chart { width: 100%; height: auto; }
+        .barometer-ref { stroke-width: 1; stroke-dasharray: 4 4; }
+        .barometer-ref-low { stroke: var(--anxiety-low); opacity: 0.55; }
+        .barometer-ref-high { stroke: var(--anxiety-med); opacity: 0.55; }
+        .barometer-dot { fill: var(--accent); }
+        .barometer-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.82rem; color: var(--text-muted); margin: 6px 0 4px; }
+        .barometer-legend i { display: inline-block; }
+        .legend-line { width: 22px; height: 3px; border-radius: 2px; vertical-align: middle; background: var(--lc, var(--border-strong)); margin-right: 5px; }
+        .legend-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); vertical-align: middle; margin-right: 5px; }
+        .barometer-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin: 18px 0; }
+        .barometer-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-top: 1px solid var(--border); font-size: 0.92rem; }
+        .barometer-row-label { flex: 1; }
+        .antidote-list { margin: 8px 0 0; padding-left: 20px; }
+        .antidote-list li { margin: 6px 0; }
+
+        /* ===== Dossiers vivants (/debats/{id}) ===== */
+        .debate-foot { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+        .dossier-timeline { margin: 10px 0; }
+        .dossier-item { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
+        .dossier-date { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.85rem; color: var(--text-muted); padding-top: 2px; }
+        .dossier-content { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+        .dossier-title { color: var(--text); text-decoration: none; font-weight: 600; }
+        .dossier-title:hover { color: var(--accent); text-decoration: underline; }
+        .dossier-coverage { display: flex; align-items: flex-end; gap: 3px; margin: 12px 0 4px; }
+        .dossier-day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+        .dossier-bar { width: 100%; min-height: 2px; border-radius: 3px 3px 0 0; background: var(--accent); opacity: 0.85; }
+        .dossier-day-label { font-size: 0.62rem; color: var(--text-muted); }
+        .dossier-stances { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+        .dossier-step { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .dossier-step-date { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.82rem; color: var(--text-muted); min-width: 40px; }
+        .dossier-media { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 10px 0; }
+        .dossier-media-card { margin: 0; }
+        .dossier-media-card .chips { margin: 6px 0 0; }
+
+        /* ===== Scoops (page Sources) ===== */
+        .source-scoop { font-weight: 600; color: var(--stance-nuance); }
+
         /* ===== Bandeau d'erreur Blazor (masqué par défaut) ===== */
         #blazor-error-ui {
             display: none;

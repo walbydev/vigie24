@@ -573,7 +573,8 @@ public class Vigie24Worker : BackgroundService
             Reasoning = string.IsNullOrWhiteSpace(aiResult.Reasoning) ? null : aiResult.Reasoning.Trim(),
             DetectedCategories = aiResult.DetectedCategories,
             DetectedThemes = aiResult.DetectedThemes,
-            Keywords = aiResult.Keywords
+            Keywords = aiResult.Keywords,
+            AlternativeCategories = aiResult.AlternativeCategories
         };
 
         // Add the article to the context IMMEDIATELY (before the embedding and the
