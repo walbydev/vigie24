@@ -213,7 +213,7 @@ app.MapGet("/feed", async (Vigie24DbContext db, HttpContext http) =>
     var xml = RssFeedBuilder.Build(
         "Vigie24 — Surveillance RSS et analyse IA",
         baseUrl,
-        "Veille technologique francophone (France, Suisse, Belgique, Québec, Luxembourg) — articles sélectionnés et analysés par IA.",
+        "Veille technologique francophone (France, Suisse, Belgique, Québec, Luxembourg), ouverte sur l'actualité internationale — articles sélectionnés et analysés par IA.",
         articles);
 
     http.Response.Headers.CacheControl = "public, max-age=300";
