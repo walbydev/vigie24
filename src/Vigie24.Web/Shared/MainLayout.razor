@@ -35,14 +35,30 @@
         <NavLink class="subnav-link" href="/categories">🗂 Catégories</NavLink>
         <NavLink class="subnav-link" href="/themes">🏷 Thématiques</NavLink>
         <NavLink class="subnav-link" href="/debats">🥊 Débats</NavLink>
-        <NavLink class="subnav-link" href="/radar">📡 Radar</NavLink>
-        <NavLink class="subnav-link" href="/top">⭐ Top</NavLink>
-        <NavLink class="subnav-link" href="/sources">🗞 Sources</NavLink>
-        <NavLink class="subnav-link" href="/il-y-a-un-an">🗓️ Il y a un an</NavLink>
+        <NavLink class="subnav-link subnav-more-link" href="/radar">📡 Radar</NavLink>
+        <NavLink class="subnav-link subnav-more-link" href="/top">⭐ Top</NavLink>
+        <NavLink class="subnav-link subnav-more-link" href="/sources">🗞 Sources</NavLink>
+        <NavLink class="subnav-link subnav-more-link" href="/il-y-a-un-an">🗓️ Il y a un an</NavLink>
         <span class="subnav-spacer"></span>
-        <a class="subnav-link subnav-feed" href="/feed" rel="alternate" type="application/rss+xml" title="Flux RSS complet">📡 RSS</a>
-        <a class="subnav-link subnav-feed" href="/feed/zen" rel="alternate" type="application/rss+xml" title="Flux RSS zen (anxiété ≤ 6)">🧘 RSS zen</a>
+        <a class="subnav-link subnav-feed subnav-more-link" href="/feed" rel="alternate" type="application/rss+xml" title="Flux RSS complet">📡 RSS</a>
+        <a class="subnav-link subnav-feed subnav-more-link" href="/feed/zen" rel="alternate" type="application/rss+xml" title="Flux RSS zen (anxiété ≤ 6)">🧘 RSS zen</a>
+        <button type="button" class="subnav-more" @onclick="ToggleSubnav"
+                aria-expanded="@_subnavOpen" aria-controls="subnav-panel"
+                aria-label="Toutes les pages de contenu">
+            ⋯ Plus
+        </button>
     </nav>
+    @if (_subnavOpen)
+    {
+        <div class="subnav-panel" id="subnav-panel">
+            <NavLink class="subnav-panel-link" href="/radar" @onclick="CloseSubnav">📡 Radar des sujets chauds</NavLink>
+            <NavLink class="subnav-panel-link" href="/top" @onclick="CloseSubnav">⭐ Top de la communauté</NavLink>
+            <NavLink class="subnav-panel-link" href="/sources" @onclick="CloseSubnav">🗞 Sources</NavLink>
+            <NavLink class="subnav-panel-link" href="/il-y-a-un-an" @onclick="CloseSubnav">🗓️ Il y a un an</NavLink>
+            <a class="subnav-panel-link" href="/feed" rel="alternate" type="application/rss+xml" @onclick="CloseSubnav">📡 Flux RSS complet</a>
+            <a class="subnav-panel-link" href="/feed/zen" rel="alternate" type="application/rss+xml" @onclick="CloseSubnav">🧘 Flux RSS zen (anxiété ≤ 6)</a>
+        </div>
+    }
     <main id="main-content">
         <div class="content px-4">
             @Body
@@ -101,11 +117,17 @@
 
 @code {
     private bool _menuOpen;
+    private bool _subnavOpen;
 
     private bool IsRadarBranding =>
         string.Equals(Config["Branding:Theme"], "radar", StringComparison.OrdinalIgnoreCase);
 
     private void ToggleMenu() => _menuOpen = !_menuOpen;
+
+    /// <summary>Mobile : ouvre/ferme le panneau « ⋯ Plus » de la barre secondaire.</summary>
+    private void ToggleSubnav() => _subnavOpen = !_subnavOpen;
+
+    private void CloseSubnav() => _subnavOpen = false;
 
     private void CloseMenu() => _menuOpen = false;
 }
