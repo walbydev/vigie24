@@ -366,8 +366,14 @@ namespace Vigie24.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DisabledReason")
+                        .HasColumnType("text");
+
                     b.Property<string>("FeedUrl")
                         .HasColumnType("text");
+
+                    b.Property<int>("FetchFailureCount")
+                        .HasColumnType("integer");
 
                     b.Property<string>("IngestionMethod")
                         .IsRequired()

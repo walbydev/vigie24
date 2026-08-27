@@ -145,6 +145,12 @@ public class Source
     public string WebsiteUrl { get; set; } = string.Empty;
     public string? FeedUrl { get; set; }
     public bool IsActive { get; set; } = true;
+
+    /// <summary>Consecutive feed-fetch failures (reset on success, used for auto-disable).</summary>
+    public int FetchFailureCount { get; set; }
+
+    /// <summary>Human-readable reason when the source was auto-disabled (null when active).</summary>
+    public string? DisabledReason { get; set; }
     public DateTime? LastIngestedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

@@ -35,6 +35,38 @@
     </div>
 </div>
 
+@if (_failedSources.Count > 0)
+{
+    <h2>🚨 Rapport d'échecs</h2>
+    <p class="muted">
+        Sources en échec de récupération — désactivation automatique après
+        <strong>@SourceFailurePolicy.DefaultMaxFailures échecs consécutifs</strong>.
+        Une source désactivée doit être réactivée manuellement.
+    </p>
+    <div class="source-grid">
+        @foreach (var source in _failedSources)
+        {
+            <div class="source-card @(source.IsActive ? "" : "source-disabled")">
+                <div class="source-body">
+                    <div class="source-name">
+                        @source.Name
+                        @if (!source.IsActive) { <span class="source-badge source-badge-off">⏸️ Désactivée</span> }
+                    </div>
+                    <div class="source-meta">
+                        <span>@_kindDisplay(source.SourceKind)</span>
+                        <span>·</span>
+                        <span>⚠️ @source.FetchFailureCount échec(s) consécutif(s)</span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(source.DisabledReason))
+                    {
+                        <div class="source-meta">💡 @source.DisabledReason</div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
 @foreach (var group in _groups)
 {
     <div class="source-group-title">
@@ -57,6 +89,10 @@
                         @if (!source.IsActive)
                         {
                             <span class="source-badge source-badge-off">⏸️ Désactivée</span>
+                        }
+                        @if (source.FetchFailureCount > 0)
+                        {
+                            <span class="source-badge source-badge-warn" title="Échecs de récupération consécutifs">⚠️ @source.FetchFailureCount</span>
                         }
                     </div>
                     <div class="source-meta">
@@ -103,6 +139,7 @@
     private List<Source> _sources = new();
     private List<(string Emoji, string Label, List<Source> Sources)> _groups = new();
     private Dictionary<Guid, int> _scoops = new();
+    private List<Source> _failedSources = new();
     private int _activeCount;
     private int _inactiveCount;
 
@@ -121,6 +158,13 @@
 
         _activeCount = _sources.Count(s => s.IsActive);
         _inactiveCount = _sources.Count - _activeCount;
+
+        // « Rapport d'échecs » : sources en échec de récupération (compteur
+        // consécutif) ou désactivées automatiquement par le worker.
+        _failedSources = _sources
+            .Where(s => s.FetchFailureCount > 0 || !string.IsNullOrEmpty(s.DisabledReason))
+            .OrderByDescending(s => s.FetchFailureCount)
+            .ToList();
 
         // « Scoops » : pour chaque débat (sujet couvert par plusieurs médias), la source
         // du premier article publié marque un scoop. Les articles étant mono-source en

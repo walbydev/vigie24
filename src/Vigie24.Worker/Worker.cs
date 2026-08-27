@@ -256,16 +256,34 @@ public class Vigie24Worker : BackgroundService
         _logger.LogInformation("Processing source: {SourceName} ({Kind})", 
             source.Name, source.SourceKind);
 
-        List<ArticleFeedItem> feedItems = new();
+        List<ArticleFeedItem> feedItems;
+        try
+        {
+            feedItems = source.IngestionMethod switch
+                {
+                    // YouTube feeds (feeds/videos.xml) and Reddit (.rss) are standard Atom/RSS:
+                    // they are ingested like any other feed (the dedicated
+                    // "Youtube"/"Reddit" cases are tolerated and treated as RSS).
+                    "Api" => await FetchApiFeedAsync(source, cancellationToken),
+                    _ => await FetchRssFeedAsync(source.FeedUrl!, cancellationToken)
+                };
+        }
+        catch (FeedFetchException ffe)
+        {
+            // Fetch failed: bump the per-source consecutive-failure counter and
+            // auto-disable the source once the threshold (FeedReader:MaxFetchFailures)
+            // is reached — announced in the worker logs (failure report).
+            await HandleFetchFailureAsync(source, dbContext, ffe.FeedUrl, cancellationToken);
+            return;
+        }
 
-        feedItems = source.IngestionMethod switch
-            {
-                // YouTube feeds (feeds/videos.xml) and Reddit (.rss) are standard Atom/RSS:
-                // they are ingested like any other feed (the dedicated
-                // "Youtube"/"Reddit" cases are tolerated and treated as RSS).
-                "Api" => await FetchApiFeedAsync(source, cancellationToken),
-                _ => await FetchRssFeedAsync(source.FeedUrl!, cancellationToken)
-            };
+        // A successful fetch clears the consecutive-failure counter.
+        if (source.FetchFailureCount > 0)
+        {
+            source.FetchFailureCount = 0;
+            _logger.LogInformation("Feed fetch recovered for source {SourceName}, failure counter reset", source.Name);
+        }
+
         // Delay between items (FeedReader:ItemDelayMilliseconds) to respect AI rate limits
         var itemDelayMs = _configuration.GetValue<int>("FeedReader:ItemDelayMilliseconds", 0);
 
@@ -289,6 +307,32 @@ public class Vigie24Worker : BackgroundService
         // Update the ingestion timestamp (saved immediately so that
         // the Sources page reflects each source's freshness in real time)
         source.LastIngestedAt = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Records a fetch failure for a source: bumps the consecutive-failure counter,
+    /// auto-disables the source once FeedReader:MaxFetchFailures is reached and
+    /// announces the event in the worker logs (failure report).
+    /// </summary>
+    private async Task HandleFetchFailureAsync(Source source, Vigie24DbContext dbContext, string feedUrl, CancellationToken cancellationToken)
+    {
+        source.FetchFailureCount = SourceFailurePolicy.NextFailureCount(source.FetchFailureCount);
+        var maxFailures = _configuration.GetValue<int>("FeedReader:MaxFetchFailures", SourceFailurePolicy.DefaultMaxFailures);
+
+        if (SourceFailurePolicy.ShouldDisable(source.FetchFailureCount, maxFailures))
+        {
+            source.IsActive = false;
+            source.DisabledReason = SourceFailurePolicy.DisableReason(source.FetchFailureCount);
+            _logger.LogError("Source {SourceName} AUTO-DISABLED after {Count}/{Max} consecutive fetch failures ({FeedUrl})",
+                source.Name, source.FetchFailureCount, maxFailures, feedUrl);
+        }
+        else
+        {
+            _logger.LogWarning("Fetch failed for source {SourceName} ({Count}/{Max}): {FeedUrl}",
+                source.Name, source.FetchFailureCount, maxFailures, feedUrl);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -373,8 +417,9 @@ public class Vigie24Worker : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch RSS feed: {FeedUrl}", feedUrl);
-            return new List<ArticleFeedItem>();
+            // Signal the failure to ProcessSourceAsync (per-source consecutive-failure
+            // counter + auto-disable) instead of silently returning an empty list.
+            throw new FeedFetchException(feedUrl, ex);
         }
     }
 
@@ -1062,6 +1107,13 @@ public class Vigie24Worker : BackgroundService
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>Raised when a feed fetch fails (network, HTTP status or parse).</summary>
+    private sealed class FeedFetchException(string feedUrl, Exception inner)
+        : Exception($"Failed to fetch feed: {feedUrl}", inner)
+    {
+        public string FeedUrl { get; } = feedUrl;
     }
 }
 
