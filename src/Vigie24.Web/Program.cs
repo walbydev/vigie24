@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using System.Xml.Linq;
+using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Vigie24.Domain;
@@ -24,6 +25,9 @@ builder.Services.AddScoped<IEngagementService, EngagementService>();
 builder.Services.AddScoped<IHealthCheckService, HealthCheckService>();
 builder.Services.AddScoped<ZenModeService>(); // mode zen global (localStorage)
 builder.Services.Configure<HealthCheckOptions>(builder.Configuration.GetSection("HealthCheck"));
+// HSTS (Strict-Transport-Security) : durée + sous-domaines depuis la section « Hsts »
+// d'appsettings.json. Binding explicite : UseHsts() ne lit pas la section automatiquement.
+builder.Services.Configure<HstsOptions>(builder.Configuration.GetSection("Hsts"));
 
 // Database
 builder.Services.AddDbContext<Vigie24DbContext>(options =>
