@@ -28,6 +28,11 @@ builder.Services.Configure<HealthCheckOptions>(builder.Configuration.GetSection(
 // HSTS (Strict-Transport-Security) : durée + sous-domaines depuis la section « Hsts »
 // d'appsettings.json. Binding explicite : UseHsts() ne lit pas la section automatiquement.
 builder.Services.Configure<HstsOptions>(builder.Configuration.GetSection("Hsts"));
+// Anti-abus engagement (votes 0-5 + clics) : fenêtre fixe par IP (X-Forwarded-For
+// rétabli par UseForwardedHeaders). 30 actions/heure par défaut (RateLimiting:EngagementPerHour).
+builder.Services.AddSingleton(new EngagementRateLimiter(
+    builder.Configuration.GetValue<int>("RateLimiting:EngagementPerHour", 30),
+    TimeSpan.FromHours(1)));
 
 // Database
 builder.Services.AddDbContext<Vigie24DbContext>(options =>
@@ -128,10 +133,15 @@ app.MapGet("/api/articles/{id:guid}/vote", async (Guid id, Vigie24DbContext db, 
 
 // POST /api/articles/{id}/vote — anonymous vote (voter_id cookie), scale 0-5.
 // Recomputes VoteCount/VoteAverage and the ranking score (engagement included).
-app.MapPost("/api/articles/{id:guid}/vote", async (Guid id, VoteRequest request, Vigie24DbContext db, HttpContext http) =>
+// Anti-abus : fenêtre fixe par IP (EngagementRateLimiter) → 429 au-delà.
+app.MapPost("/api/articles/{id:guid}/vote", async (Guid id, VoteRequest request, Vigie24DbContext db, HttpContext http, EngagementRateLimiter limiter) =>
 {
     if (request.Value < 0 || request.Value > 5)
         return Results.BadRequest(new { error = "Le vote doit être entre 0 et 5." });
+
+    var ip = http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    if (!limiter.TryConsume($"vote:{ip}"))
+        return Results.Json(new { error = "Trop de votes depuis cette adresse. Réessayez plus tard." }, statusCode: StatusCodes.Status429TooManyRequests);
 
     var article = await db.Articles.FirstOrDefaultAsync(a => a.Id == id);
     if (article is null) return Results.NotFound();
@@ -183,8 +193,13 @@ app.MapPost("/api/articles/{id:guid}/vote", async (Guid id, VoteRequest request,
 
 // GET /api/articles/{id}/track — increments the click counter, recomputes the score,
 // then redirects (302) to the original article on the source site.
-app.MapGet("/api/articles/{id:guid}/track", async (Guid id, Vigie24DbContext db) =>
+// Anti-abus : fenêtre fixe par IP (EngagementRateLimiter) → 429 au-delà.
+app.MapGet("/api/articles/{id:guid}/track", async (Guid id, Vigie24DbContext db, HttpContext http, EngagementRateLimiter limiter) =>
 {
+    var ip = http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    if (!limiter.TryConsume($"click:{ip}"))
+        return Results.Json(new { error = "Trop de clics depuis cette adresse. Réessayez plus tard." }, statusCode: StatusCodes.Status429TooManyRequests);
+
     var article = await db.Articles
         .Include(a => a.Sources)
         .FirstOrDefaultAsync(a => a.Id == id);

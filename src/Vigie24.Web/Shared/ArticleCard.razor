@@ -1,5 +1,6 @@
 @using Vigie24.Domain
 @using Vigie24.Domain.Models
+@using Vigie24.Services
 @using Vigie24.Web.Services
 @inject IEngagementService Engagement
 @inject ILogger<ArticleCard> Logger
@@ -138,6 +139,10 @@
                         aria-pressed="@(voteValue == _state.MyVote)">@voteValue</button>
             }
             <span class="eng-stats">
+                @if (_rateLimited)
+                {
+                    <span class="muted" title="Limite anti-abus par adresse IP">⏳ Trop de votes — réessayez plus tard.</span>
+                }
                 @if (_state.VoteCount > 0)
                 {
                     <span class="vote-stats nowrap" title="Note moyenne (0-5)">⭐&nbsp;@_state.VoteAverage.ToString("0.0")&nbsp;(<span class="nowrap">@_state.VoteCount</span>)</span>
@@ -162,6 +167,7 @@
 
     private bool _showHint;
     private string _hint = "";
+    private bool _rateLimited;
     private string _color1 = "#4f46e5";
     private string _color2 = "#9333ea";
     private string _initial = "?";
@@ -223,6 +229,11 @@
         {
             _state = await Engagement.VoteAsync(Article.Id, value);
             RebuildHint();
+            StateHasChanged();
+        }
+        catch (RateLimitExceededException)
+        {
+            _rateLimited = true; // anti-abus : trop de votes depuis cette adresse
             StateHasChanged();
         }
         catch (Exception ex)

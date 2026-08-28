@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Vigie24.Domain;
 using Vigie24.Domain.Models;
 using Vigie24.Infrastructure.Data;
+using Vigie24.Services;
 
 namespace Vigie24.Web.Services;
 
@@ -21,11 +22,17 @@ public interface IEngagementService
 public sealed record EngagementState(
     int? MyVote, decimal VoteAverage, int VoteCount, int ClickCount, decimal RankingScore);
 
-public sealed class EngagementService(Vigie24DbContext db, IHttpContextAccessor http) : IEngagementService
+public sealed class EngagementService(
+    Vigie24DbContext db,
+    IHttpContextAccessor http,
+    EngagementRateLimiter limiter) : IEngagementService
 {
     private const string VoterCookie = "voter_id";
 
     private string? GetVoterKey() => http.HttpContext?.Request.Cookies[VoterCookie];
+
+    /// <summary>Clé d'anti-abus du visiteur courant (adresse IP rétablie par ForwardedHeaders).</summary>
+    private string ClientKey => http.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
     private string EnsureVoterKey()
     {
@@ -80,6 +87,10 @@ public sealed class EngagementService(Vigie24DbContext db, IHttpContextAccessor 
         if (value < 0 || value > 5)
             throw new ArgumentOutOfRangeException(nameof(value), "Le vote doit être entre 0 et 5.");
 
+        // Anti-abus : fenêtre fixe par IP (30 actions/heure par défaut)
+        if (!limiter.TryConsume($"vote:{ClientKey}"))
+            throw new RateLimitExceededException("Trop de votes depuis cette adresse. Réessayez plus tard.");
+
         var article = await db.Articles.FirstOrDefaultAsync(a => a.Id == articleId, ct)
             ?? throw new KeyNotFoundException($"Article {articleId} introuvable.");
 
@@ -112,6 +123,10 @@ public sealed class EngagementService(Vigie24DbContext db, IHttpContextAccessor 
 
     public async Task TrackClickAsync(Guid articleId, CancellationToken ct = default)
     {
+        // Anti-abus : fenêtre fixe par IP (cohérent avec le endpoint HTTP /track)
+        if (!limiter.TryConsume($"click:{ClientKey}"))
+            return;
+
         var article = await db.Articles.FirstOrDefaultAsync(a => a.Id == articleId, ct);
         if (article is null) return;
 
