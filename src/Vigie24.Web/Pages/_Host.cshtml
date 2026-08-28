@@ -1189,7 +1189,9 @@
             set: function (on) {
                 var d = new Date();
                 d.setTime(on ? d.getTime() + 365 * 24 * 3600 * 1000 : 0);
-                document.cookie = 'vigie24_zen=' + (on ? '1' : '0') + '; path=/; expires=' + d.toUTCString() + '; SameSite=Lax';
+                // Secure uniquement en HTTPS (dev local en HTTP : le cookie doit rester posé)
+                var secure = (location.protocol === 'https:') ? '; Secure' : '';
+                document.cookie = 'vigie24_zen=' + (on ? '1' : '0') + '; path=/; expires=' + d.toUTCString() + '; SameSite=Lax' + secure;
             }
         };
     </script>

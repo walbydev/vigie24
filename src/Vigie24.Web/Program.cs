@@ -83,6 +83,9 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
+    // HSTS : durée et sous-domaines configurés dans la section « Hsts » d'appsettings.json
+    // (1 an + includeSubDomains ; le domaine est servi intégralement en HTTPS par Caddy).
+    // Le header est émis sur les réponses HTTPS (schéma rétabli par UseForwardedHeaders).
     app.UseHsts();
 }
 
@@ -138,6 +141,7 @@ app.MapPost("/api/articles/{id:guid}/vote", async (Guid id, VoteRequest request,
         {
             HttpOnly = true,
             SameSite = SameSiteMode.Lax,
+            Secure = http.Request.IsHttps, // jamais envoyé en clair (HTTPS derrière Caddy)
             MaxAge = TimeSpan.FromDays(365)
         });
     }

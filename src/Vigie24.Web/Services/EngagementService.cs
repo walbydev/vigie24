@@ -37,6 +37,7 @@ public sealed class EngagementService(Vigie24DbContext db, IHttpContextAccessor 
         {
             HttpOnly = true,
             SameSite = SameSiteMode.Lax,
+            Secure = http.HttpContext?.Request.IsHttps == true, // jamais en clair (HTTPS derrière Caddy)
             MaxAge = TimeSpan.FromDays(365)
         });
         return key;
