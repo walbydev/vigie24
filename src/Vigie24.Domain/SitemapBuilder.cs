@@ -27,7 +27,8 @@ public static class SitemapBuilder
         ("/charte-graphique", 0.5),
         ("/couts", 0.5),
         ("/license", 0.5),
-        ("/confidentialite", 0.5)
+        ("/confidentialite", 0.5),
+        ("/mentions-legales", 0.5)
     };
 
     /// <summary>
