@@ -25,7 +25,7 @@ public class Vigie24Worker : BackgroundService
     /// the default is therefore a realistic browser User-Agent.
     /// </summary>
     private string UserAgent => _configuration.GetValue<string>("FeedReader:UserAgent")
-        ?? "Vigie24-RSS-Monitor/1.0 (Walby Developments; philippe@walby.dev)";
+        ?? "Vigie24-RSS-Monitor/1.0 (Walby Developments; https://vigie24.info)";
     private readonly HttpClient _httpClient;
 
     public Vigie24Worker(
