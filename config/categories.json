@@ -1,0 +1,1723 @@
+{
+  "schema_version": "1.0",
+  "description": "Vigie24 reference category taxonomy with search keywords per category. The category list (slug, name, hierarchy) is taken verbatim from the official vigie24 taxonomy (src/Vigie24.Domain/Taxonomy.cs, class VigieTaxonomy). Keywords are provided for source discovery: at least 3 French and 3 English search keywords per category, plus platform-specific terms for RSS (Google News / feed directory queries), YouTube (channel discovery), Reddit (subreddit names, queried as r/<name>) and Bluesky (hashtags/search terms). Field names are English; data values are French where relevant (category names, French keywords).",
+  "source": "src/Vigie24.Domain/Taxonomy.cs — VigieTaxonomy.Categories (used as-is)",
+  "updated_at": "2026-08-29",
+  "usage_notes": {
+    "keywords": "Each category MUST have at least 3 entries in keywords.fr and keywords.en. These are the canonical search terms for the collection module (src/discovery.py).",
+    "platforms": "platforms.rss/youtube/reddit/bluesky hold terms adapted to each platform. reddit entries are subreddit names (search as r/<name>). rss entries are French-first queries (vigie24 is French-speaking-first).",
+    "hierarchy": "Top-level entries are parent categories (parent_slug: null); each carries a subcategories array. A flat view of all 41 categories = parents + all subcategories."
+  },
+  "categories": [
+    {
+      "slug": "ia",
+      "name": "IA",
+      "name_en": "AI",
+      "parent_slug": null,
+      "keywords": {
+        "fr": [
+          "intelligence artificielle",
+          "machine learning",
+          "IA"
+        ],
+        "en": [
+          "artificial intelligence",
+          "machine learning",
+          "AI"
+        ]
+      },
+      "platforms": {
+        "rss": [
+          "intelligence artificielle",
+          "machine learning",
+          "IA"
+        ],
+        "youtube": [
+          "intelligence artificielle",
+          "IA",
+          "machine learning France"
+        ],
+        "reddit": [
+          "actutech",
+          "france",
+          "programmation"
+        ],
+        "bluesky": [
+          "#IA",
+          "#intelligenceartificielle",
+          "#machinelearning"
+        ]
+      },
+      "subcategories": [
+        {
+          "slug": "ia-modeles-llm",
+          "name": "Modèles LLM",
+          "name_en": "LLM models",
+          "keywords": {
+            "fr": [
+              "grand modèle de langage",
+              "LLM",
+              "GPT",
+              "modèle de langage"
+            ],
+            "en": [
+              "large language model",
+              "LLM",
+              "GPT",
+              "foundation model"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "LLM",
+              "grand modèle de langage",
+              "GPT"
+            ],
+            "youtube": [
+              "LLM",
+              "GPT",
+              "modèle de langage"
+            ],
+            "reddit": [
+              "LocalLLaMA",
+              "LLM",
+              "machinelearning"
+            ],
+            "bluesky": [
+              "#LLM",
+              "#GPT",
+              "#grandmodelledelangage"
+            ]
+          },
+          "parent_slug": "ia"
+        },
+        {
+          "slug": "ia-agents",
+          "name": "Agents IA",
+          "name_en": "AI agents",
+          "keywords": {
+            "fr": [
+              "agent IA",
+              "agent autonome",
+              "IA agentique"
+            ],
+            "en": [
+              "AI agent",
+              "autonomous agent",
+              "agentic AI"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "agent IA",
+              "IA agentique",
+              "agent autonome"
+            ],
+            "youtube": [
+              "agent IA",
+              "AI agent",
+              "autonomous agent"
+            ],
+            "reddit": [
+              "AIAgents",
+              "artificial",
+              "france"
+            ],
+            "bluesky": [
+              "#agentsIA",
+              "#agenticAI",
+              "#AIagents"
+            ]
+          },
+          "parent_slug": "ia"
+        },
+        {
+          "slug": "ia-vision-generatif",
+          "name": "Vision & Génératif",
+          "name_en": "Vision & Generative",
+          "keywords": {
+            "fr": [
+              "vision par ordinateur",
+              "IA générative",
+              "génération d'images"
+            ],
+            "en": [
+              "computer vision",
+              "generative AI",
+              "image generation"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "IA générative",
+              "génération d'images",
+              "vision par ordinateur"
+            ],
+            "youtube": [
+              "IA générative",
+              "génération d'images",
+              "Stable Diffusion"
+            ],
+            "reddit": [
+              "StableDiffusion",
+              "generativeAI",
+              "computer vision"
+            ],
+            "bluesky": [
+              "#IAGenerative",
+              "#generativeAI",
+              "#imagediffusion"
+            ]
+          },
+          "parent_slug": "ia"
+        },
+        {
+          "slug": "ia-outils-applications",
+          "name": "Outils & Applications",
+          "name_en": "Tools & Applications",
+          "keywords": {
+            "fr": [
+              "outil IA",
+              "application IA",
+              "copilot"
+            ],
+            "en": [
+              "AI tool",
+              "AI application",
+              "copilot"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "outil IA",
+              "application IA",
+              "copilot"
+            ],
+            "youtube": [
+              "outil IA",
+              "IA pratique",
+              "AI tools"
+            ],
+            "reddit": [
+              "artificial",
+              "france",
+              "InternetIsBeautiful"
+            ],
+            "bluesky": [
+              "#outilsIA",
+              "#AItools",
+              "#copilot"
+            ]
+          },
+          "parent_slug": "ia"
+        }
+      ]
+    },
+    {
+      "slug": "developpement",
+      "name": "Développement",
+      "name_en": "Development",
+      "parent_slug": null,
+      "keywords": {
+        "fr": [
+          "développement logiciel",
+          "programmation",
+          "développeur"
+        ],
+        "en": [
+          "software development",
+          "programming",
+          "developer"
+        ]
+      },
+      "platforms": {
+        "rss": [
+          "développement logiciel",
+          "programmation",
+          "développeur"
+        ],
+        "youtube": [
+          "programmation",
+          "développement logiciel",
+          "developer France"
+        ],
+        "reddit": [
+          "programmation",
+          "france",
+          "actutech"
+        ],
+        "bluesky": [
+          "#programmation",
+          "#developpement",
+          "#dev"
+        ]
+      },
+      "subcategories": [
+        {
+          "slug": "dev-web",
+          "name": "Web",
+          "name_en": "Web",
+          "keywords": {
+            "fr": [
+              "développement web",
+              "front-end",
+              "JavaScript"
+            ],
+            "en": [
+              "web development",
+              "frontend",
+              "JavaScript"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "développement web",
+              "JavaScript",
+              "front-end"
+            ],
+            "youtube": [
+              "développement web",
+              "JavaScript",
+              "frontend"
+            ],
+            "reddit": [
+              "javascript",
+              "webdev",
+              "france"
+            ],
+            "bluesky": [
+              "#webdev",
+              "#javascript",
+              "#frontend"
+            ]
+          },
+          "parent_slug": "developpement"
+        },
+        {
+          "slug": "dev-backend",
+          "name": "Backend",
+          "name_en": "Backend",
+          "keywords": {
+            "fr": [
+              "backend",
+              "API",
+              "base de données"
+            ],
+            "en": [
+              "backend",
+              "API",
+              "database"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "backend",
+              "API",
+              "base de données"
+            ],
+            "youtube": [
+              "backend",
+              "API design",
+              "database"
+            ],
+            "reddit": [
+              "backend",
+              "france",
+              "PostgreSQL"
+            ],
+            "bluesky": [
+              "#backend",
+              "#API",
+              "#baseDeDonnees"
+            ]
+          },
+          "parent_slug": "developpement"
+        },
+        {
+          "slug": "dev-mobile",
+          "name": "Mobile",
+          "name_en": "Mobile",
+          "keywords": {
+            "fr": [
+              "développement mobile",
+              "application mobile",
+              "iOS Android"
+            ],
+            "en": [
+              "mobile development",
+              "mobile app",
+              "iOS Android"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "développement mobile",
+              "application mobile",
+              "iOS Android"
+            ],
+            "youtube": [
+              "développement mobile",
+              "Swift",
+              "Kotlin"
+            ],
+            "reddit": [
+              "androiddev",
+              "iOSProgramming",
+              "france"
+            ],
+            "bluesky": [
+              "#mobileDev",
+              "#iOS",
+              "#Android"
+            ]
+          },
+          "parent_slug": "developpement"
+        },
+        {
+          "slug": "dev-devops-cloud",
+          "name": "DevOps & Cloud",
+          "name_en": "DevOps & Cloud",
+          "keywords": {
+            "fr": [
+              "DevOps",
+              "cloud",
+              "Kubernetes",
+              "CI/CD"
+            ],
+            "en": [
+              "DevOps",
+              "cloud computing",
+              "Kubernetes",
+              "CI/CD"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "DevOps",
+              "Kubernetes",
+              "cloud"
+            ],
+            "youtube": [
+              "DevOps",
+              "Kubernetes",
+              "cloud France"
+            ],
+            "reddit": [
+              "devops",
+              "kubernetes",
+              "france"
+            ],
+            "bluesky": [
+              "#DevOps",
+              "#Kubernetes",
+              "#cloud"
+            ]
+          },
+          "parent_slug": "developpement"
+        },
+        {
+          "slug": "dev-open-source",
+          "name": "Open Source",
+          "name_en": "Open Source",
+          "keywords": {
+            "fr": [
+              "open source",
+              "logiciel libre",
+              "GitHub"
+            ],
+            "en": [
+              "open source",
+              "free software",
+              "GitHub"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "open source",
+              "logiciel libre",
+              "GitHub"
+            ],
+            "youtube": [
+              "open source",
+              "logiciel libre",
+              "GitHub"
+            ],
+            "reddit": [
+              "opensource",
+              "france",
+              "selfhosted"
+            ],
+            "bluesky": [
+              "#openSource",
+              "#logicielLibre",
+              "#github"
+            ]
+          },
+          "parent_slug": "developpement"
+        },
+        {
+          "slug": "dev-vulgarisation-technique",
+          "name": "Vulgarisation technique",
+          "name_en": "Technical education",
+          "keywords": {
+            "fr": [
+              "tutoriel",
+              "apprendre à coder",
+              "vulgarisation technique"
+            ],
+            "en": [
+              "tutorial",
+              "learn to code",
+              "tech education"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "tutoriel programmation",
+              "apprendre à coder",
+              "vulgarisation technique"
+            ],
+            "youtube": [
+              "tutoriel programmation",
+              "apprendre à coder",
+              "developer français"
+            ],
+            "reddit": [
+              "learnprogramming",
+              "france",
+              "programmation"
+            ],
+            "bluesky": [
+              "#tutoriel",
+              "#apprendreACoder",
+              "#devFrench"
+            ]
+          },
+          "parent_slug": "developpement"
+        }
+      ]
+    },
+    {
+      "slug": "cybersecurite",
+      "name": "Cybersécurité",
+      "name_en": "Cybersecurity",
+      "parent_slug": null,
+      "keywords": {
+        "fr": [
+          "cybersécurité",
+          "sécurité informatique",
+          "piratage"
+        ],
+        "en": [
+          "cybersecurity",
+          "information security",
+          "hacking"
+        ]
+      },
+      "platforms": {
+        "rss": [
+          "cybersécurité",
+          "sécurité informatique",
+          "piratage"
+        ],
+        "youtube": [
+          "cybersécurité",
+          "sécurité informatique",
+          "hacking éthique"
+        ],
+        "reddit": [
+          "Sysadmin_Fr",
+          "cybersecurity",
+          "france"
+        ],
+        "bluesky": [
+          "#cybersecurite",
+          "#cybersecurity",
+          "#securiteInformatique"
+        ]
+      },
+      "subcategories": [
+        {
+          "slug": "cyber-vulnerabilites",
+          "name": "Vulnérabilités",
+          "name_en": "Vulnerabilities",
+          "keywords": {
+            "fr": [
+              "vulnérabilité",
+              "CVE",
+              "correctif sécurité"
+            ],
+            "en": [
+              "vulnerability",
+              "CVE",
+              "security patch"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "vulnérabilité",
+              "CVE",
+              "correctif sécurité"
+            ],
+            "youtube": [
+              "vulnérabilité",
+              "CVE",
+              "zero day"
+            ],
+            "reddit": [
+              "netsec",
+              "CVE",
+              "france"
+            ],
+            "bluesky": [
+              "#CVE",
+              "#vulnerabilite",
+              "#zeroday"
+            ]
+          },
+          "parent_slug": "cybersecurite"
+        },
+        {
+          "slug": "cyber-menaces-acteurs",
+          "name": "Menaces & Acteurs",
+          "name_en": "Threats & Actors",
+          "keywords": {
+            "fr": [
+              "ransomware",
+              "malware",
+              "APT",
+              "menace cyber"
+            ],
+            "en": [
+              "ransomware",
+              "malware",
+              "APT",
+              "cyber threat"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "ransomware",
+              "malware",
+              "APT"
+            ],
+            "youtube": [
+              "ransomware",
+              "malware",
+              "cyberattaque"
+            ],
+            "reddit": [
+              "netsec",
+              "malware",
+              "france"
+            ],
+            "bluesky": [
+              "#ransomware",
+              "#malware",
+              "#cyberattaque"
+            ]
+          },
+          "parent_slug": "cybersecurite"
+        },
+        {
+          "slug": "cyber-reglementation",
+          "name": "Réglementation",
+          "name_en": "Regulation",
+          "keywords": {
+            "fr": [
+              "RGPD",
+              "réglementation cyber",
+              "NIS2"
+            ],
+            "en": [
+              "GDPR",
+              "cyber regulation",
+              "NIS2"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "RGPD",
+              "NIS2",
+              "réglementation cybersécurité"
+            ],
+            "youtube": [
+              "RGPD",
+              "NIS2",
+              "cyber réglementation"
+            ],
+            "reddit": [
+              "eugdpr",
+              "france",
+              "cybersecurity"
+            ],
+            "bluesky": [
+              "#RGPD",
+              "#NIS2",
+              "#cyberRegulation"
+            ]
+          },
+          "parent_slug": "cybersecurite"
+        }
+      ]
+    },
+    {
+      "slug": "science",
+      "name": "Science",
+      "name_en": "Science",
+      "parent_slug": null,
+      "keywords": {
+        "fr": [
+          "science",
+          "recherche scientifique",
+          "découverte"
+        ],
+        "en": [
+          "science",
+          "scientific research",
+          "discovery"
+        ]
+      },
+      "platforms": {
+        "rss": [
+          "science",
+          "recherche scientifique",
+          "découverte scientifique"
+        ],
+        "youtube": [
+          "science",
+          "recherche scientifique",
+          "vulgarisation science"
+        ],
+        "reddit": [
+          "science",
+          "france",
+          "actutech"
+        ],
+        "bluesky": [
+          "#science",
+          "#recherche",
+          "#sciences"
+        ]
+      },
+      "subcategories": [
+        {
+          "slug": "science-recherche",
+          "name": "Recherche",
+          "name_en": "Research",
+          "keywords": {
+            "fr": [
+              "étude scientifique",
+              "publication",
+              "recherche"
+            ],
+            "en": [
+              "scientific study",
+              "research paper",
+              "peer review"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "étude scientifique",
+              "publication recherche",
+              "recherche"
+            ],
+            "youtube": [
+              "recherche scientifique",
+              "étude",
+              "paper explained"
+            ],
+            "reddit": [
+              "science",
+              "askscience",
+              "france"
+            ],
+            "bluesky": [
+              "#recherche",
+              "#science",
+              "#research"
+            ]
+          },
+          "parent_slug": "science"
+        },
+        {
+          "slug": "science-espace",
+          "name": "Espace",
+          "name_en": "Space",
+          "keywords": {
+            "fr": [
+              "espace",
+              "astronomie",
+              "fusée",
+              "NASA"
+            ],
+            "en": [
+              "space",
+              "astronomy",
+              "rocket",
+              "NASA"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "espace",
+              "astronomie",
+              "fusée"
+            ],
+            "youtube": [
+              "espace",
+              "astronomie",
+              "actualité spatiale"
+            ],
+            "reddit": [
+              "space",
+              "astronomy",
+              "france"
+            ],
+            "bluesky": [
+              "#espace",
+              "#astronomie",
+              "#space"
+            ]
+          },
+          "parent_slug": "science"
+        },
+        {
+          "slug": "science-sante-biotech",
+          "name": "Santé & Biotech",
+          "name_en": "Health & Biotech",
+          "keywords": {
+            "fr": [
+              "santé",
+              "biotechnologie",
+              "médecine"
+            ],
+            "en": [
+              "health",
+              "biotech",
+              "medicine"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "biotechnologie",
+              "santé recherche",
+              "médecine"
+            ],
+            "youtube": [
+              "biotech",
+              "santé",
+              "médecine recherche"
+            ],
+            "reddit": [
+              "biotech",
+              "science",
+              "france"
+            ],
+            "bluesky": [
+              "#biotech",
+              "#sante",
+              "#rechercheMedicale"
+            ]
+          },
+          "parent_slug": "science"
+        },
+        {
+          "slug": "science-vulgarisation",
+          "name": "Vulgarisation scientifique",
+          "name_en": "Science communication",
+          "keywords": {
+            "fr": [
+              "vulgarisation scientifique",
+              "sciences expliquées",
+              "physique"
+            ],
+            "en": [
+              "science communication",
+              "explained",
+              "physics"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "vulgarisation scientifique",
+              "physique",
+              "sciences expliquées"
+            ],
+            "youtube": [
+              "vulgarisation scientifique",
+              "physique",
+              "science expliquée"
+            ],
+            "reddit": [
+              "explainlikeimfive",
+              "askscience",
+              "france"
+            ],
+            "bluesky": [
+              "#vulgarisation",
+              "#science",
+              "#physique"
+            ]
+          },
+          "parent_slug": "science"
+        }
+      ]
+    },
+    {
+      "slug": "hardware",
+      "name": "Hardware",
+      "name_en": "Hardware",
+      "parent_slug": null,
+      "keywords": {
+        "fr": [
+          "hardware",
+          "matériel informatique",
+          "composants"
+        ],
+        "en": [
+          "hardware",
+          "computer components",
+          "gadgets"
+        ]
+      },
+      "platforms": {
+        "rss": [
+          "hardware",
+          "matériel informatique",
+          "composants PC"
+        ],
+        "youtube": [
+          "hardware",
+          "matériel informatique",
+          "composants PC"
+        ],
+        "reddit": [
+          "hardware",
+          "france",
+          "actutech"
+        ],
+        "bluesky": [
+          "#hardware",
+          "#materielInformatique",
+          "#composants"
+        ]
+      },
+      "subcategories": [
+        {
+          "slug": "hardware-composants",
+          "name": "Composants",
+          "name_en": "Components",
+          "keywords": {
+            "fr": [
+              "processeur",
+              "carte graphique",
+              "GPU",
+              "composant PC"
+            ],
+            "en": [
+              "processor",
+              "graphics card",
+              "GPU",
+              "PC component"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "processeur",
+              "carte graphique",
+              "GPU"
+            ],
+            "youtube": [
+              "processeur",
+              "carte graphique",
+              "test GPU"
+            ],
+            "reddit": [
+              "hardware",
+              "buildapc",
+              "france"
+            ],
+            "bluesky": [
+              "#GPU",
+              "#processeur",
+              "#hardware"
+            ]
+          },
+          "parent_slug": "hardware"
+        },
+        {
+          "slug": "hardware-electronique",
+          "name": "Électronique",
+          "name_en": "Electronics",
+          "keywords": {
+            "fr": [
+              "électronique",
+              "Raspberry Pi",
+              "Arduino",
+              "microcontrôleur"
+            ],
+            "en": [
+              "electronics",
+              "Raspberry Pi",
+              "Arduino",
+              "microcontroller"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "Raspberry Pi",
+              "Arduino",
+              "électronique"
+            ],
+            "youtube": [
+              "Raspberry Pi",
+              "Arduino",
+              "électronique DIY"
+            ],
+            "reddit": [
+              "raspberry_pi",
+              "arduino",
+              "france"
+            ],
+            "bluesky": [
+              "#RaspberryPi",
+              "#Arduino",
+              "#electronique"
+            ]
+          },
+          "parent_slug": "hardware"
+        },
+        {
+          "slug": "hardware-mobilite",
+          "name": "Mobilité",
+          "name_en": "Mobile devices",
+          "keywords": {
+            "fr": [
+              "smartphone",
+              "téléphone",
+              "mobile"
+            ],
+            "en": [
+              "smartphone",
+              "phone",
+              "mobile device"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "smartphone",
+              "téléphone mobile",
+              "mobile"
+            ],
+            "youtube": [
+              "smartphone",
+              "test téléphone",
+              "mobile"
+            ],
+            "reddit": [
+              "Android",
+              "apple",
+              "france"
+            ],
+            "bluesky": [
+              "#smartphone",
+              "#telephone",
+              "#mobile"
+            ]
+          },
+          "parent_slug": "hardware"
+        }
+      ]
+    },
+    {
+      "slug": "divertissements",
+      "name": "Divertissements",
+      "name_en": "Entertainment",
+      "parent_slug": null,
+      "keywords": {
+        "fr": [
+          "divertissement",
+          "culture pop",
+          "médias"
+        ],
+        "en": [
+          "entertainment",
+          "pop culture",
+          "media"
+        ]
+      },
+      "platforms": {
+        "rss": [
+          "divertissement",
+          "culture pop",
+          "actualité culturelle"
+        ],
+        "youtube": [
+          "divertissement",
+          "culture pop",
+          "médias"
+        ],
+        "reddit": [
+          "france",
+          "culture",
+          "actutech"
+        ],
+        "bluesky": [
+          "#divertissement",
+          "#culturePop",
+          "#medias"
+        ]
+      },
+      "subcategories": [
+        {
+          "slug": "divertissements-gaming",
+          "name": "Gaming",
+          "name_en": "Gaming",
+          "keywords": {
+            "fr": [
+              "jeu vidéo",
+              "gaming",
+              "esport"
+            ],
+            "en": [
+              "video game",
+              "gaming",
+              "esports"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "jeu vidéo",
+              "gaming",
+              "esport"
+            ],
+            "youtube": [
+              "jeu vidéo",
+              "gaming",
+              "esport France"
+            ],
+            "reddit": [
+              "jeuxvideo",
+              "france",
+              "gaming"
+            ],
+            "bluesky": [
+              "#jeuxvideo",
+              "#gaming",
+              "#esport"
+            ]
+          },
+          "parent_slug": "divertissements"
+        },
+        {
+          "slug": "divertissements-cinema-series",
+          "name": "Cinéma & Séries",
+          "name_en": "Movies & TV series",
+          "keywords": {
+            "fr": [
+              "cinéma",
+              "série TV",
+              "film"
+            ],
+            "en": [
+              "cinema",
+              "TV series",
+              "movie"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "cinéma",
+              "série TV",
+              "film"
+            ],
+            "youtube": [
+              "cinéma",
+              "séries",
+              "bande-annonce"
+            ],
+            "reddit": [
+              "movies",
+              "television",
+              "france"
+            ],
+            "bluesky": [
+              "#cinema",
+              "#series",
+              "#films"
+            ]
+          },
+          "parent_slug": "divertissements"
+        },
+        {
+          "slug": "divertissements-streaming",
+          "name": "Streaming",
+          "name_en": "Streaming",
+          "keywords": {
+            "fr": [
+              "streaming",
+              "Netflix",
+              "VOD"
+            ],
+            "en": [
+              "streaming",
+              "Netflix",
+              "VOD"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "streaming",
+              "Netflix",
+              "VOD"
+            ],
+            "youtube": [
+              "streaming",
+              "Netflix",
+              "plateforme streaming"
+            ],
+            "reddit": [
+              "cordcutters",
+              "netflix",
+              "france"
+            ],
+            "bluesky": [
+              "#streaming",
+              "#Netflix",
+              "#VOD"
+            ]
+          },
+          "parent_slug": "divertissements"
+        },
+        {
+          "slug": "divertissements-culture-medias",
+          "name": "Culture & Médias",
+          "name_en": "Culture & Media",
+          "keywords": {
+            "fr": [
+              "culture",
+              "médias",
+              "presse"
+            ],
+            "en": [
+              "culture",
+              "media",
+              "press"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "culture",
+              "médias",
+              "presse"
+            ],
+            "youtube": [
+              "culture",
+              "médias",
+              "analyse médias"
+            ],
+            "reddit": [
+              "france",
+              "media",
+              "europe"
+            ],
+            "bluesky": [
+              "#culture",
+              "#medias",
+              "#presse"
+            ]
+          },
+          "parent_slug": "divertissements"
+        },
+        {
+          "slug": "divertissements-bushcraft",
+          "name": "Bushcraft",
+          "name_en": "Bushcraft",
+          "keywords": {
+            "fr": [
+              "bushcraft",
+              "survie",
+              "plein air"
+            ],
+            "en": [
+              "bushcraft",
+              "survival",
+              "outdoors"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "bushcraft",
+              "survie nature",
+              "plein air"
+            ],
+            "youtube": [
+              "bushcraft",
+              "survie",
+              "outdoor France"
+            ],
+            "reddit": [
+              "Bushcraft",
+              "Survival",
+              "france"
+            ],
+            "bluesky": [
+              "#bushcraft",
+              "#survie",
+              "#pleinAir"
+            ]
+          },
+          "parent_slug": "divertissements"
+        },
+        {
+          "slug": "divertissements-bricolage-maison",
+          "name": "Bricolage maison",
+          "name_en": "DIY home",
+          "keywords": {
+            "fr": [
+              "bricolage",
+              "maison",
+              "DIY"
+            ],
+            "en": [
+              "DIY",
+              "home improvement",
+              "woodworking"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "bricolage",
+              "maison DIY",
+              "travaux maison"
+            ],
+            "youtube": [
+              "bricolage",
+              "DIY maison",
+              "menuiserie"
+            ],
+            "reddit": [
+              "DIY",
+              "woodworking",
+              "france"
+            ],
+            "bluesky": [
+              "#bricolage",
+              "#DIY",
+              "#maison"
+            ]
+          },
+          "parent_slug": "divertissements"
+        }
+      ]
+    },
+    {
+      "slug": "musiques",
+      "name": "Musiques",
+      "name_en": "Music",
+      "parent_slug": null,
+      "keywords": {
+        "fr": [
+          "musique",
+          "nouveauté musicale",
+          "album"
+        ],
+        "en": [
+          "music",
+          "new music",
+          "album"
+        ]
+      },
+      "platforms": {
+        "rss": [
+          "musique",
+          "nouveauté musicale",
+          "sortie album"
+        ],
+        "youtube": [
+          "musique",
+          "nouveautés musicales",
+          "sortie album"
+        ],
+        "reddit": [
+          "Music",
+          "france",
+          "musique"
+        ],
+        "bluesky": [
+          "#musique",
+          "#music",
+          "#nouveauAlbum"
+        ]
+      },
+      "subcategories": [
+        {
+          "slug": "musiques-electronique-techno",
+          "name": "Électronique & Techno",
+          "name_en": "Electronic & Techno",
+          "keywords": {
+            "fr": [
+              "musique électronique",
+              "techno",
+              "EDM"
+            ],
+            "en": [
+              "electronic music",
+              "techno",
+              "EDM"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "musique électronique",
+              "techno",
+              "EDM"
+            ],
+            "youtube": [
+              "musique électronique",
+              "techno",
+              "EDM"
+            ],
+            "reddit": [
+              "electronicmusic",
+              "techno",
+              "france"
+            ],
+            "bluesky": [
+              "#techno",
+              "#musiqueElectronique",
+              "#EDM"
+            ]
+          },
+          "parent_slug": "musiques"
+        },
+        {
+          "slug": "musiques-metal-philharmonique",
+          "name": "Métal & Philharmonique",
+          "name_en": "Metal & Orchestral",
+          "keywords": {
+            "fr": [
+              "métal",
+              "rock",
+              "musique classique",
+              "orchestre"
+            ],
+            "en": [
+              "metal",
+              "rock",
+              "classical music",
+              "orchestra"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "métal",
+              "rock",
+              "musique classique"
+            ],
+            "youtube": [
+              "métal",
+              "rock",
+              "musique classique"
+            ],
+            "reddit": [
+              "Metal",
+              "classicalmusic",
+              "france"
+            ],
+            "bluesky": [
+              "#metal",
+              "#rock",
+              "#musiqueClassique"
+            ]
+          },
+          "parent_slug": "musiques"
+        },
+        {
+          "slug": "musiques-jazz-blues",
+          "name": "Jazz & Blues",
+          "name_en": "Jazz & Blues",
+          "keywords": {
+            "fr": [
+              "jazz",
+              "blues",
+              "soul"
+            ],
+            "en": [
+              "jazz",
+              "blues",
+              "soul"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "jazz",
+              "blues",
+              "soul musique"
+            ],
+            "youtube": [
+              "jazz",
+              "blues",
+              "soul"
+            ],
+            "reddit": [
+              "Jazz",
+              "blues",
+              "france"
+            ],
+            "bluesky": [
+              "#jazz",
+              "#blues",
+              "#soul"
+            ]
+          },
+          "parent_slug": "musiques"
+        },
+        {
+          "slug": "musiques-pop-variete",
+          "name": "Pop & Variété",
+          "name_en": "Pop & Variety",
+          "keywords": {
+            "fr": [
+              "pop",
+              "variété française",
+              "chanson"
+            ],
+            "en": [
+              "pop",
+              "French variety",
+              "song"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "pop",
+              "variété française",
+              "chanson"
+            ],
+            "youtube": [
+              "pop",
+              "variété française",
+              "chanson française"
+            ],
+            "reddit": [
+              "popheads",
+              "france",
+              "musique"
+            ],
+            "bluesky": [
+              "#pop",
+              "#varieteFrancaise",
+              "#chanson"
+            ]
+          },
+          "parent_slug": "musiques"
+        }
+      ]
+    },
+    {
+      "slug": "arts-graphiques",
+      "name": "Arts graphiques",
+      "name_en": "Visual arts",
+      "parent_slug": null,
+      "keywords": {
+        "fr": [
+          "art graphique",
+          "illustration",
+          "création visuelle"
+        ],
+        "en": [
+          "visual arts",
+          "illustration",
+          "digital art"
+        ]
+      },
+      "platforms": {
+        "rss": [
+          "art graphique",
+          "illustration",
+          "création visuelle"
+        ],
+        "youtube": [
+          "art graphique",
+          "illustration",
+          "création visuelle"
+        ],
+        "reddit": [
+          "Art",
+          "france",
+          "DigitalArt"
+        ],
+        "bluesky": [
+          "#artGraphique",
+          "#illustration",
+          "#artNumerique"
+        ]
+      },
+      "subcategories": [
+        {
+          "slug": "arts-graphiques-manga-anime",
+          "name": "Manga & Animé",
+          "name_en": "Manga & Anime",
+          "keywords": {
+            "fr": [
+              "manga",
+              "animé",
+              "anime"
+            ],
+            "en": [
+              "manga",
+              "anime",
+              "japanese animation"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "manga",
+              "animé",
+              "anime"
+            ],
+            "youtube": [
+              "manga",
+              "anime",
+              "animé France"
+            ],
+            "reddit": [
+              "manga",
+              "anime",
+              "france"
+            ],
+            "bluesky": [
+              "#manga",
+              "#anime",
+              "#animeFrance"
+            ]
+          },
+          "parent_slug": "arts-graphiques"
+        },
+        {
+          "slug": "arts-graphiques-infographie-2d-3d",
+          "name": "Infographie 2D/3D",
+          "name_en": "2D/3D graphics",
+          "keywords": {
+            "fr": [
+              "infographie",
+              "3D",
+              "modélisation"
+            ],
+            "en": [
+              "computer graphics",
+              "3D",
+              "modeling"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "infographie",
+              "3D",
+              "modélisation 3D"
+            ],
+            "youtube": [
+              "infographie",
+              "3D",
+              "Blender"
+            ],
+            "reddit": [
+              "blender",
+              "3Dmodeling",
+              "france"
+            ],
+            "bluesky": [
+              "#3D",
+              "#infographie",
+              "#blender"
+            ]
+          },
+          "parent_slug": "arts-graphiques"
+        },
+        {
+          "slug": "arts-graphiques-illustration-bd",
+          "name": "Illustration & BD",
+          "name_en": "Illustration & Comics",
+          "keywords": {
+            "fr": [
+              "illustration",
+              "bande dessinée",
+              "BD"
+            ],
+            "en": [
+              "illustration",
+              "comics",
+              "graphic novel"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "illustration",
+              "bande dessinée",
+              "BD"
+            ],
+            "youtube": [
+              "illustration",
+              "bande dessinée",
+              "dessin"
+            ],
+            "reddit": [
+              "Illustration",
+              "comicbooks",
+              "france"
+            ],
+            "bluesky": [
+              "#illustration",
+              "#BD",
+              "#comics"
+            ]
+          },
+          "parent_slug": "arts-graphiques"
+        },
+        {
+          "slug": "arts-graphiques-design-ui-ux",
+          "name": "Design & UI/UX",
+          "name_en": "Design & UI/UX",
+          "keywords": {
+            "fr": [
+              "design",
+              "UI/UX",
+              "interface"
+            ],
+            "en": [
+              "design",
+              "UI/UX",
+              "user interface"
+            ]
+          },
+          "platforms": {
+            "rss": [
+              "design",
+              "UI/UX",
+              "interface utilisateur"
+            ],
+            "youtube": [
+              "design UI",
+              "UX design",
+              "interface"
+            ],
+            "reddit": [
+              "web_design",
+              "UXDesign",
+              "france"
+            ],
+            "bluesky": [
+              "#design",
+              "#UI",
+              "#UX"
+            ]
+          },
+          "parent_slug": "arts-graphiques"
+        }
+      ]
+    }
+  ]
+}
