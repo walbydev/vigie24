@@ -1,0 +1,13 @@
+# systemd timer d'exemple : exécution toutes les 72 h (OnUnitActiveSec=3d),
+# rattrapage après arrêt (Persistent), premier passage 15 min après le boot.
+[Unit]
+Description=Exécute le pipeline vigie24 toutes les 72 heures
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=3d
+Persistent=true
+Unit=vigie24-report.service
+
+[Install]
+WantedBy=timers.target

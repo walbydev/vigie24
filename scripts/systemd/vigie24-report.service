@@ -1,0 +1,15 @@
+# systemd unit d'exemple pour le pipeline vigie24 (hôte avec systemd).
+# À copier dans /etc/systemd/system/, adapter les chemins, puis :
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now vigie24-report.timer
+# Le fichier de secrets /opt/data/vigie24_telegram.env est HORS du dépôt.
+[Unit]
+Description=Vigie24 : pipeline de découverte de sources + rapport Telegram
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/opt/data/vigie24_telegram.env
+WorkingDirectory=/opt/data/vigie24-repo
+ExecStart=/usr/bin/python3 /opt/data/vigie24-repo/run_pipeline.py

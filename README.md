@@ -101,6 +101,54 @@ PostgreSQL must be reachable (see `docs/development.md`).
 - **`environments/<env>/.env`** → secrets only (API keys, DB passwords), never committed; `.env.example` templates are versioned
 - All config is injected in containers via `env_file` + environment overrides — no secret is baked into images
 
+## 📡 Automatic Telegram report (every 72 h)
+
+The repository ships a **self-contained Python pipeline** that discovers new tech
+sources (RSS, YouTube, Reddit, Bluesky) and sends Philippe a **10-20 source report,
+mostly French-speaking**, to Telegram **every 3 days**.
+
+```
+src/discovery.py   multi-source collection -> candidates.jsonl (gitignored)
+src/report.py      relevance filter + dedup + seen state -> Markdown report
+src/telegram.py    Telegram sending: send_report() / send_error() (stdlib only)
+run_pipeline.py    orchestrator: discovery -> report -> send (or alert)
+scheduler.py       portable APScheduler scheduler (IntervalTrigger(days=3))
+scripts/systemd/   sample systemd units (timer OnUnitActiveSec=3d)
+```
+
+**Scheduling method retained.** On the homelab container (no systemd), scheduling
+is handled by the **Hermes scheduler** (cron `vigie24-rapport-3j`, every 72 h,
+supervised by the `main-hermes` service, a robust equivalent of an
+`IntervalTrigger(days=3)`) which runs the wrapper
+`/opt/data/scripts/vigie24_report_3d.sh`. For a standalone host the repo provides
+`scheduler.py` (APScheduler `IntervalTrigger(days=3)`, run with
+`uv run --with apscheduler python3 scheduler.py`) and the sample systemd units
+`scripts/systemd/vigie24-report.{service,timer}` (`OnUnitActiveSec=3d`).
+
+**Secrets — never versioned.** Bot token and chat id are read from the
+`VIGIE24_TELEGRAM_BOT_TOKEN` / `VIGIE24_TELEGRAM_CHAT_ID` environment variables
+(template: `.env.example`). On the homelab container they live in
+`/opt/data/vigie24_telegram.env` (0600, outside the repo), loaded by the wrapper
+and by the systemd units via `EnvironmentFile`.
+
+**Commands**
+
+```bash
+python3 run_pipeline.py                        # full pipeline + Telegram send
+python3 run_pipeline.py --dry-run              # pipeline without sending, state untouched
+python3 run_pipeline.py --send-report report.md   # manual send test
+python3 run_pipeline.py --send-error "message"    # manual alert test
+python3 -m src.telegram --send-report report.md   # direct variant
+```
+
+**Behavior.** Each run produces `report_YYYY-MM-DD_HHMM.md` (gitignored), logs to
+`logs/pipeline.log` (gitignored) and updates `state/seen_sources.json` (an already
+reported source is never proposed again). If a step fails, a `⚠️ Vigie24 — …` alert
+goes to Telegram and the script exits non-zero (1 = discovery/report, 3 = send) —
+**the scheduler is never blocked** (non-zero exit is logged, next trigger unchanged).
+
+**Python tests** (offline): `python3 -m unittest discover -s tests -p "test_*.py"`
+
 ## 🧪 Tests
 
 ```bash

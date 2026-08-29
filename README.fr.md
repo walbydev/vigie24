@@ -101,6 +101,55 @@ PostgreSQL doit être joignable (voir `docs/development.fr.md`).
 - **`environments/<env>/.env`** → secrets uniquement (clés API, mots de passe DB), jamais commités ; les gabarits `.env.example` sont versionnés
 - Toute la config est injectée dans les conteneurs via `env_file` + surcharges d'environnement — aucun secret n'est intégré aux images
 
+## 📡 Rapport Telegram automatique (toutes les 72 h)
+
+Le dépôt embarque un **pipeline Python autonome** qui découvre de nouvelles sources
+technologiques (RSS, YouTube, Reddit, Bluesky) et envoie à Philippe un rapport de
+**10-20 sources majoritairement francophones** sur Telegram, **tous les 3 jours**.
+
+```
+src/discovery.py   collecte multi-sources -> candidates.jsonl (gitignoré)
+src/report.py      filtrage pertinence + dédup + état vu -> rapport Markdown
+src/telegram.py    envoi Telegram : send_report() / send_error() (stdlib only)
+run_pipeline.py    orchestrateur : discovery -> report -> envoi (ou alerte)
+scheduler.py       planificateur APScheduler portable (IntervalTrigger(days=3))
+scripts/systemd/   unités systemd d'exemple (timer OnUnitActiveSec=3d)
+```
+
+**Méthode retenue pour la planification.** Sur le conteneur homelab (pas de
+systemd), la planification est portée par le **scheduler Hermes** (cron
+`vigie24-rapport-3j`, toutes les 72 h, supervisé par le service `main-hermes`,
+équivalent robuste d'un `IntervalTrigger(days=3)`) qui exécute le wrapper
+`/opt/data/scripts/vigie24_report_3d.sh`. Pour un hôte autonome, le dépôt fournit
+`scheduler.py` (APScheduler `IntervalTrigger(days=3)`, lancer avec
+`uv run --with apscheduler python3 scheduler.py`) et les unités systemd
+`scripts/systemd/vigie24-report.{service,timer}` (`OnUnitActiveSec=3d`).
+
+**Secrets — jamais versionnés.** Le jeton du bot et le chat_id se lisent dans les
+variables d'environnement `VIGIE24_TELEGRAM_BOT_TOKEN` et `VIGIE24_TELEGRAM_CHAT_ID`
+(gabarit : `.env.example`). Sur le conteneur homelab, ils vivent dans
+`/opt/data/vigie24_telegram.env` (0600, hors dépôt), chargé par le wrapper et par
+les unités systemd via `EnvironmentFile`.
+
+**Commandes**
+
+```bash
+python3 run_pipeline.py                        # pipeline complet + envoi Telegram
+python3 run_pipeline.py --dry-run              # pipeline sans envoi, état non modifié
+python3 run_pipeline.py --send-report report.md   # test manuel de l'envoi
+python3 run_pipeline.py --send-error "message"    # test manuel de l'alerte
+python3 -m src.telegram --send-report report.md   # variante directe
+```
+
+**Comportement.** Chaque exécution produit `report_AAAA-MM-JJ_HHMM.md` (gitignoré),
+journalise dans `logs/pipeline.log` (gitignoré) et met à jour `state/seen_sources.json`
+(une source déjà signalée n'est jamais re-proposée). En cas d'échec d'une étape, une
+alerte `⚠️ Vigie24 — …` part sur Telegram et le script sort en erreur (1 = discovery/
+report, 3 = envoi) — **le planificateur n'est jamais bloqué** (code de sortie non nul
+journalisé, prochain déclenchement inchangé).
+
+**Tests Python** (hors réseau) : `python3 -m unittest discover -s tests -p "test_*.py"`
+
 ## 🧪 Tests
 
 ```bash
