@@ -99,7 +99,20 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+// Versioned static assets (?v=<hash> via asp-append-version) are immutable:
+// the hash changes when content changes, so cache them for a year.
+// Non-versioned responses (HTML, feeds, APIs) keep their default no-cache.
+var versionedStaticFiles = new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        if (ctx.Context.Request.Query.ContainsKey("v"))
+        {
+            ctx.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        }
+    }
+};
+app.UseStaticFiles(versionedStaticFiles);
 app.UseRouting();
 
 app.MapBlazorHub();
