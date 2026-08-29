@@ -51,7 +51,7 @@ PROD_STACK    = $(PROD_DIR)/environments/production
         prod-pub prod-ps prod-logs prod-down prod-status prod-backup prod-sync \
         staging-worker-pause staging-worker-resume \
         prod-worker-pause prod-worker-resume \
-        release
+        assets release
 
 help:
 	@echo "Vigie24 — available targets:"
@@ -203,6 +203,12 @@ prod-worker-pause:
 prod-worker-resume:
 	@ssh $(PROD_HOST) "cd $(PROD_STACK) && docker compose --env-file .env start vigie24-worker"
 	@echo "▶️ Production worker restarted."
+
+# --- Static assets: minify CSS/JS (run after editing any wwwroot source) ---
+assets:
+	@echo "🔧 Minifying static assets (CSS/JS)..."
+	@uv run --with rcssmin --with jsmin python3 scripts/minify-assets.py
+	@echo "✅ Minified files regenerated — commit the .min.* outputs."
 
 # --- Public release (Gitea = primary source, GitHub = major releases only) ---
 # Auth: GITEA_TOKEN / GITHUB_TOKEN read from Makefile.env (gitignored) when set
