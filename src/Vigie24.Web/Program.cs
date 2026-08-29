@@ -226,7 +226,7 @@ app.MapGet("/api/articles/{id:guid}/track", async (Guid id, Vigie24DbContext db,
     await db.SaveChangesAsync();
 
     var primary = article.Sources.FirstOrDefault(s => s.IsPrimary) ?? article.Sources.FirstOrDefault();
-    var target = primary?.SourceArticleUrl ?? article.CanonicalUrl;
+    var target = UrlNormalizer.ToAscii(primary?.SourceArticleUrl ?? article.CanonicalUrl);
     return string.IsNullOrWhiteSpace(target) ? Results.NotFound() : Results.Redirect(target);
 });
 

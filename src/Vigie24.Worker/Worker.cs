@@ -482,7 +482,7 @@ public class Vigie24Worker : BackgroundService
                 {
                     Title = item.Title?.Text ?? "Untitled"!,
                     Content = item.Summary?.Text ?? (item.Content != null ? item.Content.ToString() : ""), 
-                    Url = item.Links.FirstOrDefault()?.Uri.ToString() ?? "",
+                    Url = item.Links.FirstOrDefault()?.Uri.AbsoluteUri ?? "",
                     PublishedAt = item.PublishDate.UtcDateTime,
                     Author = item.Authors.FirstOrDefault()?.Name ?? "",
                     ImageUrl = ExtractFeedImage(item)
