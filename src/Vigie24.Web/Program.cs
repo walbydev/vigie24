@@ -230,6 +230,39 @@ app.MapGet("/api/articles/{id:guid}/track", async (Guid id, Vigie24DbContext db,
     return string.IsNullOrWhiteSpace(target) ? Results.NotFound() : Results.Redirect(target);
 });
 
+// POST /api/sources/{id}/reactivate — manual reactivation of a disabled source.
+// Guarded by an admin token (Admin:ReactivateToken, env ADMIN__REACTIVATETOKEN)
+// sent in the X-Vigie24-Admin header. Inert (404) when no token is configured.
+app.MapPost("/api/sources/{id:guid}/reactivate", async (Guid id, Vigie24DbContext db, HttpContext http) =>
+{
+    var expected = app.Configuration["Admin:ReactivateToken"];
+    if (string.IsNullOrEmpty(expected)) return Results.NotFound();
+
+    var provided = http.Request.Headers["X-Vigie24-Admin"].FirstOrDefault();
+    if (string.IsNullOrEmpty(provided)
+        || !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+            System.Text.Encoding.UTF8.GetBytes(expected),
+            System.Text.Encoding.UTF8.GetBytes(provided)))
+    {
+        return Results.Unauthorized();
+    }
+
+    var source = await db.Sources.FirstOrDefaultAsync(s => s.Id == id);
+    if (source is null) return Results.NotFound();
+
+    if (!source.IsActive)
+    {
+        source.IsActive = true;
+        source.FetchFailureCount = 0;
+        source.DisabledReason = null;
+        source.DisabledAt = null;
+        source.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+    }
+
+    return Results.Ok(new { ok = true, name = source.Name });
+});
+
 // ===== RSS 2.0 feeds (subscription) =====
 // /feed                     → the 50 most recently published articles, all categories
 // /categories/{slug}/feed   → the 50 most recently published articles of the category (and its subcategories)

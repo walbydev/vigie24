@@ -103,6 +103,9 @@ public class Vigie24Worker : BackgroundService
         // Update the ingestion timestamps
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        // S3 — auto-recovery: re-test sources disabled automatically (24 h later).
+        await ProbeDisabledSourcesAsync(dbContext, cancellationToken);
+
         // Rebuild "debates": pairing up contradictory articles
         await RebuildDebatesAsync(dbContext, cancellationToken);
     }
@@ -253,6 +256,22 @@ public class Vigie24Worker : BackgroundService
 
     private async Task ProcessSourceAsync(Source source, Vigie24DbContext dbContext, CancellationToken cancellationToken)
     {
+        // Retry backoff: after consecutive failures, do not hammer the feed —
+        // retry with an exponential ladder (5 min → … → 6 h, see SourceFailurePolicy).
+        // Success resets the counter, so a healthy source is never throttled.
+        if (source.FetchFailureCount > 0 && source.LastFetchAttemptAt is { } lastAttempt)
+        {
+            var backoff = TimeSpan.FromMinutes(SourceFailurePolicy.BackoffMinutes(source.FetchFailureCount));
+            var elapsed = DateTime.UtcNow - lastAttempt;
+            if (elapsed < backoff)
+            {
+                _logger.LogInformation("Source {SourceName} in backoff ({Count} failures, retry in {Remaining} min)",
+                    source.Name, source.FetchFailureCount, (int)(backoff - elapsed).TotalMinutes);
+                return;
+            }
+        }
+        source.LastFetchAttemptAt = DateTime.UtcNow;
+
         _logger.LogInformation("Processing source: {SourceName} ({Kind})", 
             source.Name, source.SourceKind);
 
@@ -270,10 +289,11 @@ public class Vigie24Worker : BackgroundService
         }
         catch (FeedFetchException ffe)
         {
-            // Fetch failed: bump the per-source consecutive-failure counter and
-            // auto-disable the source once the threshold (FeedReader:MaxFetchFailures)
-            // is reached — announced in the worker logs (failure report).
-            await HandleFetchFailureAsync(source, dbContext, ffe.FeedUrl, cancellationToken);
+            // Fetch failed: classify (permanent vs transient), bump the consecutive-failure
+            // counter and auto-disable ONLY on permanent failures once the threshold
+            // (FeedReader:MaxFetchFailures) is reached. Transient failures (429/5xx/timeout)
+            // just back off — announced in the worker logs (failure report).
+            await HandleFetchFailureAsync(source, dbContext, ffe.FeedUrl, ffe.InnerException ?? ffe, cancellationToken);
             return;
         }
 
@@ -312,28 +332,84 @@ public class Vigie24Worker : BackgroundService
 
     /// <summary>
     /// Records a fetch failure for a source: bumps the consecutive-failure counter,
-    /// auto-disables the source once FeedReader:MaxFetchFailures is reached and
+    /// auto-disables the source once FeedReader:MaxFetchFailures PERMANENT failures
+    /// are reached (transient failures never disable — they only back off) and
     /// announces the event in the worker logs (failure report).
     /// </summary>
-    private async Task HandleFetchFailureAsync(Source source, Vigie24DbContext dbContext, string feedUrl, CancellationToken cancellationToken)
+    private async Task HandleFetchFailureAsync(Source source, Vigie24DbContext dbContext, string feedUrl, Exception exception, CancellationToken cancellationToken)
     {
+        source.LastFetchAttemptAt = DateTime.UtcNow;
         source.FetchFailureCount = SourceFailurePolicy.NextFailureCount(source.FetchFailureCount);
         var maxFailures = _configuration.GetValue<int>("FeedReader:MaxFetchFailures", SourceFailurePolicy.DefaultMaxFailures);
+        var kind = SourceFailurePolicy.Classify(exception);
 
-        if (SourceFailurePolicy.ShouldDisable(source.FetchFailureCount, maxFailures))
+        if (kind == FetchFailureKind.Permanent && SourceFailurePolicy.ShouldDisable(source.FetchFailureCount, maxFailures))
         {
             source.IsActive = false;
+            source.DisabledAt = DateTime.UtcNow;
             source.DisabledReason = SourceFailurePolicy.DisableReason(source.FetchFailureCount);
-            _logger.LogError("Source {SourceName} AUTO-DISABLED after {Count}/{Max} consecutive fetch failures ({FeedUrl})",
-                source.Name, source.FetchFailureCount, maxFailures, feedUrl);
+            _logger.LogError("Source {SourceName} AUTO-DISABLED after {Count}/{Max} permanent failures ({FeedUrl}) — {Error}",
+                source.Name, source.FetchFailureCount, maxFailures, feedUrl, exception.GetType().Name);
         }
         else
         {
-            _logger.LogWarning("Fetch failed for source {SourceName} ({Count}/{Max}): {FeedUrl}",
-                source.Name, source.FetchFailureCount, maxFailures, feedUrl);
+            _logger.LogWarning("Fetch failed for source {SourceName} ({Kind}, {Count}/{Max}): {FeedUrl} — {Error}",
+                source.Name, kind, source.FetchFailureCount, maxFailures, feedUrl, exception.GetType().Name);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// S3 — auto-recovery: sources disabled automatically are re-tested after
+    /// FeedReader:RecoveryProbeAfterHours (default 24 h). A source whose feed is
+    /// reachable again is reactivated on the spot (items are NOT processed — the
+    /// probe only checks reachability, so no AI cost). A still-broken source gets
+    /// its probe window pushed forward.
+    /// </summary>
+    private async Task ProbeDisabledSourcesAsync(Vigie24DbContext dbContext, CancellationToken cancellationToken)
+    {
+        var probeAfterHours = _configuration.GetValue<int>("FeedReader:RecoveryProbeAfterHours", SourceFailurePolicy.DefaultRecoveryProbeAfterHours);
+        var since = DateTime.UtcNow.AddHours(-probeAfterHours);
+
+        var disabled = await dbContext.Sources
+            .Where(s => !s.IsActive && s.DisabledReason != null)
+            .Where(s => (s.DisabledAt ?? s.UpdatedAt) < since)
+            .ToListAsync(cancellationToken);
+
+        foreach (var source in disabled)
+        {
+            try
+            {
+                var items = source.IngestionMethod switch
+                {
+                    "Api" => await FetchApiFeedAsync(source, cancellationToken),
+                    _ => await FetchRssFeedAsync(source.FeedUrl!, cancellationToken)
+                };
+
+                source.IsActive = true;
+                source.FetchFailureCount = 0;
+                source.DisabledReason = null;
+                source.DisabledAt = null;
+                source.LastIngestedAt = DateTime.UtcNow;
+                source.LastFetchAttemptAt = DateTime.UtcNow;
+                source.UpdatedAt = DateTime.UtcNow;
+                _logger.LogInformation("Source {SourceName} REACTIVATED automatically (feed reachable again, {ItemCount} items)",
+                    source.Name, items.Count);
+            }
+            catch (FeedFetchException)
+            {
+                // Still down: push the next probe window forward (probe again in ~24 h).
+                source.DisabledAt = DateTime.UtcNow;
+                _logger.LogWarning("Source {SourceName} still unreachable — next probe in {Hours} h",
+                    source.Name, probeAfterHours);
+            }
+        }
+
+        if (disabled.Count > 0)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private async Task<List<ArticleFeedItem>> FetchRssFeedAsync(string feedUrl, CancellationToken cancellationToken)

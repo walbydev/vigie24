@@ -366,6 +366,9 @@ namespace Vigie24.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DisabledAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("DisabledReason")
                         .HasColumnType("text");
 
@@ -385,6 +388,9 @@ namespace Vigie24.Infrastructure.Migrations
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastFetchAttemptAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("LastIngestedAt")
                         .HasColumnType("timestamp with time zone");

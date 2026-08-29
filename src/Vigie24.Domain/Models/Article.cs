@@ -151,6 +151,13 @@ public class Source
 
     /// <summary>Human-readable reason when the source was auto-disabled (null when active).</summary>
     public string? DisabledReason { get; set; }
+
+    /// <summary>UTC time the source was auto-disabled (null when active or never disabled).</summary>
+    public DateTime? DisabledAt { get; set; }
+
+    /// <summary>UTC time of the last fetch attempt (success or failure) — drives the retry backoff.</summary>
+    public DateTime? LastFetchAttemptAt { get; set; }
+
     public DateTime? LastIngestedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

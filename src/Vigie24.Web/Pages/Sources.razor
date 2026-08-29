@@ -5,6 +5,9 @@
 @using Microsoft.EntityFrameworkCore
 @inject Vigie24DbContext DbContext
 @inject ILogger<Sources> Logger
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@inject System.Net.Http.HttpClient Http
+@inject Microsoft.JSInterop.IJSRuntime Js
 
 <PageTitle>Sources - Vigie24</PageTitle>
 <HeadContent>
@@ -21,6 +24,11 @@
     Les @_sources.Count sources surveillées par Vigie24 — flux RSS/Atom, chaînes YouTube et subreddits,
     analysées par IA à chaque publication.
 </p>
+
+@if (_uiMessage is not null)
+{
+    <div class="alert @(_uiMessage.StartsWith("✅") ? "alert-success" : "alert-danger")">@_uiMessage</div>
+}
 
 <div class="status-card">
     <div class="source-stats">
@@ -60,6 +68,14 @@
                     @if (!string.IsNullOrEmpty(source.DisabledReason))
                     {
                         <div class="source-meta">💡 @source.DisabledReason</div>
+                        @if (source.DisabledAt is { } disabledAt)
+                        {
+                            <div class="source-meta">🗓️ Désactivée le @disabledAt.ToLocalTime().ToString("d MMM yyyy 'à' HH:mm")</div>
+                        }
+                        @if (_adminEnabled)
+                        {
+                            <button type="button" class="btn-toggle source-reactivate" @onclick="() => ReactivateAsync(source.Id)">↩️ Réactiver</button>
+                        }
                     }
                 </div>
             </div>
@@ -142,9 +158,13 @@
     private List<Source> _failedSources = new();
     private int _activeCount;
     private int _inactiveCount;
+    private bool _adminEnabled;
+    private string? _uiMessage;
 
     protected override async Task OnInitializedAsync()
     {
+        _adminEnabled = !string.IsNullOrEmpty(Config["Admin:ReactivateToken"]);
+
         try
         {
             _sources = await DbContext.Sources.AsNoTracking()
@@ -195,6 +215,32 @@
             ("💬", "Reddit", _sources.Where(s => s.SourceKind == nameof(SourceKind.Reddit)).ToList()),
             ("🗂", "Autres", _sources.Where(s => s.SourceKind == nameof(SourceKind.Other)).ToList()),
         }.Where(g => g.Item3.Count > 0).Select(g => (g.Item1, g.Item2, g.Item3)).ToList();
+    }
+
+    private async Task ReactivateAsync(Guid sourceId)
+    {
+        _uiMessage = null;
+        var token = await Js.InvokeAsync<string>("prompt", new object?[] { "Token d'administration Vigie24 :" });
+        if (string.IsNullOrEmpty(token)) return;
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/sources/{sourceId}/reactivate");
+        request.Headers.Add("X-Vigie24-Admin", token);
+        try
+        {
+            var response = await Http.SendAsync(request);
+            _uiMessage = response.IsSuccessStatusCode
+                ? "✅ Source réactivée."
+                : "❌ Token invalide ou action refusée.";
+            if (response.IsSuccessStatusCode)
+            {
+                await OnInitializedAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Erreur lors de la réactivation de la source {SourceId}", sourceId);
+            _uiMessage = "❌ Erreur réseau — réessaie.";
+        }
     }
 
     private static string SourceFavicon(string websiteUrl)
