@@ -129,4 +129,5 @@ __pycache__/
 
 # Discovery pipeline (Python) runtime output
 candidates*.jsonl
+report*.md
 state/
