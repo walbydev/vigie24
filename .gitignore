@@ -126,3 +126,7 @@ backups/
 # Python
 __pycache__/
 *.py[cod]
+
+# Discovery pipeline (Python) runtime output
+candidates*.jsonl
+state/
