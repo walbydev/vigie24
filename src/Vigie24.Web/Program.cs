@@ -33,6 +33,13 @@ builder.Services.Configure<HstsOptions>(builder.Configuration.GetSection("Hsts")
 builder.Services.AddSingleton(new EngagementRateLimiter(
     builder.Configuration.GetValue<int>("RateLimiting:EngagementPerHour", 30),
     TimeSpan.FromHours(1)));
+// Anti-abus admin (POST /api/admin/verify) : fenêtre fixe par IP — 10 essais/heure
+// par défaut (RateLimiting:AdminVerifyPerHour) pour bloquer le brute-force du token.
+// Enregistré en service keyed : le singleton non-keyed reste l'anti-abus d'engagement.
+builder.Services.AddKeyedSingleton<EngagementRateLimiter>("admin", (_, _) =>
+    new EngagementRateLimiter(
+        builder.Configuration.GetValue<int>("RateLimiting:AdminVerifyPerHour", 10),
+        TimeSpan.FromHours(1)));
 
 // Database
 builder.Services.AddDbContext<Vigie24DbContext>(options =>
@@ -247,11 +254,21 @@ static bool IsAdminGranted(HttpContext http, string expected)
 // opens an HttpOnly admin session cookie (vigie24_admin, 7 days). The cookie never
 // contains the token — it only proves the token was presented once, so it can be
 // used to reveal admin actions in the UI (e.g. the reactivation button on /sources).
-// Inert (404) when no token is configured.
-app.MapPost("/api/admin/verify", (HttpContext http) =>
+// Anti-abus : fenêtre fixe par IP (RateLimiting:AdminVerifyPerHour) + journalisation
+// des tentatives (audit). Inert (404) when no token is configured.
+app.MapPost("/api/admin/verify", (HttpContext http, [FromKeyedServices("admin")] EngagementRateLimiter limiter, ILogger<Program> logger) =>
 {
     var expected = app.Configuration["Admin:ReactivateToken"];
     if (string.IsNullOrEmpty(expected)) return Results.NotFound();
+
+    var ip = http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    if (!limiter.TryConsume($"verify:{ip}"))
+    {
+        logger.LogWarning("Admin : trop de tentatives de vérification de token depuis {Ip} (429)", ip);
+        return Results.Json(
+            new { error = "Trop de tentatives depuis cette adresse. Réessayez plus tard." },
+            statusCode: StatusCodes.Status429TooManyRequests);
+    }
 
     var provided = http.Request.Headers["X-Vigie24-Admin"].FirstOrDefault();
     if (string.IsNullOrEmpty(provided)
@@ -259,9 +276,11 @@ app.MapPost("/api/admin/verify", (HttpContext http) =>
             System.Text.Encoding.UTF8.GetBytes(expected),
             System.Text.Encoding.UTF8.GetBytes(provided)))
     {
+        logger.LogWarning("Admin : token de vérification invalide depuis {Ip}", ip);
         return Results.Unauthorized();
     }
 
+    logger.LogInformation("Admin : session ouverte depuis {Ip}", ip);
     http.Response.Cookies.Append("vigie24_admin", "1", new CookieOptions
     {
         HttpOnly = true,
@@ -276,13 +295,14 @@ app.MapPost("/api/admin/verify", (HttpContext http) =>
 // Guarded by the admin token (Admin:ReactivateToken, env ADMIN__REACTIVATETOKEN):
 // X-Vigie24-Admin header or vigie24_admin session cookie. Inert (404) when no
 // token is configured.
-app.MapPost("/api/sources/{id:guid}/reactivate", async (Guid id, Vigie24DbContext db, HttpContext http) =>
+app.MapPost("/api/sources/{id:guid}/reactivate", async (Guid id, Vigie24DbContext db, HttpContext http, ILogger<Program> logger) =>
 {
     var expected = app.Configuration["Admin:ReactivateToken"];
     if (string.IsNullOrEmpty(expected)) return Results.NotFound();
 
     if (!IsAdminGranted(http, expected))
     {
+        logger.LogWarning("Admin : réactivation refusée (session ou token invalide) depuis {Ip}", http.Connection.RemoteIpAddress);
         return Results.Unauthorized();
     }
 
@@ -291,6 +311,7 @@ app.MapPost("/api/sources/{id:guid}/reactivate", async (Guid id, Vigie24DbContex
 
     if (!source.IsActive)
     {
+        logger.LogInformation("Admin : source {SourceName} ({SourceId}) réactivée", source.Name, source.Id);
         source.IsActive = true;
         source.FetchFailureCount = 0;
         source.DisabledReason = null;
