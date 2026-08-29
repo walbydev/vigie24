@@ -1,4 +1,7 @@
 @page "/projet"
+@using Vigie24.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject Vigie24DbContext DbContext
 
 <PageTitle>Le projet - Vigie24</PageTitle>
 <HeadContent>
@@ -21,14 +24,25 @@
     <strong>expliquer ses choix</strong> ?
 </p>
 <p class="project-lead">
-    C'est l'idée : une veille qui surveille en continu <strong>250+ sources</strong> de la presse, des
-    blogs, des chaînes YouTube et de Reddit — <strong>francophones d'abord</strong> (France, Suisse,
-    Belgique, Québec, Luxembourg), <strong>ouvertes sur l'actualité internationale</strong> — où une
-    <strong>IA joue le rôle d'un comité de rédaction</strong> : elle lit chaque article, le résume,
+    C'est l'idée : une veille qui surveille en continu
+    <strong>@_activeSources sources actives</strong> (sur @_totalSources vérifiées à la main)
+    de la presse, des blogs, des chaînes YouTube et de Reddit — <strong>francophones d'abord</strong>
+    (France, Suisse, Belgique, Québec, Luxembourg), <strong>ouvertes sur l'actualité internationale</strong>
+    — où une <strong>IA joue le rôle d'un comité de rédaction</strong> : elle lit chaque article, le résume,
     le note sur 100 et décide de le publier. La différence avec une veille classique ?
     <strong>Tout est transparent</strong> — les scores, les justifications, les hésitations, même
     les coûts.
 </p>
+
+<div class="status-card project-stats">
+    <div class="source-stats">
+        <span class="source-stat"><strong>@_activeSources</strong> sources actives / @_totalSources</span>
+        <span class="source-stat">📰 <strong>@_articles.ToString("N0", Culture)</strong> articles analysés</span>
+        <span class="source-stat">🗂 <strong>@_categories</strong> catégories</span>
+        <span class="source-stat">🥊 <strong>@_debates</strong> dossiers vivants</span>
+        <span class="source-stat">🧪 <strong>200+</strong> tests automatisés</span>
+    </div>
+</div>
 
 <div class="license-card">
     <h2>Comment ça marche, en trois étapes</h2>
@@ -106,6 +120,22 @@
         <p class="layer-desc muted">Dans un an, Vigie24 vous rappellera ce que disait la veille à la même date — pour mesurer le chemin parcouru.</p>
     </div>
 
+    <div class="layer-card project-strength">
+        <div class="layer-head">
+            <span class="layer-icon">🗞️</span>
+            <h3 class="layer-title"><a href="/sources">Des sources vérifiées et résilientes</a></h3>
+        </div>
+        <p class="layer-desc muted">Chaque flux est testé avant intégration puis surveillé en continu : une source en panne passe en backoff et se réactive automatiquement quand elle revient.</p>
+    </div>
+
+    <div class="layer-card project-strength">
+        <div class="layer-head">
+            <span class="layer-icon">🛡️</span>
+            <h3 class="layer-title"><a href="/confidentialite">Vie privée et sécurité par défaut</a></h3>
+        </div>
+        <p class="layer-desc muted">Pas de compte, pas de tracker, votes anonymes — et un durcissement continu (HTTPS HSTS, politique de sécurité, anti-abus).</p>
+    </div>
+
 </div>
 
 <p class="project-note muted">
@@ -125,16 +155,18 @@
 <div class="license-card">
     <h2>Architecture</h2>
     <ul>
-        <li><strong>Worker</strong> (service en arrière-plan) : interroge les flux toutes les 15 minutes, déduplique, analyse chaque nouvel article via l'API IA, puis le publie.</li>
+        <li><strong>Worker</strong> (service en arrière-plan) : interroge les flux toutes les 5 minutes en production (15 en développement), déduplique, analyse chaque nouvel article via l'API IA, puis le publie. Une source en échec passe en <strong>backoff exponentiel</strong> ; seuls les échecs définitifs la désactivent, et elle est <strong>réactivée automatiquement</strong> si son flux revient.</li>
         <li><strong>Web</strong> : application <strong>Blazor Server</strong> (.NET 10) — navigation, recherche, filtres, votes, flux RSS, pages du projet.</li>
         <li><strong>PostgreSQL 16</strong> via EF Core / Npgsql — articles, sources, tags, votes, débats, suivi des tokens.</li>
         <li><strong>Docker Compose</strong> (worker + web + base) derrière <strong>Caddy</strong> (HTTPS Let's Encrypt) ; environnement séparé staging / production.</li>
         <li><strong>IA</strong> : API <strong>Infomaniak AI</strong> (compatible OpenAI, hébergement en Suisse), modèle <strong>google/gemma-4-31B-it</strong>, avec DeepSeek en secours.</li>
+        <li><strong>🛡️ Sécurité</strong> : HTTPS HSTS (1 an), en-têtes durcis (CSP, X-Frame-Options, nosniff), limitation anti-abus des votes (30/h par IP), cookies sécurisés, pages légales (<a href="/mentions-legales">mentions légales</a>, <a href="/confidentialite">confidentialité</a>).</li>
+        <li><strong>⚡ Performance</strong> : CSS/JS minifiés et versionnés (cache immuable), aucune feuille de style inline — un HTML léger servi compressé (gzip/zstd).</li>
     </ul>
     <p class="muted">
         Code : <strong>.NET 10</strong> · <strong>ASP.NET Core</strong> · <strong>Blazor Server</strong> ·
         <strong>EF Core</strong> · <strong>Npgsql</strong> · <strong>PostgreSQL 16</strong> ·
-        <strong>xUnit</strong> (170+ tests) · licence <strong>MIT</strong> (<a href="/license">voir la licence</a>).
+        <strong>xUnit</strong> (200+ tests) · licence <strong>MIT</strong> (<a href="/license">voir la licence</a>).
     </p>
 </div>
 
@@ -271,3 +303,33 @@
         <strong><a href="mailto:contact@vigie24.info">contact@vigie24.info</a></strong>
     </p>
 </div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo Culture =
+        System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+
+    private int _activeSources;
+    private int _totalSources;
+    private int _articles;
+    private int _categories;
+    private int _debates;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Chiffres réels (affichés sur la page) — jamais de valeurs figées.
+            _activeSources = await DbContext.Sources.CountAsync(s => s.IsActive);
+            _totalSources = await DbContext.Sources.CountAsync();
+            _articles = await DbContext.Articles.CountAsync();
+            _categories = await DbContext.Categories.CountAsync();
+            _debates = await DbContext.Debates.CountAsync();
+        }
+        catch (Exception ex)
+        {
+            // Page résiliente : sans base, on affiche les libellés sans chiffres.
+            _activeSources = _totalSources = 0;
+            Console.WriteLine($"Project stats error: {ex.Message}");
+        }
+    }
+}
