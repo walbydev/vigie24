@@ -167,11 +167,14 @@ docker compose down -v
 docker compose up -d postgres
 dotnet ef database update
 
+# Minifier les assets CSS/JS après toute édition wwwroot (le site sert les .min.*)
+make assets
+
 # Voir les migrations
 dotnet ef migrations list
 
-# Ajouter une migration
-dotnet ef migrations add NomMigration --project src/Vigie24.Infrastructure --startup-project src/Vigie24.Web
+# Ajouter une migration (DesignTimeDbContextFactory — pas de --startup-project Web requis)
+dotnet ef migrations add NomMigration --project src/Vigie24.Infrastructure
 ```
 
 ## Dépannage

@@ -17,6 +17,7 @@ scripts/
 ├── reset-database.sql      # Réinitialisation complète (SQL)
 ├── reset-db.sh             # Wrapper shell pour reset-database.sql
 ├── sync-articles-to-prod.py # Sync staging → production (idempotent, sans doublon)
+├── minify-assets.py        # Minification CSS/JS (make assets)
 ├── test-api.sh             # Test de l'API Infomaniak
 ├── test-infomaniak.sh      # Test spécifique Infomaniak
 └── README.md               # Ce fichier
@@ -194,6 +195,21 @@ python3 scripts/sync-articles-to-prod.py --dry-run   # aperçu sans rien écrire
 
 **Prérequis :** alias SSH `vigie24-staging` et `vigie24-prod` configurés.
 Aucun secret en clair (tout passe par SSH).
+
+---
+
+### `minify-assets.py` - Minification CSS/JS
+
+Minifie `wwwroot/css/site.css`, `wwwroot/css/radar.css` et
+`wwwroot/js/vigie24.js` en copies `.min.*` commitées (rcssmin/jsmin via uv).
+
+**Usage :**
+```bash
+make assets     # uv run --with rcssmin --with jsmin python3 scripts/minify-assets.py
+```
+
+À relancer après toute édition d'un CSS/JS source — le site sert les fichiers
+`.min.*` et un `.min.*` périmé sert silencieusement d'anciens styles.
 
 ---
 

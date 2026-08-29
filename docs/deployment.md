@@ -38,6 +38,15 @@ Same mechanics on the VPS (`<PROD_DIR>/environments/production`), plus the Caddy
 
 Useful targets: `make prod-ps`, `make prod-logs`, `make prod-down`, `make prod-backup` (PostgreSQL dump into `backups/`), `make prod-sync` (idempotent article sync staging → production), `make staging-worker-pause|resume`, `make prod-worker-pause|resume` (AI token savings).
 
+## Static assets
+
+CSS/JS live as readable sources in `wwwroot/css/` + `wwwroot/js/`; the site serves the minified `.min.*` copies (committed). Run `make assets` (uv + rcssmin/jsmin via `scripts/minify-assets.py`) after any CSS/JS edit — the Docker build on the server needs no tooling. Minified URLs carry `?v=` hashes (`asp-append-version`) and are served with `Cache-Control: public, max-age=31536000, immutable`.
+
+## Database migrations
+
+- `dotnet ef migrations add` uses `DesignTimeDbContextFactory` (Infrastructure) — the Web host is not built in design-time, so no `--startup-project` is needed.
+- In production the **worker applies pending migrations at startup** ("Database migrated successfully"). On environments where the worker is paused (e.g. staging), apply the migration manually (ALTER TABLE + `__EFMigrationsHistory` insert with a copied `ProductVersion`).
+
 ## Deploy checklist
 
 - [ ] Local build + tests green
@@ -53,3 +62,8 @@ The tar-based deploy overlays files but **never removes files that were deleted/
 ssh <STAGING_HOST> "find ~/vigie24 -name '<OldFileName>' -delete"
 make staging-pub
 ```
+
+## More deployment pitfalls
+
+- **`header_log` replaces the logged headers** — in the Caddyfile, `header_log headers ...` overrides the default header set: always list `User-Agent` explicitly (the traffic report's bot filter relies on it).
+- **`prod-pub` does not reload Caddy on Caddyfile-only changes** — if only the Caddyfile changed, the image is unchanged and `docker compose up` will not restart the container. Hot-reload instead: `docker exec vigie24-caddy-prod caddy reload --config /etc/caddy/Caddyfile`.

@@ -1,6 +1,6 @@
 # Vigie24 — Intelligent French-speaking Tech Watch
 
-**Vigie24** is an intelligent RSS monitoring system for French-speaking technology news. It aggregates feeds from 250+ vetted sources (press, blogs, YouTube channels, Reddit communities), analyzes each article with an LLM (summary, editorial score, anxiety score, categories, themes, keywords, debate stances), detects duplicates and related stories, and publishes the best content on a Blazor Server website with granular RSS feeds.
+**Vigie24** is an intelligent RSS monitoring system for French-speaking technology news. It aggregates feeds from 214 vetted sources (208 active — press, blogs, YouTube channels, Reddit communities), analyzes each article with an LLM (summary, editorial score, anxiety score, categories, themes, keywords, debate stances), detects duplicates and related stories, and publishes the best content on a Blazor Server website with granular RSS feeds.
 
 🌐 **Website**: [vigie24.info](https://vigie24.info) — the product is **French by design** (UI copy, public URLs, AI-generated content)  
 📡 **RSS feeds**: global `/feed` + per-category `/categories/{slug}/feed`  
@@ -10,7 +10,7 @@
 
 ## ✨ Features
 
-- **RSS aggregation** — 250+ vetted sources across 8 parent categories (AI, Development, Cybersecurity, Science, Hardware, Entertainment, Music, Visual Arts), French-speaking first (CH > FR > BE > QC > EU > World), open to international coverage
+- **RSS aggregation** — 214 vetted sources (208 active) across 8 parent categories (AI, Development, Cybersecurity, Science, Hardware, Entertainment, Music, Visual Arts), French-speaking first (CH > FR > BE > QC > EU > World), open to international coverage
 - **AI analysis** — per article: concise French summary, editorial score (0–100), anxiety score (0–10), category hierarchy, themes, keywords, debate topic + stance — with a **full analysis trace** (justification, model reasoning, exact LLM used)
 - **AI transparency** — "Réflexion & analyse" block on every article page; AI Editor's Journal (`/journal`): explained rejections, weekly picks, categorization hesitations, notable reflections
 - **Calmer reading** — Anxiety Barometer (`/barometre`): daily index, 30-day curve, per category/country, antidotes; zen RSS feed `/feed/zen`; global **Zen mode** in the navigation (hides anxiety-inducing articles site-wide)
@@ -20,6 +20,8 @@
 - **Smart publishing** — articles are published when the editorial score ≥ 60; duplicates are detected semantically (embedding-based)
 - **Debates** — articles covering the same topic with opposing stances are grouped into "debates" (`/debats`, `/debats/candidats`), powered by multilingual embeddings (bge-multilingual-gemma2, 3584 dims)
 - **Engagement** — anonymous votes (0–5) and click tracking, blended into the ranking score
+- **Source resilience** — only permanent failures (404/410, invalid XML, dead DNS) can disable a source; transient ones (429/403/5xx/timeout) never do; exponential backoff (5 min → 6 h), automatic reactivation after 24 h via a no-AI-cost probe
+- **Security & performance** — hardened Caddy headers (CSP, HSTS, frame/nosniff policies), anti-abuse rate limits, secure cookies; minified CSS/JS assets with immutable 1-year cache (`make assets`)
 - **Cost transparency** — `/couts` page with per-day/week charts of token consumption and CHF cost
 - **SEO** — French URLs (`/articles`, `/categories`, `/themes`, `/debats`, `/projet`, `/charte-graphique`, `/couts`), XML sitemap, BreadcrumbList rich snippets, RSS feeds
 
@@ -104,7 +106,7 @@ PostgreSQL must be reachable (see `docs/development.md`).
 ```bash
 dotnet test tests/Vigie24.Tests --filter "FullyQualifiedName!~Integration"
 ```
-174 unit/functional tests (integration tests require a PostgreSQL container — see `docs/testing.md`).
+209 unit/functional tests (integration tests require a PostgreSQL container — see `docs/testing.md`).
 
 ## 📖 Documentation
 

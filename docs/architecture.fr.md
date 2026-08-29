@@ -7,7 +7,7 @@
 ## 1. Vue d'ensemble
 
 Vigie24 est un système de veille RSS intelligent pour l'actualité technologique
-francophone. Il agrège 250+ sources vérifiées (presse, blogs, chaînes YouTube,
+francophone. Il agrège 214 sources vérifiées (208 actives ; presse, blogs, chaînes YouTube,
 communautés Reddit), analyse chaque article avec un LLM, publie le meilleur
 contenu sur un site Blazor Server et expose des flux RSS granulaires — le tout en
 français, la langue du produit.
@@ -30,9 +30,10 @@ français, la langue du produit.
 | Projet | Responsabilité |
 |---|---|
 | `Vigie24.Domain` | Entités, formules de scoring, taxonomie, moteur de débats, builders RSS/sitemap, coûts et santé — **aucune dépendance d'infrastructure** |
-| `Vigie24.Infrastructure` | EF Core + Npgsql, `DbContext`, migrations, requêtes (filtrage, service RSS, rapports de coûts) |
 | `Vigie24.Services` | Abstraction IA (`IAiService`), fournisseurs (Infomaniak, DeepSeek, mock), factory |
-| `Vigie24.Web` | Frontend Blazor Server (prerender SSR, SEO, filtres, endpoints d'engagement) |
+| `Vigie24.Infrastructure` | EF Core + Npgsql, `DbContext`, migrations (via `DesignTimeDbContextFactory`), requêtes (filtrage, service RSS, rapports de coûts) |
+| `Vigie24.Services` | Abstraction IA (`IAiService`), fournisseurs (Infomaniak, DeepSeek, mock), factory |
+| `Vigie24.Web` | Frontend Blazor Server (prerender SSR, SEO, filtres, endpoints d'engagement, mode zen) |
 | `Vigie24.Worker` | `BackgroundService` : polling RSS + pipeline d'analyse IA |
 | `tests/Vigie24.Tests` | Tests unitaires, fonctionnels et d'intégration |
 
@@ -52,13 +53,24 @@ Le worker est résilient : une source en échec est journalisée et ignorée, un
 article en échec est ignoré, et les échecs d'embedding sont des avertissements non
 bloquants.
 
+**Politique d'échecs de sources.** `SourceFailurePolicy` classe les échecs de
+récupération : seuls les échecs **définitifs** (404/410, XML invalide, DNS mort)
+peuvent désactiver une source ; les erreurs transitoires (429, 403, 5xx, timeouts)
+jamais. Les échecs déclenchent un backoff exponentiel (5 min → 6 h par source, suivi
+via `LastFetchAttemptAt`) ; après `FeedReader:MaxFetchFailures` (défaut 8) échecs
+définitifs, la source est désactivée (`DisabledAt`). `ProbeDisabledSourcesAsync`
+re-teste les sources désactivées après `FeedReader:RecoveryProbeAfterHours` (24 h) et
+les réactive automatiquement — la sonde ne récupère que le flux, sans coût IA.
+
 ### 3.2 Web — Blazor Server
 
 ASP.NET Core Blazor Server avec rendu `ServerPrerendered` (HTML initial
 indexable). Surfaces clés :
 
-- **Pages** : `/` (navigateur d'articles), `/categories`, `/themes`, `/debats`, `/debats/candidats`, `/articles/{id}` (mode lecture), `/sources`, `/projet`, `/charte-graphique`, `/couts`, `/licence`.
+- **Pages** : `/` (navigateur d'articles), `/articles`, `/categories`, `/themes`, `/debats` + `/debats/{id}` (dossiers vivants), `/briefing`, `/radar`, `/top`, `/il-y-a-un-an`, `/journal`, `/barometre`, `/articles/{id}` (mode lecture), `/sources` (rapport d'échecs + réactivation), `/projet`, `/couts`, `/charte-graphique`, `/mentions-legales`, `/confidentialite`, `/licence`.
 - **Endpoints RSS** : `/feed` (global) et `/categories/{slug}/feed` (par catégorie) — construits par `RssFeedService`, `Cache-Control: public, max-age=300`.
+- **Mode zen** : filtre d'anxiété global (toggle de nav, persisté en localStorage + cookie) via `ZenModeService` ; `/feed/zen` expose un flux RSS anxiété ≤ 6.
+- **Helpers partagés** : `ArticlePalette` (palette de couleurs par catégorie pour les cartes et vignettes), `HealthCheckService` (âge de l'ingestion + ping du fournisseur IA pour la status-card d'accueil), `SitemapBuilder` (sitemap XML).
 - **SEO** : `sitemap.xml` dynamique, `robots.txt`, Open Graph / Twitter Cards, JSON-LD (WebSite, Organization, BreadcrumbList).
 - **Engagement** : votes anonymes (0–5) et suivi des clics, persistés et intégrés au classement.
 
@@ -67,7 +79,8 @@ indexable). Surfaces clés :
 EF Core + Npgsql, tables créées par migrations. Principaux agrégats : `articles`
 (flux + résultats IA + scores), `sources`, `categories`, `tags` + `article_tags`,
 `article_embeddings` (vecteurs sémantiques), `debates` + `debate_articles`,
-`authors`, métriques d'engagement et usage de tokens par article. Schéma complet :
+`authors`, métriques d'engagement et usage de tokens par article. `sources` porte des
+colonnes de suivi d'échec (`DisabledAt`, `LastFetchAttemptAt`). Schéma complet :
 [design/database-schema.fr.md](design/database-schema.fr.md).
 
 ## 4. Modèle de configuration
@@ -100,6 +113,8 @@ Embeddings : `bge-multilingual-gemma2`, 3584 dimensions (via le fournisseur prin
 - **Staging / Production** : stacks Docker Compose (postgres + worker + web) déployées avec `make staging-pub` / `make prod-pub` — le dépôt est empaqueté avec `tar` (excluant `.git`, `bin`, `obj`, `.env*`) et streamé en SSH ; les fichiers distants **ne sont pas** supprimés (les fichiers renommés/supprimés doivent être nettoyés manuellement).
 - **Web** : Kestrel sert HTTP directement (staging), Caddy reverse proxy avec TLS en production.
 - **Base de données** : conteneur PostgreSQL 16, persistance par volume ; `make prod-backup` pour les dumps.
+- **Migrations** : `dotnet ef migrations add` passe par `DesignTimeDbContextFactory` (Infrastructure) — le host Web ne se construit pas en design-time ; le worker applique les migrations en attente au démarrage.
+- **Supervision** : watchdogs cron au niveau hôte (`vigie24-ratelimit-watchdog`, `vigie24-source-spike-watchdog`, scripts dans `/opt/data/scripts/`) qui analysent les logs du worker et alertent sur Telegram/Discord — silence = OK.
 
 ## 7. Stratégie de test
 

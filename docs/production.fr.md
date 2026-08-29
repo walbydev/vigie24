@@ -175,3 +175,23 @@ Fichiers clés du projet :
 - `.env.production.example` — modèle des secrets (à copier en `.env.production` **sur le VPS**, jamais commité)
 - `appsettings.Production.json` — configuration non-sensible de production
 - `Makefile` — cibles `prod-*`
+
+---
+
+## 11. Sécurité durcie, résilience des sources et supervision (août 2026)
+
+**Sécurité durcie** (commits du 26/08) :
+- En-têtes Caddy durcis : CSP, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, Referrer-Policy, Permissions-Policy ; HSTS 1 an (`UseHsts` + `Configure<HstsOptions>` explicite) ; `AllowedHosts` verrouillé sur `vigie24.info`.
+- Anti-abus votes/clics : fenêtre fixe 30/heure par IP (429) ; cookies `Secure` (SameSite) ; User-Agent sans email personnel.
+- Pages légales : `/mentions-legales` et `/confidentialite`.
+
+**Résilience des sources** :
+- `SourceFailurePolicy` : seuls les échecs **définitifs** (404/410, XML invalide, DNS mort) désactivent une source ; 429/403/5xx/timeout = transitoire, jamais de désactivation.
+- Backoff exponentiel 5 min → 6 h par source, seuil de 8 échecs définitifs (`FeedReader:MaxFetchFailures`) ; colonnes `DisabledAt` + `LastFetchAttemptAt`.
+- Réactivation automatique après 24 h par sonde sans coût IA (`ProbeDisabledSourcesAsync`) ; bouton « ↩️ Réactiver » sur `/sources`, protégé par le header `X-Vigie24-Admin` = `Admin:ReactivateToken` (dans le `.env` serveur).
+
+**Watchdogs** (cron hôte, silence = OK, alertes Telegram + Discord, scripts dans `/opt/data/scripts/`) :
+- `vigie24-ratelimit-watchdog` (15 min) : 429 Infomaniak, échecs fetch YouTube, erreurs de sources dans les logs worker.
+- `vigie24-source-spike-watchdog` : pics de sources désactivées.
+
+**Chiffres réels** (prod, 29/08/2026) : 214 sources (208 actives — ~161 chaînes YouTube + presse/blogs/Reddit), 8 605+ articles, 42 catégories, 5 débats, 209 tests.
