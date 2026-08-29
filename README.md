@@ -106,7 +106,7 @@ PostgreSQL must be reachable (see `docs/development.md`).
 ```bash
 dotnet test tests/Vigie24.Tests --filter "FullyQualifiedName!~Integration"
 ```
-209 unit/functional tests (integration tests require a PostgreSQL container — see `docs/testing.md`).
+218 unit/functional tests (integration tests require a PostgreSQL container — see `docs/testing.md`).
 
 ## 📖 Documentation
 

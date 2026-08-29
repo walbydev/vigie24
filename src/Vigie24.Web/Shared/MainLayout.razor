@@ -31,17 +31,17 @@
         </div>
     </nav>
     <nav class="subnav" aria-label="Navigation par contenu">
-        <NavLink class="subnav-link" href="/articles">📄 Articles</NavLink>
-        <NavLink class="subnav-link" href="/categories">🗂 Catégories</NavLink>
-        <NavLink class="subnav-link" href="/themes">🏷 Thématiques</NavLink>
-        <NavLink class="subnav-link" href="/debats">🥊 Débats</NavLink>
-        <NavLink class="subnav-link subnav-more-link" href="/radar">📡 Radar</NavLink>
-        <NavLink class="subnav-link subnav-more-link" href="/top">⭐ Top</NavLink>
-        <NavLink class="subnav-link subnav-more-link" href="/sources">🗞 Sources</NavLink>
-        <NavLink class="subnav-link subnav-more-link" href="/il-y-a-un-an">🗓️ Il y a un an</NavLink>
+        <NavLink class="subnav-link" href="/articles">Articles</NavLink>
+        <NavLink class="subnav-link" href="/categories">Catégories</NavLink>
+        <NavLink class="subnav-link" href="/themes">Thématiques</NavLink>
+        <NavLink class="subnav-link" href="/debats">Débats</NavLink>
+        <NavLink class="subnav-link subnav-more-link" href="/radar">Radar</NavLink>
+        <NavLink class="subnav-link subnav-more-link" href="/top">Top</NavLink>
+        <NavLink class="subnav-link subnav-more-link" href="/sources">Sources</NavLink>
+        <NavLink class="subnav-link subnav-more-link" href="/il-y-a-un-an">Il y a un an</NavLink>
         <span class="subnav-spacer"></span>
-        <a class="subnav-link subnav-feed subnav-more-link" href="/feed" rel="alternate" type="application/rss+xml" title="Flux RSS complet">📡 RSS</a>
-        <a class="subnav-link subnav-feed subnav-more-link" href="/feed/zen" rel="alternate" type="application/rss+xml" title="Flux RSS zen (anxiété ≤ 6)">🧘 RSS zen</a>
+        <a class="subnav-link subnav-feed subnav-more-link" href="/feed" rel="alternate" type="application/rss+xml" title="Flux RSS complet">RSS</a>
+        <a class="subnav-link subnav-feed subnav-more-link" href="/feed/zen" rel="alternate" type="application/rss+xml" title="Flux RSS zen (anxiété ≤ 6)">RSS zen</a>
         <button type="button" class="subnav-more" @onclick="ToggleSubnav"
                 aria-expanded="@_subnavOpen" aria-controls="subnav-panel"
                 aria-label="Toutes les pages de contenu">
@@ -51,12 +51,12 @@
     @if (_subnavOpen)
     {
         <div class="subnav-panel" id="subnav-panel">
-            <NavLink class="subnav-panel-link" href="/radar" @onclick="CloseSubnav">📡 Radar des sujets chauds</NavLink>
-            <NavLink class="subnav-panel-link" href="/top" @onclick="CloseSubnav">⭐ Top de la communauté</NavLink>
-            <NavLink class="subnav-panel-link" href="/sources" @onclick="CloseSubnav">🗞 Sources</NavLink>
-            <NavLink class="subnav-panel-link" href="/il-y-a-un-an" @onclick="CloseSubnav">🗓️ Il y a un an</NavLink>
-            <a class="subnav-panel-link" href="/feed" rel="alternate" type="application/rss+xml" @onclick="CloseSubnav">📡 Flux RSS complet</a>
-            <a class="subnav-panel-link" href="/feed/zen" rel="alternate" type="application/rss+xml" @onclick="CloseSubnav">🧘 Flux RSS zen (anxiété ≤ 6)</a>
+            <NavLink class="subnav-panel-link" href="/radar" @onclick="CloseSubnav">Radar des sujets chauds</NavLink>
+            <NavLink class="subnav-panel-link" href="/top" @onclick="CloseSubnav">Top de la communauté</NavLink>
+            <NavLink class="subnav-panel-link" href="/sources" @onclick="CloseSubnav">Sources</NavLink>
+            <NavLink class="subnav-panel-link" href="/il-y-a-un-an" @onclick="CloseSubnav">Il y a un an</NavLink>
+            <a class="subnav-panel-link" href="/feed" rel="alternate" type="application/rss+xml" @onclick="CloseSubnav">Flux RSS complet</a>
+            <a class="subnav-panel-link" href="/feed/zen" rel="alternate" type="application/rss+xml" @onclick="CloseSubnav">Flux RSS zen (anxiété ≤ 6)</a>
         </div>
     }
     <main id="main-content">
@@ -72,35 +72,41 @@
             </div>
             <div class="footer-col">
                 <h3>Navigation</h3>
-                <a href="/">Accueil</a>
+                <a href="/articles">Articles</a>
                 <a href="/categories">Catégories</a>
                 <a href="/themes">Thématiques</a>
-                <a href="/sources">🗂 Sources</a>
-                <a href="/debats">🥊 Débats</a>
-                <a href="/debats/candidats">🎯 Candidats débats</a>
-                <a href="/briefing">📰 Briefing du matin</a>
-                <a href="/radar">📡 Radar des sujets chauds</a>
-                <a href="/top">⭐ Top de la communauté</a>
-                <a href="/il-y-a-un-an">🗓️ Il y a un an</a>
-                <a href="/barometre">🧘 Baromètre de l'anxiété</a>
-                <a href="/journal">📖 Journal du rédacteur IA</a>
-                <a href="/feed" rel="alternate" type="application/rss+xml">📡 Flux RSS</a>
-                <a href="/feed/zen" rel="alternate" type="application/rss+xml">🧘 Flux RSS zen</a>
+                <a href="/debats">Débats</a>
+                <a href="/debats/candidats">Candidats débats</a>
+                <a href="/radar">Radar des sujets chauds</a>
+                <a href="/top">Top de la communauté</a>
+                <a href="/sources">Sources</a>
+                <a href="/il-y-a-un-an">Il y a un an</a>
+            </div>
+            <div class="footer-col">
+                <h3>Veille</h3>
+                <a href="/briefing">Briefing du matin</a>
+                <a href="/barometre">Baromètre de l'anxiété</a>
+                <a href="/journal">Journal du rédacteur IA</a>
+                <a href="/feed" rel="alternate" type="application/rss+xml">Flux RSS</a>
+                <a href="/feed/zen" rel="alternate" type="application/rss+xml">Flux RSS zen (anxiété ≤ 6)</a>
             </div>
             <div class="footer-col">
                 <h3>Projet</h3>
-                <a href="/projet">📖 Le projet</a>
-                <a href="/charte-graphique">🎨 Charte graphique</a>
-                <a href="/couts">💰 Coûts IA</a>
+                <a href="/projet">Le projet</a>
+                <a href="/charte-graphique">Charte graphique</a>
+                <a href="/couts">Coûts IA</a>
                 <a href="/license">Licence MIT</a>
-                <a href="/confidentialite">🔒 Confidentialité</a>
-                <a href="/mentions-legales">⚖️ Mentions légales</a>
-                <a href="mailto:contact@vigie24.info">✉️ contact@vigie24.info</a>
-                <span class="footer-legal">© @DateTime.UtcNow.Year Walby Developments</span>
+                <a href="/confidentialite">Confidentialité</a>
+                <a href="/mentions-legales">Mentions légales</a>
+                <a href="mailto:contact@vigie24.info">contact@vigie24.info</a>
             </div>
         </div>
         <div class="footer-bottom">
-            Vigie24 — logiciel libre sous licence MIT · données issues de flux RSS publics
+            <span>© @DateTime.UtcNow.Year Walby Developments</span>
+            <span class="footer-bottom-sep" aria-hidden="true">·</span>
+            <span>Vigie24 — logiciel libre sous licence MIT</span>
+            <span class="footer-bottom-sep" aria-hidden="true">·</span>
+            <span>Données issues de flux RSS publics</span>
         </div>
     </footer>
     <div class="scroll-fabs">

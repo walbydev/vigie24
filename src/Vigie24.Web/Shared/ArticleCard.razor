@@ -10,7 +10,15 @@
     @if (!string.IsNullOrEmpty(Article.ImageUrl))
     {
         <a href="/api/articles/@Article.Id/track" target="_blank" rel="noopener" class="card-img-link">
-            <img src="@Article.ImageUrl" class="card-img" alt="@Article.ImageAltText" loading="lazy" />
+            <div class="card-img-wrap">
+                <img src="@Article.ImageUrl" class="card-img" alt="@Article.ImageAltText" loading="lazy" />
+                @if (!string.IsNullOrEmpty(_sourceBadgeSrc))
+                {
+                    <span class="source-badge-logo" title="@_sourceBadgeTitle">
+                        <img src="@_sourceBadgeSrc" alt="@_sourceBadgeTitle" width="16" height="16" />
+                    </span>
+                }
+            </div>
         </a>
     }
     else
@@ -174,6 +182,18 @@
     private ArticleSource? _primarySource;
     private string _countryDisplay = "";
     private string _sourceFaviconUrl = "";
+    private string _sourceBadgeSrc => _primarySource?.Source?.SourceKind switch
+    {
+        nameof(SourceKind.Youtube) => "/img/youtube.svg",
+        nameof(SourceKind.Reddit) => "/img/reddit.svg",
+        _ => ""
+    };
+    private string _sourceBadgeTitle => _primarySource?.Source?.SourceKind switch
+    {
+        nameof(SourceKind.Youtube) => "Source YouTube — chaîne vidéo",
+        nameof(SourceKind.Reddit) => "Source Reddit — discussion communautaire",
+        _ => ""
+    };
 
     // Engagement state: aggregates from the entity (already loaded) + my vote provided by the page
     private EngagementState _state = new(null, 0, 0, 0, 0);

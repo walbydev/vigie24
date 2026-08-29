@@ -106,7 +106,7 @@ PostgreSQL doit être joignable (voir `docs/development.fr.md`).
 ```bash
 dotnet test tests/Vigie24.Tests --filter "FullyQualifiedName!~Integration"
 ```
-209 tests unitaires/fonctionnels (les tests d'intégration requièrent un conteneur PostgreSQL — voir `docs/testing.fr.md`).
+218 tests unitaires/fonctionnels (les tests d'intégration requièrent un conteneur PostgreSQL — voir `docs/testing.fr.md`).
 
 ## 📖 Documentation
 

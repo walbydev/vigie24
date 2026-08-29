@@ -194,4 +194,4 @@ Fichiers clés du projet :
 - `vigie24-ratelimit-watchdog` (15 min) : 429 Infomaniak, échecs fetch YouTube, erreurs de sources dans les logs worker.
 - `vigie24-source-spike-watchdog` : pics de sources désactivées.
 
-**Chiffres réels** (prod, 29/08/2026) : 214 sources (208 actives — ~161 chaînes YouTube + presse/blogs/Reddit), 8 605+ articles, 42 catégories, 5 débats, 209 tests.
+**Chiffres réels** (prod, 29/08/2026) : 214 sources (208 actives — ~161 chaînes YouTube + presse/blogs/Reddit), 8 605+ articles, 42 catégories, 5 débats, 218 tests.
