@@ -230,10 +230,25 @@ app.MapGet("/api/articles/{id:guid}/track", async (Guid id, Vigie24DbContext db,
     return string.IsNullOrWhiteSpace(target) ? Results.NotFound() : Results.Redirect(target);
 });
 
-// POST /api/sources/{id}/reactivate — manual reactivation of a disabled source.
-// Guarded by an admin token (Admin:ReactivateToken, env ADMIN__REACTIVATETOKEN)
-// sent in the X-Vigie24-Admin header. Inert (404) when no token is configured.
-app.MapPost("/api/sources/{id:guid}/reactivate", async (Guid id, Vigie24DbContext db, HttpContext http) =>
+// Admin gate shared by /api/admin/verify and /api/sources/{id}/reactivate:
+// a valid X-Vigie24-Admin token, or the HttpOnly vigie24_admin session cookie
+// issued by /api/admin/verify after a successful token check.
+static bool IsAdminGranted(HttpContext http, string expected)
+{
+    if (http.Request.Cookies["vigie24_admin"] == "1") return true;
+    var provided = http.Request.Headers["X-Vigie24-Admin"].FirstOrDefault();
+    return !string.IsNullOrEmpty(provided)
+        && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+            System.Text.Encoding.UTF8.GetBytes(expected),
+            System.Text.Encoding.UTF8.GetBytes(provided));
+}
+
+// POST /api/admin/verify — validates the admin token (X-Vigie24-Admin header) and
+// opens an HttpOnly admin session cookie (vigie24_admin, 7 days). The cookie never
+// contains the token — it only proves the token was presented once, so it can be
+// used to reveal admin actions in the UI (e.g. the reactivation button on /sources).
+// Inert (404) when no token is configured.
+app.MapPost("/api/admin/verify", (HttpContext http) =>
 {
     var expected = app.Configuration["Admin:ReactivateToken"];
     if (string.IsNullOrEmpty(expected)) return Results.NotFound();
@@ -243,6 +258,30 @@ app.MapPost("/api/sources/{id:guid}/reactivate", async (Guid id, Vigie24DbContex
         || !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
             System.Text.Encoding.UTF8.GetBytes(expected),
             System.Text.Encoding.UTF8.GetBytes(provided)))
+    {
+        return Results.Unauthorized();
+    }
+
+    http.Response.Cookies.Append("vigie24_admin", "1", new CookieOptions
+    {
+        HttpOnly = true,
+        SameSite = SameSiteMode.Lax,
+        Secure = http.Request.IsHttps, // jamais en clair
+        MaxAge = TimeSpan.FromDays(7)
+    });
+    return Results.Ok(new { ok = true });
+});
+
+// POST /api/sources/{id}/reactivate — manual reactivation of a disabled source.
+// Guarded by the admin token (Admin:ReactivateToken, env ADMIN__REACTIVATETOKEN):
+// X-Vigie24-Admin header or vigie24_admin session cookie. Inert (404) when no
+// token is configured.
+app.MapPost("/api/sources/{id:guid}/reactivate", async (Guid id, Vigie24DbContext db, HttpContext http) =>
+{
+    var expected = app.Configuration["Admin:ReactivateToken"];
+    if (string.IsNullOrEmpty(expected)) return Results.NotFound();
+
+    if (!IsAdminGranted(http, expected))
     {
         return Results.Unauthorized();
     }

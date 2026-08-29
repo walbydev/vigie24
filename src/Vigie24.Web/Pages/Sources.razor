@@ -7,7 +7,7 @@
 @inject ILogger<Sources> Logger
 @inject Microsoft.Extensions.Configuration.IConfiguration Config
 @inject System.Net.Http.HttpClient Http
-@inject Microsoft.JSInterop.IJSRuntime Js
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
 
 <PageTitle>Sources - Vigie24</PageTitle>
 <HeadContent>
@@ -49,7 +49,7 @@
     <p class="muted">
         Sources en échec de récupération — désactivation automatique après
         <strong>@SourceFailurePolicy.DefaultMaxFailures échecs consécutifs</strong>.
-        Une source désactivée doit être réactivée manuellement.
+        Une source désactivée est re-testée automatiquement après 24 h.
     </p>
     <div class="source-grid">
         @foreach (var source in _failedSources)
@@ -163,7 +163,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _adminEnabled = !string.IsNullOrEmpty(Config["Admin:ReactivateToken"]);
+        // Admin authentifié par le token (cookie HttpOnly vigie24_admin posé par
+        // /api/admin/verify) — le bouton de réactivation reste invisible sinon.
+        _adminEnabled = !string.IsNullOrEmpty(Config["Admin:ReactivateToken"])
+            && HttpContextAccessor.HttpContext?.Request.Cookies["vigie24_admin"] == "1";
 
         try
         {
@@ -220,17 +223,14 @@
     private async Task ReactivateAsync(Guid sourceId)
     {
         _uiMessage = null;
-        var token = await Js.InvokeAsync<string>("prompt", new object?[] { "Token d'administration Vigie24 :" });
-        if (string.IsNullOrEmpty(token)) return;
-
-        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/sources/{sourceId}/reactivate");
-        request.Headers.Add("X-Vigie24-Admin", token);
         try
         {
-            var response = await Http.SendAsync(request);
+            // Session admin requise : le cookie HttpOnly vigie24_admin est joint
+            // automatiquement à la requête par le navigateur.
+            var response = await Http.PostAsync($"/api/sources/{sourceId}/reactivate", null);
             _uiMessage = response.IsSuccessStatusCode
                 ? "✅ Source réactivée."
-                : "❌ Token invalide ou action refusée.";
+                : "❌ Action refusée.";
             if (response.IsSuccessStatusCode)
             {
                 await OnInitializedAsync();

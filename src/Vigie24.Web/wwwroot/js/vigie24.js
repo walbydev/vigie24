@@ -59,13 +59,41 @@ window.vigie24 = window.vigie24 || {
         window.addEventListener('scroll', onScroll, { passive: true });
         window.addEventListener('resize', onScroll);
         update();
+    },
+    // Admin gate (hidden by default): typing "vadmin" anywhere opens the admin
+    // token prompt. On success the server issues an HttpOnly session cookie
+    // (vigie24_admin, 7 days) which reveals admin actions on /sources — regular
+    // visitors never see them. The token itself is never stored client-side.
+    initAdminGate: function () {
+        var buffer = '';
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            var target = e.target;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+            buffer = (buffer + (e.key || '')).toLowerCase().slice(-6);
+            if (buffer !== 'vadmin') return;
+            buffer = '';
+            var token = window.prompt("Token d'administration Vigie24 :");
+            if (!token) return;
+            fetch('/api/admin/verify', {
+                method: 'POST',
+                headers: { 'X-Vigie24-Admin': token }
+            }).then(function (r) {
+                if (r.ok) { window.location.reload(); }
+                else { window.alert("❌ Token invalide."); }
+            }).catch(function () { window.alert("❌ Erreur réseau."); });
+        });
     }
 };
 
 // Init when the DOM is ready (script is loaded at the end of <body>, but be safe
 // if a layout change ever moves it earlier).
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { window.vigie24.initScrollFabs(); });
+    document.addEventListener('DOMContentLoaded', function () {
+        window.vigie24.initScrollFabs();
+        window.vigie24.initAdminGate();
+    });
 } else {
     window.vigie24.initScrollFabs();
+    window.vigie24.initAdminGate();
 }
