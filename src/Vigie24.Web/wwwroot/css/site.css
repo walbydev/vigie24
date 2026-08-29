@@ -923,3 +923,30 @@ h2 { font-size: 1.3rem; color: var(--text); }
 @media (prefers-reduced-motion: reduce) {
     .scroll-fab { transition: none; }
 }
+
+/* Fiche article : image avec badge de source (YouTube/Reddit en surimpression) */
+.reader-img-wrap { position: relative; }
+.source-badge-logo {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    z-index: 2;
+}
+.source-badge-logo img { display: block; }
+
+/* Fiche article : zone de vote (0-5) */
+.reader-vote {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+.reader-vote-note { margin-top: 0.35rem; font-size: 0.85rem; }

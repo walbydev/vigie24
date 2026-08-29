@@ -2,8 +2,12 @@
 @using Vigie24.Domain
 @using Vigie24.Domain.Models
 @using Vigie24.Infrastructure.Data
+@using Vigie24.Services
+@using Vigie24.Web.Services
 @using Microsoft.EntityFrameworkCore
 @inject Vigie24DbContext DbContext
+@inject IEngagementService Engagement
+@inject ILogger<ArticleDetail> Logger
 
 @* Mode lecture : fiche de l'article avec le résumé IA (contenu propre indexable) *@
 <PageTitle>@_seoTitle</PageTitle>
@@ -27,7 +31,15 @@ else
 
         @if (!string.IsNullOrEmpty(_article.ImageUrl))
         {
-            <img src="@_article.ImageUrl" alt="@_article.ImageAltText" class="reader-img" loading="lazy" />
+            <div class="reader-img-wrap">
+                <img src="@_article.ImageUrl" alt="@_article.ImageAltText" class="reader-img" loading="lazy" />
+                @if (!string.IsNullOrEmpty(_sourceBadgeSrc))
+                {
+                    <span class="source-badge-logo" title="@_sourceBadgeTitle">
+                        <img src="@_sourceBadgeSrc" alt="@_sourceBadgeTitle" width="16" height="16" />
+                    </span>
+                }
+            </div>
         }
 
         <div class="chips">
@@ -67,7 +79,7 @@ else
             @if (!string.IsNullOrEmpty(_primarySourceName))
             {
                 <span>
-                    📰
+                    @_sourceKindIcon
                     @if (!string.IsNullOrEmpty(_primarySourceUrl))
                     {
                         <a href="@_primarySourceUrl" target="_blank" rel="noopener">@_primarySourceName</a>
@@ -148,6 +160,35 @@ else
                 <a class="chip chip-debate" href="/debats">🥊 Voir le débat</a>
             }
         </div>
+
+        <div class="reader-vote">
+            <div class="vote-row" title="Votre note : 0-1 pas intéressant, 2-4 moyen, 5 très intéressant">
+                <span class="vote-label">⭐ Notez cet article :</span>
+                @for (var v = 0; v <= 5; v++)
+                {
+                    var voteValue = v;
+                    <button class="vote-btn @VoteClass(voteValue)" @onclick="() => VoteAsync(voteValue)"
+                            title="@VoteTooltip(voteValue)"
+                            aria-label="Noter @voteValue sur 5 : @VoteTooltip(voteValue)"
+                            aria-pressed="@(voteValue == _state.MyVote)">@voteValue</button>
+                }
+                <span class="eng-stats">
+                    @if (_rateLimited)
+                    {
+                        <span class="muted" title="Limite anti-abus par adresse IP">⏳ Trop de votes — réessayez plus tard.</span>
+                    }
+                    @if (_state.VoteCount > 0)
+                    {
+                        <span class="muted">⭐ @_state.VoteAverage.ToString("0.0") (@_state.VoteCount vote(s))</span>
+                    }
+                    @if (_state.MyVote is { } mine)
+                    {
+                        <span class="muted">· Votre note : @mine/5</span>
+                    }
+                </span>
+            </div>
+            <p class="muted reader-vote-note">Votre vote (0-5) participe au score de classement de l'article.</p>
+        </div>
     </article>
 }
 
@@ -160,8 +201,32 @@ else
     private string _metaDescription = "";
     private string _primarySourceName = "";
     private string _primarySourceUrl = "";
+    private string _primarySourceKind = "";
     private string _countryDisplay = "";
     private string _analysisMetaDisplay = "";
+    private EngagementState _state = new(null, 0, 0, 0, 0);
+    private bool _rateLimited;
+
+    private string _sourceKindIcon => _primarySourceKind switch
+    {
+        nameof(SourceKind.Youtube) => "▶️",
+        nameof(SourceKind.Reddit) => "💬",
+        _ => "📰"
+    };
+
+    private string _sourceBadgeSrc => _primarySourceKind switch
+    {
+        nameof(SourceKind.Youtube) => "/img/youtube.svg",
+        nameof(SourceKind.Reddit) => "/img/reddit.svg",
+        _ => ""
+    };
+
+    private string _sourceBadgeTitle => _primarySourceKind switch
+    {
+        nameof(SourceKind.Youtube) => "Source YouTube — chaîne vidéo",
+        nameof(SourceKind.Reddit) => "Source Reddit — discussion communautaire",
+        _ => ""
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -186,7 +251,10 @@ else
         var primary = _article.Sources.FirstOrDefault(s => s.IsPrimary) ?? _article.Sources.FirstOrDefault();
         _primarySourceName = primary?.Source?.Name ?? "";
         _primarySourceUrl = primary?.Source?.WebsiteUrl ?? "";
+        _primarySourceKind = primary?.Source?.SourceKind ?? "";
         _countryDisplay = CountryInfo.Display(primary?.Source?.CountryCode);
+
+        _state = await Engagement.GetStateAsync(_article.Id);
 
         // « Réflexion & analyse » metadata line: provider · model · analysis date
         if (_article.Analysis is { } analysis)
@@ -203,4 +271,43 @@ else
     /// <summary>Coupe un texte à max caractères en ajoutant une ellipse (titres/meta SEO).</summary>
     private static string Truncate(string s, int max)
         => s.Length <= max ? s : s[..max].TrimEnd() + "…";
+
+    private async Task VoteAsync(int value)
+    {
+        try
+        {
+            _state = await Engagement.VoteAsync(_article!.Id, value);
+            StateHasChanged();
+        }
+        catch (RateLimitExceededException)
+        {
+            _rateLimited = true; // anti-abus : trop de votes depuis cette adresse
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Vote impossible pour {ArticleId} (valeur {Value})", _article?.Id, value);
+        }
+    }
+
+    private string VoteClass(int v)
+    {
+        if (v != _state.MyVote) return "";
+        return v switch
+        {
+            <= 1 => "active vote-bad",
+            >= 4 => "active vote-good",
+            _ => "active"
+        };
+    }
+
+    private static string VoteTooltip(int v) => v switch
+    {
+        0 => "0 — Pas intéressant",
+        1 => "1 — Pas intéressant",
+        2 => "2 — Bof",
+        3 => "3 — Moyen",
+        4 => "4 — Intéressant",
+        _ => "5 — Très intéressant"
+    };
 }
