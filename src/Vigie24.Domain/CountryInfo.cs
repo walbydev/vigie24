@@ -37,6 +37,18 @@ public static class CountryInfo
         return sb.ToString();
     }
 
+    /// <summary>
+    /// URL of the local SVG flag (wwwroot/img/flags/{code}.svg) — renders reliably on
+    /// every platform (emoji flags depend on the system emoji font). Null if unknown.
+    /// </summary>
+    public static string? FlagUrl(string? countryCode)
+    {
+        if (string.IsNullOrWhiteSpace(countryCode) || countryCode.Length != 2)
+            return null;
+        var code = countryCode.ToLowerInvariant();
+        return $"/img/flags/{code}.svg";
+    }
+
     /// <summary>French country name, otherwise the raw code</summary>
     public static string Name(string? countryCode)
         => countryCode != null && Names.TryGetValue(countryCode, out var name) ? name : countryCode ?? "";

@@ -92,7 +92,13 @@ else
             }
             @if (!string.IsNullOrEmpty(_countryDisplay))
             {
-                <span>@_countryDisplay</span>
+                <span class="country">
+                    @if (_countryFlagUrl is not null)
+                    {
+                        <img class="flag-icon" src="@_countryFlagUrl" alt="" loading="lazy" />
+                    }
+                    @_countryName
+                </span>
             }
             <span>@_article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
             @if (_article.Authors.Any())
@@ -203,6 +209,8 @@ else
     private string _primarySourceUrl = "";
     private string _primarySourceKind = "";
     private string _countryDisplay = "";
+    private string _countryName = "";
+    private string? _countryFlagUrl;
     private string _analysisMetaDisplay = "";
     private EngagementState _state = new(null, 0, 0, 0, 0);
     private bool _rateLimited;
@@ -253,6 +261,8 @@ else
         _primarySourceUrl = primary?.Source?.WebsiteUrl ?? "";
         _primarySourceKind = primary?.Source?.SourceKind ?? "";
         _countryDisplay = CountryInfo.Display(primary?.Source?.CountryCode);
+        _countryName = CountryInfo.Name(primary?.Source?.CountryCode);
+        _countryFlagUrl = CountryInfo.FlagUrl(primary?.Source?.CountryCode);
 
         _state = await Engagement.GetStateAsync(_article.Id);
 

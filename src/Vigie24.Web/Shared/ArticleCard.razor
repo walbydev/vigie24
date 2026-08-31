@@ -115,7 +115,13 @@
             <span>
                 @if (!string.IsNullOrEmpty(_countryDisplay))
                 {
-                    <span class="country" title="Pays de publication">@_countryDisplay</span>
+                    <span class="country" title="Pays de publication">
+                        @if (_countryFlagUrl is not null)
+                        {
+                            <img class="flag-icon" src="@_countryFlagUrl" alt="" loading="lazy" />
+                        }
+                        @_countryName
+                    </span>
                     <span>&nbsp;·&nbsp;</span>
                 }
                 <span>@Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
@@ -181,6 +187,8 @@
     private string _initial = "?";
     private ArticleSource? _primarySource;
     private string _countryDisplay = "";
+    private string _countryName = "";
+    private string? _countryFlagUrl;
     private string _sourceFaviconUrl = "";
     private string _sourceBadgeSrc => _primarySource?.Source?.SourceKind switch
     {
@@ -217,6 +225,8 @@
 
         // Pays de publication (code ISO de la source primaire → nom + drapeau)
         _countryDisplay = CountryInfo.Display(_primarySource?.Source?.CountryCode);
+        _countryName = CountryInfo.Name(_primarySource?.Source?.CountryCode);
+        _countryFlagUrl = CountryInfo.FlagUrl(_primarySource?.Source?.CountryCode);
 
         _state = new EngagementState(MyVote, Article.VoteAverage, Article.VoteCount, Article.ClickCount, Article.RankingScore);
         RebuildHint();

@@ -114,7 +114,13 @@
                     <div class="source-meta">
                         @if (!string.IsNullOrEmpty(source.CountryCode))
                         {
-                            <span>@CountryInfo.Display(source.CountryCode)</span>
+                            <span class="country">
+                                @if (CountryInfo.FlagUrl(source.CountryCode) is { } flagUrl)
+                                {
+                                    <img class="flag-icon" src="@flagUrl" alt="" loading="lazy" />
+                                }
+                                @CountryInfo.Name(source.CountryCode)
+                            </span>
                             <span>·</span>
                         }
                         <span>@_langDisplay(source.LanguageCode)</span>

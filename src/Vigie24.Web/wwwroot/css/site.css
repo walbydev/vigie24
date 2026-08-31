@@ -482,6 +482,10 @@ h2 { font-size: 1.3rem; color: var(--text); }
 .meta { margin: 0; display: flex; justify-content: space-between; align-items: center; font-size: 0.83rem; color: var(--text-muted); }
 .country { display: inline-flex; align-items: center; gap: 4px; }
 
+/* Pays des articles : drapeau SVG local (rendu fiable sur toutes les plateformes) */
+.flag-icon { width: 1.15em; height: 0.86em; object-fit: cover; border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.14); flex: none; }
+
 /* ===== Engagement : vote 0-5 + clics ===== */
 .vote-row { display: flex; align-items: center; gap: 4px; margin-top: 2px; flex-wrap: wrap; }
 .vote-label { font-size: 0.78rem; color: var(--text-muted); margin-right: 2px; }
