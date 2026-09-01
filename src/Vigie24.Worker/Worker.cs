@@ -88,8 +88,26 @@ public class Vigie24Worker : BackgroundService
 
         _logger.LogInformation("Processing {Count} active sources", activeSources.Count);
 
+        // Per-kind polling schedule (see SourcePollingSchedule): RSS/Atom feeds
+        // run on a regular interval (FeedReader:RssPollingIntervalMinutes,
+        // falling back to PollingIntervalMinutes); YouTube/Reddit run at fixed
+        // UTC slots (08:00 / 20:00), i.e. 2× per day. Sources not due yet are
+        // skipped this cycle — aggregated into one log line to avoid noise.
+        var rssPollingInterval = TimeSpan.FromMinutes(
+            _configuration.GetValue<int?>("FeedReader:RssPollingIntervalMinutes")
+            ?? _configuration.GetValue<int>("FeedReader:PollingIntervalMinutes", 15));
+
+        var now = DateTime.UtcNow;
+        var skipped = 0;
+
         foreach (var source in activeSources)
         {
+            if (!SourcePollingSchedule.IsDue(source.SourceKind, source.LastFetchAttemptAt, now, rssPollingInterval))
+            {
+                skipped++;
+                continue;
+            }
+
             try
             {
                 await ProcessSourceAsync(source, dbContext, cancellationToken);
@@ -98,6 +116,11 @@ public class Vigie24Worker : BackgroundService
             {
                 _logger.LogError(ex, "Error processing source {SourceName}", source.Name);
             }
+        }
+
+        if (skipped > 0)
+        {
+            _logger.LogInformation("Skipped {Skipped} sources (not due yet: YouTube/Reddit poll at fixed UTC slots 08:00/20:00)", skipped);
         }
 
         // Update the ingestion timestamps
