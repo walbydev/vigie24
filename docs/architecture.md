@@ -41,13 +41,17 @@ language.
 
 ### 3.1 Worker — the ingestion pipeline
 
-A `BackgroundService` that runs every `FeedReader:PollingIntervalMinutes` (default
-**15 min**, 5 min in production). Each cycle:
+A `BackgroundService` that wakes up every `FeedReader:PollingIntervalMinutes` (default
+**15 min**, 20 min in staging/production). Each cycle:
 
 1. Loads active sources from the database (tracked query — `LastIngestedAt` must be persisted).
-2. For each source, fetches its feed (RSS/Atom via `SyndicationFeed`, or YouTube/Reddit via their APIs), capped by `FeedReader:MaxItemsPerFeed` (default 15).
-3. Processes each item: exact dedup by canonical URL → semantic dedup → AI analysis → persistence (see [algorithms.md](algorithms.md)).
-4. Updates `LastIngestedAt`, then rebuilds the debates.
+2. Skips sources that are not due yet (`SourcePollingSchedule`): YouTube/Reddit are
+   polled at fixed UTC slots **08:00/20:00** (2× per day); RSS/Atom on a regular
+   interval (`FeedReader:RssPollingIntervalMinutes`, falls back to `PollingIntervalMinutes`).
+   A source never fetched yet (e.g. freshly reactivated) is always due — catch-up.
+3. For each due source, fetches its feed (RSS/Atom via `SyndicationFeed`, or YouTube/Reddit via their APIs), capped by `FeedReader:MaxItemsPerFeed` (default 15).
+4. Processes each item: exact dedup by canonical URL → semantic dedup → AI analysis → persistence (see [algorithms.md](algorithms.md)).
+5. Updates `LastIngestedAt`, then rebuilds the debates.
 
 The worker is resilient: a failing source is logged and skipped, a failing article
 is skipped, and embedding failures are non-blocking warnings.

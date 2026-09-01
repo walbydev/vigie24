@@ -41,13 +41,17 @@ français, la langue du produit.
 
 ### 3.1 Worker — le pipeline d'ingestion
 
-Un `BackgroundService` qui s'exécute toutes les `FeedReader:PollingIntervalMinutes`
-(défaut **15 min**, 5 min en production). Chaque cycle :
+Un `BackgroundService` qui se réveille toutes les `FeedReader:PollingIntervalMinutes`
+(défaut **15 min**, 20 min en staging/production). Chaque cycle :
 
 1. Charge les sources actives en base (requête suivie — `LastIngestedAt` doit être persisté).
-2. Pour chaque source, récupère son flux (RSS/Atom via `SyndicationFeed`, ou YouTube/Reddit via leurs API), plafonné par `FeedReader:MaxItemsPerFeed` (défaut 15).
-3. Traite chaque élément : dédup exacte par URL canonique → dédup sémantique → analyse IA → persistance (voir [algorithmes.fr.md](algorithmes.fr.md)).
-4. Met à jour `LastIngestedAt`, puis reconstruit les débats.
+2. Ignore les sources pas encore dues (`SourcePollingSchedule`) : YouTube/Reddit sont
+   pollés à des créneaux fixes UTC **08:00/20:00** (2×/jour) ; RSS/Atom sur intervalle
+   régulier (`FeedReader:RssPollingIntervalMinutes`, repli sur `PollingIntervalMinutes`).
+   Une source jamais récupérée (ex. fraîchement réactivée) est toujours due — rattrapage.
+3. Pour chaque source due, récupère son flux (RSS/Atom via `SyndicationFeed`, ou YouTube/Reddit via leurs API), plafonné par `FeedReader:MaxItemsPerFeed` (défaut 15).
+4. Traite chaque élément : dédup exacte par URL canonique → dédup sémantique → analyse IA → persistance (voir [algorithmes.fr.md](algorithmes.fr.md)).
+5. Met à jour `LastIngestedAt`, puis reconstruit les débats.
 
 Le worker est résilient : une source en échec est journalisée et ignorée, un
 article en échec est ignoré, et les échecs d'embedding sont des avertissements non
