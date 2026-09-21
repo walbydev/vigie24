@@ -12,11 +12,19 @@ services:
     networks:
       - vigie24-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      # Le rôle est postgres_prod (cf. POSTGRES_USER ci-dessus) : interroger
+      # "postgres" faisait échouer l'auth et polluait les logs du serveur
+      # (FATAL: role "postgres" does not exist toutes les 10 s).
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres_prod}"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   vigie24-worker:
     build:
@@ -41,6 +49,11 @@ services:
     networks:
       - vigie24-network
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   vigie24-web:
     build:
