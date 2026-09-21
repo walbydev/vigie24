@@ -49,9 +49,14 @@ log = logging.getLogger("pipeline")
 
 
 def timestamped_report_path(now: Optional[datetime] = None) -> str:
-    """Nom de rapport horodaté, ex. report_2026-08-29_1601.md (gitignoré)."""
+    """Nom de rapport horodaté, ex. report_2026-08-29_1601.md (gitignoré).
+
+    Chemin ABSOLU sous REPO_ROOT : le process principal peut tourner depuis un
+    autre répertoire de travail que le cron, l'envoi doit retrouver le fichier
+    quel que soit le cwd (bug « code 3 » : rapport généré mais envoi échoué).
+    """
     now = now or datetime.now(timezone.utc)
-    return now.strftime("report_%Y-%m-%d_%H%M.md")
+    return str(REPO_ROOT / now.strftime("report_%Y-%m-%d_%H%M.md"))
 
 
 def run_step(cmd: List[str], cwd: pathlib.Path = REPO_ROOT) -> int:
