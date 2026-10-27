@@ -53,10 +53,16 @@ Titre: {title}
 Source: {sourceUrl}
 Contenu: {Truncate(content, 8000)}
 
+RÈGLE COMMERCIALE (à appliquer avant toute autre considération) :
+Un contenu à visée commerciale ne peut pas dépasser 45 de score éditorial, même s'il est long, bien écrit et documenté. Sont concernés : les guides d'achat, les comparatifs d'outils ou de services, les « avis » et « tests » d'un fournisseur ou d'une plateforme, les pages de présentation d'une offre, et tout texte dont l'objectif principal est de provoquer un clic affilié ou une inscription.
+Indices à relever : liens d'affiliation, mentions de partenaire ou de code promo, appels à s'inscrire ou à ouvrir un compte, frais et tarifs comparés, structure « définition / avantages / inconvénients / conclusion », listes de courtiers, d'outils ou de plateformes.
+Ne sont PAS concernés : un article d'actualité qui mentionne un produit, un tutoriel technique sans promotion, une analyse de marché sans lien commercial.
+Si le score est plafonné pour cette raison, indique-le explicitement dans ""justification"".
+
 Fournis ta réponse au format JSON suivant (sans markdown, juste le JSON brut):
 {{
   ""summary"": ""Résumé concis en français (2-3 phrases)"",
-  ""editorial_score"": 0-100 (note de pertinence éditoriale),
+  ""editorial_score"": 0-100 (note de pertinence éditoriale. Plafond 45 pour tout contenu à visée commerciale — voir RÈGLE COMMERCIALE),
   ""anxiety_score"": 0-10 (potentiel anxiogène du sujet pour un lecteur de veille tech : 0 = neutre/rassurant, 10 = alarmiste/effrayant. Exemples : faille zero-day massive = 8-10 ; crise géopolitique = 6-8 ; lancement produit = 1-2 ; tutoriel = 0-1),
   ""categories"": [""catégorie parente"", ""sous-catégorie""],
   ""alternative_categories"": [[""parent"", ""sous-catégorie""]] — 1-2 paires alternatives si hésitation entre plusieurs catégories, sinon [],

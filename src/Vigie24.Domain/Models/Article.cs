@@ -146,6 +146,13 @@ public class Source
     public string? FeedUrl { get; set; }
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// Editorial policy of the source (see <see cref="SourceEditorialPolicy"/>):
+    /// <c>Standard</c> = ingested, <c>Commercial</c> = excluded (buying guides,
+    /// affiliate reviews). Independent of <see cref="IsActive"/> on purpose.
+    /// </summary>
+    public string EditorialPolicy { get; set; } = SourceEditorialPolicy.Standard;
+
     /// <summary>Consecutive feed-fetch failures (reset on success, used for auto-disable).</summary>
     public int FetchFailureCount { get; set; }
 

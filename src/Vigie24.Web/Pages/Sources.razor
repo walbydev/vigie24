@@ -35,6 +35,10 @@
         <span class="source-stat"><strong>@_sources.Count</strong> sources au total</span>
         <span class="source-stat">✅ <strong>@_activeCount</strong> actives</span>
         <span class="source-stat">⏸️ <strong>@_inactiveCount</strong> désactivées</span>
+        @if (_excludedCount > 0)
+        {
+            <span class="source-stat" title="Politique éditoriale : contenu commercial ou d'affiliation — flux non ingéré">⛔ <strong>@_excludedCount</strong> écartées</span>
+        }
         <span class="source-export">
             <span class="muted">API pour développeurs :</span>
             <a class="chip" href="/sources.json" download="vigie24-sources.json" title="Télécharger la liste des sources en JSON">⬇️ JSON</a>
@@ -106,6 +110,10 @@
                         {
                             <span class="source-badge source-badge-off">⏸️ Désactivée</span>
                         }
+                        @if (SourceEditorialPolicy.BlocksIngestion(source.EditorialPolicy))
+                        {
+                            <span class="source-badge source-badge-off" title="Politique éditoriale : contenu commercial ou d'affiliation — flux non ingéré">⛔ Écartée</span>
+                        }
                         @if (source.FetchFailureCount > 0)
                         {
                             <span class="source-badge source-badge-warn" title="Échecs de récupération consécutifs">⚠️ @source.FetchFailureCount</span>
@@ -164,6 +172,7 @@
     private List<Source> _failedSources = new();
     private int _activeCount;
     private int _inactiveCount;
+    private int _excludedCount;
     private bool _adminEnabled;
     private string? _uiMessage;
 
@@ -185,8 +194,11 @@
             Logger.LogError(ex, "Impossible de charger les sources");
         }
 
-        _activeCount = _sources.Count(s => s.IsActive);
-        _inactiveCount = _sources.Count - _activeCount;
+        // Sources écartées par politique éditoriale (contenu commercial /
+        // affiliation) : listées pour la transparence, jamais ingérées.
+        _excludedCount = _sources.Count(s => SourceEditorialPolicy.BlocksIngestion(s.EditorialPolicy));
+        _activeCount = _sources.Count(s => s.IsActive && !SourceEditorialPolicy.BlocksIngestion(s.EditorialPolicy));
+        _inactiveCount = _sources.Count - _activeCount - _excludedCount;
 
         // « Rapport d'échecs » : sources en échec de récupération (compteur
         // consécutif) ou désactivées automatiquement par le worker.

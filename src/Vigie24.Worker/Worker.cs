@@ -6,6 +6,7 @@ using System.Xml.Linq;
 using Microsoft.EntityFrameworkCore;
 using Vigie24.Domain;
 using Vigie24.Domain.Models;
+using Vigie24.Infrastructure.Queries;
 using Vigie24.Services.Interfaces;
 using Vigie24.Services.Implementations;
 using Vigie24.Infrastructure.Data;
@@ -82,8 +83,10 @@ public class Vigie24Worker : BackgroundService
 
         // Retrieve active sources (tracked: the worker updates LastIngestedAt
         // after each run — AsNoTracking would prevent this field from being persisted)
+        // Commercially flagged sources are excluded by the query itself (not via
+        // IsActive: the S3 recovery probe would re-activate them) — see SourceEditorialPolicy.
         var activeSources = await dbContext.Sources
-            .Where(s => s.IsActive)
+            .Ingestible()
             .ToListAsync(cancellationToken);
 
         _logger.LogInformation("Processing {Count} active sources", activeSources.Count);
@@ -279,6 +282,15 @@ public class Vigie24Worker : BackgroundService
 
     private async Task ProcessSourceAsync(Source source, Vigie24DbContext dbContext, CancellationToken cancellationToken)
     {
+        // Defensive guard: an excluded source is never ingested, whatever the
+        // caller (polling cycle, catch-up, manual trigger) — see SourceEditorialPolicy.
+        if (SourceEditorialPolicy.BlocksIngestion(source.EditorialPolicy))
+        {
+            _logger.LogDebug("Source {SourceName} skipped (editorial policy: {Policy})",
+                source.Name, source.EditorialPolicy);
+            return;
+        }
+
         // Retry backoff: after consecutive failures, do not hammer the feed —
         // retry with an exponential ladder (5 min → … → 6 h, see SourceFailurePolicy).
         // Success resets the counter, so a healthy source is never throttled.
@@ -396,8 +408,7 @@ public class Vigie24Worker : BackgroundService
         var since = DateTime.UtcNow.AddHours(-probeAfterHours);
 
         var disabled = await dbContext.Sources
-            .Where(s => !s.IsActive && s.DisabledReason != null)
-            .Where(s => (s.DisabledAt ?? s.UpdatedAt) < since)
+            .Probeable(since)
             .ToListAsync(cancellationToken);
 
         foreach (var source in disabled)

@@ -372,6 +372,13 @@ namespace Vigie24.Infrastructure.Migrations
                     b.Property<string>("DisabledReason")
                         .HasColumnType("text");
 
+                    b.Property<string>("EditorialPolicy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("Standard");
+
                     b.Property<string>("FeedUrl")
                         .HasColumnType("text");
 

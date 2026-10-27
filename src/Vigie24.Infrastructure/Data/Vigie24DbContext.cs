@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Vigie24.Domain;
 using Vigie24.Domain.Models;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -128,6 +129,10 @@ public class Vigie24DbContext : DbContext
             
             entity.Property(e => e.Name).HasMaxLength(500).IsRequired();
             entity.Property(e => e.WebsiteUrl).IsRequired();
+            entity.Property(e => e.EditorialPolicy)
+                .HasMaxLength(40)
+                .HasDefaultValue(SourceEditorialPolicy.Standard)
+                .IsRequired();
         });
 
         // Configure ArticleSource (junction table)

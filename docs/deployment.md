@@ -44,7 +44,8 @@ CSS/JS live as readable sources in `wwwroot/css/` + `wwwroot/js/`; the site serv
 
 ## Database migrations
 
-- `dotnet ef migrations add` uses `DesignTimeDbContextFactory` (Infrastructure) — the Web host is not built in design-time, so no `--startup-project` is needed.
+- `dotnet ef migrations add <Name> -p src/Vigie24.Infrastructure -s src/Vigie24.Worker` — the startup project is **required**: `Vigie24.Infrastructure` is a class library and does not reference `Microsoft.EntityFrameworkCore.Design` (only Worker/Web do). The `DesignTimeDbContextFactory` (Infrastructure) means no Web host is built in design-time.
+- Available tool: `dotnet tool install --global dotnet-ef` (installs to `~/.dotnet/tools`; add it to `PATH`).
 - In production the **worker applies pending migrations at startup** ("Database migrated successfully"). On environments where the worker is paused (e.g. staging), apply the migration manually (ALTER TABLE + `__EFMigrationsHistory` insert with a copied `ProductVersion`).
 
 ## Deploy checklist
