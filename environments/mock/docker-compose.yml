@@ -37,7 +37,7 @@ services:
         condition: service_healthy
     networks:
       - vigie24-network
-    restart: unless-stopped
+    restart: "no"  # ne redémarre jamais seul au boot (hors session dev)
 
   vigie24-web:
     build:
