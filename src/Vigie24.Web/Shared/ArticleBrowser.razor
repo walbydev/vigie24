@@ -205,6 +205,7 @@ else
     private int _loadVersion;
     private readonly SemaphoreSlim _loadLock = new(1, 1);
     private bool _initialized;
+    private bool _filtersReady;
     private Func<Expression<Func<Article, bool>>>? _lastFilter;
 
     protected override async Task OnInitializedAsync()
@@ -235,9 +236,17 @@ else
         // Local restore ONLY after the first interactive render: during
         // prerender, ProtectedLocalStorage est indisponible et le HTML initial doit rester
         // identique client/serveur. Une URL explicite prime sur la sauvegarde.
-        if (!firstRender || _urlHadFilters)
+        if (!firstRender)
             return;
-        await RestoreSavedFiltersAsync();
+        if (_urlHadFilters)
+        {
+            _filtersReady = true;
+        }
+        else
+        {
+            await RestoreSavedFiltersAsync();
+            _filtersReady = true;
+        }
 
         // Mode zen global : lu en localStorage après le prerender, puis rechargement
         // si actif (le slider local et le plafond zen sont combinés dans BuildCriteria).
@@ -280,6 +289,8 @@ else
         try
         {
             await Task.Delay(1000, token);
+            if (!_filtersReady)
+                return; // restauration pas encore faite : ne pas écraser l'enregistrement
             var criteria = BuildCriteria();
             if (criteria.IsEmpty)
             {
