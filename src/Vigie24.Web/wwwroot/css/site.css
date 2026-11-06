@@ -956,3 +956,103 @@ h2 { font-size: 1.3rem; color: var(--text); }
     border-top: 1px solid var(--border);
 }
 .reader-vote-note { margin-top: 0.35rem; font-size: 0.85rem; }
+
+/* ===== Partage d'article (fiche /articles/{id}) =====
+   Le panneau est rendu côté serveur (liens réseaux + QR) : le style seul doit suffire
+   quand le circuit Blazor est absent. Libre-service JS = ouverture/fermeture/copie. */
+.share { position: relative; display: inline-flex; }
+.share-btn { gap: 6px; }
+.share-btn svg { width: 15px; height: 15px; }
+
+/* Fond cliquable : transparent sur bureau (popover ancré), voilé sur mobile (feuille basse). */
+.share-backdrop { position: fixed; inset: 0; z-index: 130; background: transparent; border: 0; padding: 0; }
+.share-backdrop[hidden] { display: none; }
+
+.share-panel {
+    position: absolute; top: calc(100% + 10px); left: 0; z-index: 131;
+    width: 340px; max-width: calc(100vw - 2rem);
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: 12px;
+    box-shadow: 0 14px 44px rgba(15, 23, 42, 0.25);
+    padding: 14px 16px 16px; text-align: left;
+    /* Jamais plus haut que l'écran : le panneau défile en interne. */
+    max-height: min(80vh, 640px); overflow-y: auto; overscroll-behavior: contain;
+}
+.share-panel[hidden] { display: none; }
+.share-panel:focus { outline: none; }
+.share-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.share-title { margin: 0; font-size: 0.95rem; font-weight: 600; letter-spacing: 0.01em; }
+.share-close {
+    border: 0; background: transparent; color: var(--text-muted);
+    width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 1rem; line-height: 1;
+}
+.share-close:hover { background: var(--surface-alt); color: var(--text); }
+.share-copy { display: flex; gap: 8px; margin-top: 12px; }
+.share-url {
+    flex: 1 1 auto; min-width: 0; font: inherit; font-size: 0.8rem; color: var(--text-muted);
+    background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+}
+.share-copy-btn {
+    flex: 0 0 auto; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+    border-radius: 8px; padding: 8px 12px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+}
+.share-copy-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.share-status { margin: 8px 0 0; min-height: 1.1rem; font-size: 0.78rem; color: var(--success); }
+.share-apps { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.share-app {
+    display: inline-flex; align-items: center; gap: 7px; padding: 8px 11px; min-height: 40px;
+    border: 1px solid var(--border-strong); border-radius: 8px;
+    color: var(--text); text-decoration: none; font-size: 0.84rem;
+}
+.share-app svg { width: 16px; height: 16px; flex: 0 0 auto; }
+.share-app:hover { border-color: var(--accent); color: var(--accent); }
+.share-qr {
+    display: flex; gap: 12px; align-items: center;
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+}
+.share-qr img { image-rendering: crisp-edges; width: 96px; height: 96px; flex: 0 0 auto; background: #ffffff; border-radius: 6px; padding: 4px; }
+.share-qr p { margin: 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.45; }
+.share-source { display: inline-block; margin-top: 12px; font-size: 0.82rem; color: var(--accent); }
+
+/* Bouton flottant mobile, empilé au-dessus des flèches haut/bas. */
+.share-fab {
+    position: fixed; right: 1.25rem; bottom: calc(1.25rem + 46px + 46px + 1.2rem); z-index: 90;
+    width: 46px; height: 46px; border-radius: 50%;
+    border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden; transform: translateY(4px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.share-fab svg { width: 20px; height: 20px; }
+.share-fab.visible { opacity: 0.95; visibility: visible; transform: translateY(0); }
+.share-fab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media (min-width: 721px) { .share-fab { display: none; } }
+@media (prefers-reduced-motion: reduce) { .share-fab { transition: none; } }
+
+/* Mobile : feuille basse, cibles tactiles et pas de débordement horizontal. */
+@media (max-width: 720px) {
+    .share-backdrop { background: rgba(15, 23, 42, 0.45); }
+    .share-panel {
+        position: fixed; top: auto; left: 0; right: 0; bottom: 0;
+        width: 100%; max-width: none; border-radius: 16px 16px 0 0;
+        padding: 16px 18px calc(18px + env(safe-area-inset-bottom));
+        box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.32);
+        max-height: 88vh; overflow-y: auto;
+    }
+    .share-app { min-height: 44px; }
+    body.share-locked { overflow: hidden; }
+}
+
+/* ===== Correctifs de débordement horizontal (mobile) =====
+   Constaté sur /articles à 390 px : la page mesurait 502 px de large (défilement
+   horizontal). Le choix de dates personnalisé ne passait pas à la ligne et la barre
+   du haut dépassait de l'écran. */
+@media (max-width: 720px) {
+    .tl-custom { margin-left: 0; flex-wrap: wrap; width: 100%; }
+    .tl-custom input[type=date] { flex: 1 1 120px; min-width: 0; }
+    /* En-tête : on resserre plutôt que d'empiler, pour garder une seule ligne. */
+    .topnav-right { min-width: 0; gap: 6px; }
+    .topnav-right .zen-toggle { padding: 6px 10px; font-size: 0.8rem; }
+    .theme-switcher select, .font-switcher select { padding: 6px 8px; font-size: 0.8rem; max-width: 100%; }
+}

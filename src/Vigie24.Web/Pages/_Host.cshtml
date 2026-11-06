@@ -8,6 +8,13 @@
     // Les palettes haut contraste sont redéfinies dans ce bloc (après :root) pour ne pas être
     // écrasées par lui (même spécificité, ordre source).
     var isRadarBranding = string.Equals(Config["Branding:Theme"], "radar", StringComparison.OrdinalIgnoreCase);
+
+    // La fiche article fournit ses propres og:type / og:image / twitter:image (image de l'article,
+    // og:type=article) : on n'émet les valeurs génériques que sur les autres pages, pour éviter
+    // des balises dupliquées que les crawlers interprètent mal.
+    var requestPath = HttpContext.Request.Path.Value ?? "/";
+    var isArticleDetail = requestPath.StartsWith("/articles/", StringComparison.OrdinalIgnoreCase)
+        && Guid.TryParse(requestPath["/articles/".Length..].TrimEnd('/'), out _);
 }
 <!DOCTYPE html>
 <html lang="fr">
@@ -24,10 +31,13 @@
        og:title/og:url sont fournis PAR PAGE via <HeadContent> (évite les doublons). *@
     <meta property="og:site_name" content="Vigie24" />
     <meta property="og:locale" content="fr_FR" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://vigie24.info/og-image.png" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://vigie24.info/og-image.png" />
+    @if (!isArticleDetail)
+    {
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://vigie24.info/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://vigie24.info/og-image.png" />
+    }
     @if (isRadarBranding)
     {
         <link rel="icon" type="image/x-icon" href="/favicon-radar.ico" />

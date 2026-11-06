@@ -4,6 +4,7 @@ using System.Xml.Linq;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using QRCoder;
 using Vigie24.Domain;
 using Vigie24.Domain.Models;
 using Vigie24.Infrastructure.Data;
@@ -235,6 +236,30 @@ app.MapGet("/api/articles/{id:guid}/track", async (Guid id, Vigie24DbContext db,
     var primary = article.Sources.FirstOrDefault(s => s.IsPrimary) ?? article.Sources.FirstOrDefault();
     var target = UrlNormalizer.ToAscii(primary?.SourceArticleUrl ?? article.CanonicalUrl);
     return string.IsNullOrWhiteSpace(target) ? Results.NotFound() : Results.Redirect(target);
+});
+
+// GET /api/share/qr.svg?url=… — QR code (SVG) used by the share panel: desktop readers
+// scan it to open the same article on their phone. Deliberately NOT a generic QR service:
+// only the current host and the production host are accepted, so the endpoint can't be
+// abused to mint QR codes for arbitrary URLs. Cached by the browser for an hour.
+app.MapGet("/api/share/qr.svg", (string? url, HttpContext http) =>
+{
+    if (string.IsNullOrWhiteSpace(url) || url.Length > 300) return Results.BadRequest();
+    if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return Results.BadRequest();
+    if (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp) return Results.BadRequest();
+
+    var requestHost = http.Request.Host.Host;
+    var hostAllowed = string.Equals(uri.Host, requestHost, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(uri.Host, "vigie24.info", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase);
+    if (!hostAllowed) return Results.BadRequest();
+
+    using var generator = new QRCodeGenerator();
+    using var data = generator.CreateQrCode(url, QRCodeGenerator.ECCLevel.Q);
+    var svg = new SvgQRCode(data).GetGraphic(6);
+
+    http.Response.Headers.CacheControl = "public, max-age=3600";
+    return Results.Text(svg, "image/svg+xml; charset=utf-8");
 });
 
 // Admin gate shared by /api/admin/verify and /api/sources/{id}/reactivate:

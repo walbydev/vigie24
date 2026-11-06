@@ -8,6 +8,7 @@
 @inject Vigie24DbContext DbContext
 @inject IEngagementService Engagement
 @inject ILogger<ArticleDetail> Logger
+@inject NavigationManager Nav
 
 @* Mode lecture : fiche de l'article avec le résumé IA (contenu propre indexable) *@
 <PageTitle>@_seoTitle</PageTitle>
@@ -18,6 +19,16 @@
     <meta property="og:description" content="@_metaDescription" />
     <meta property="og:url" content="https://vigie24.info/articles/@Id" />
     <meta property="og:type" content="article" />
+    @* Aperçu social propre à l'article : sans cette image, tous les partages
+       afficheraient la vignette générique du site. *@
+    <meta property="og:image" content="@_socialImage" />
+    <meta property="og:image:alt" content="@_article?.Title" />
+    <meta name="twitter:image" content="@_socialImage" />
+    <meta name="twitter:card" content="summary_large_image" />
+    @if (_article is not null)
+    {
+        <meta property="article:published_time" content="@_article.PublishedAt.ToUniversalTime().ToString("O")" />
+    }
 </HeadContent>
 
 @if (_article == null)
@@ -161,6 +172,8 @@ else
 
         <div class="reader-actions">
             <a class="chip" href="/api/articles/@_article.Id/track" target="_blank" rel="noopener">📖 Lire l'article original</a>
+            <ShareMenu Url="@_shareUrl" Title="@_seoTitle" Summary="@_article.Summary"
+                       SourceUrl="@_shareSourceUrl" SourceName="@_primarySourceName" />
             @if (_article.DebateArticles.Any())
             {
                 <a class="chip chip-debate" href="/debats">🥊 Voir le débat</a>
@@ -205,6 +218,8 @@ else
     private Article? _article;
     private string _seoTitle = "Article - Vigie24";
     private string _metaDescription = "";
+    private string _shareUrl = "";
+    private string _shareSourceUrl = "";
     private string _primarySourceName = "";
     private string _primarySourceUrl = "";
     private string _primarySourceKind = "";
@@ -236,6 +251,14 @@ else
         _ => ""
     };
 
+    /// <summary>Image d'aperçu social : celle de l'article si elle est joignable en http(s), sinon la vignette du site.</summary>
+    private string _socialImage =>
+        _article?.ImageUrl is { Length: > 0 } img &&
+        (img.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+         img.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+            ? img
+            : "https://vigie24.info/og-image.png";
+
     protected override async Task OnInitializedAsync()
     {
         _article = await DbContext.Articles.AsNoTracking()
@@ -255,6 +278,15 @@ else
 
         _seoTitle = Truncate(_article.Title, 60) + " - Vigie24";
         _metaDescription = Truncate(_article.Summary, 155);
+
+        // Lien de partage : canonique en production, hôte courant en dev/staging
+        // (sinon le QR code et le lien copié pointeraient vers un article pas encore publié).
+        var baseUri = Nav.BaseUri.TrimEnd('/');
+        _shareUrl = baseUri.Contains("vigie24.info", StringComparison.OrdinalIgnoreCase)
+            ? $"https://vigie24.info/articles/{Id}"
+            : $"{baseUri}/articles/{Id}";
+        // Lien sortant vers l'article d'origine : la route /track compte le clic et redirige.
+        _shareSourceUrl = $"{baseUri}/api/articles/{Id}/track";
 
         var primary = _article.Sources.FirstOrDefault(s => s.IsPrimary) ?? _article.Sources.FirstOrDefault();
         _primarySourceName = primary?.Source?.Name ?? "";

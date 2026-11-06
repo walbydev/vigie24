@@ -122,6 +122,17 @@
 }
 else
 {
+    @* Même navigateur qu'en fin de liste, pour ne pas remonter toute la grille avant de
+       changer de page. Masqué quand il n'y a qu'une page (aucun intérêt, et le bas suffit). *@
+    @if (_totalPages > 1)
+    {
+        <nav class="pagination pagination-top" aria-label="Pagination — début de liste">
+            <button disabled="@(_page <= 1)" @onclick="() => GoToPageAsync(_page - 1)" aria-label="Page précédente">‹ Précédent</button>
+            <span class="page-info">Page <span class="page-current">@_page</span> / @_totalPages</span>
+            <button disabled="@(_page >= _totalPages)" @onclick="() => GoToPageAsync(_page + 1)" aria-label="Page suivante">Suivant ›</button>
+        </nav>
+    }
+
     <div class="article-grid">
         @foreach (var article in _articles)
         {
