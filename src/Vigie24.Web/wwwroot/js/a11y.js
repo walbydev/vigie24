@@ -1,27 +1,35 @@
 /* ============================================================
    Widget d'accessibilité — Vigie24
-   Préférences : taille du texte, thème/contraste, espacement,
-   liens soulignés, animations réduites, curseur agrandi.
+   Préférences : taille du texte, thème/contraste, hauteur de ligne,
+   espacement des textes, mode dyslexie, masquage des images,
+   saturation, liens soulignés, animations réduites, curseur agrandi.
    Stockage : localStorage["a11y.prefs"]. Synchronisé avec les
-   sélecteurs existants (data-font / data-theme sur <html>).
+   attributs du site (data-font / data-theme sur <html>).
    API : window.A11yPrefs.{ mount, get, set, reset, open, close, subscribe }
    ============================================================ */
 (function () {
     'use strict';
 
     var KEY = 'a11y.prefs';
-    var VERSION = '1.0';
+    var VERSION = '2.0';
     var SIZES = ['50', '75', '100', '125', '150'];
     var THEMES = ['auto', 'light', 'dark', 'light-hc', 'dark-hc'];
-    var FLAGS = ['spacing', 'links', 'nomotion', 'cursor'];
+    var LEVELS = { lh: ['0', '1', '2'], space: ['0', '1', '2'] };
+    var FLAGS = ['dys', 'noimg', 'links', 'nomotion', 'cursor'];
+
     var DEFAULTS = {
         v: VERSION, size: '100', theme: 'auto',
-        spacing: false, links: false, nomotion: false, cursor: false
+        lh: '0', space: '0', sat: 100,
+        dys: false, noimg: false, links: false, nomotion: false, cursor: false
     };
+
     var LABELS = {
         size: { '50': 'très petit', '75': 'petit', '100': 'normal', '125': 'grand', '150': 'très grand' },
         theme: { auto: 'automatique', light: 'clair', dark: 'sombre', 'light-hc': 'clair renforcé', 'dark-hc': 'sombre renforcé' },
-        spacing: 'interlignage aéré', links: 'liens soulignés', nomotion: 'animations réduites', cursor: 'curseur agrandi'
+        lh: { '0': 'valeur du site', '1': 'aérée', '2': 'très aérée' },
+        space: { '0': 'normal', '1': 'moyen', '2': 'large' },
+        dys: 'mode dyslexie', noimg: 'images masquées', links: 'liens soulignés',
+        nomotion: 'animations réduites', cursor: 'curseur agrandi'
     };
 
     var state = null;
@@ -51,36 +59,38 @@
         return null;
     }
 
+    function level(value, allowed, fallback) {
+        return allowed.indexOf(value) >= 0 ? value : fallback;
+    }
+
     function sanitize(raw) {
         var p = {
             v: VERSION, size: DEFAULTS.size, theme: DEFAULTS.theme,
-            spacing: DEFAULTS.spacing, links: DEFAULTS.links,
-            nomotion: DEFAULTS.nomotion, cursor: DEFAULTS.cursor
+            lh: DEFAULTS.lh, space: DEFAULTS.space, sat: DEFAULTS.sat,
+            dys: false, noimg: false, links: false, nomotion: false, cursor: false
         };
         if (!raw || typeof raw !== 'object') {
-            // Pas encore de préférences propres : reprendre l'état du site
             var html = document.documentElement;
-            var size = html.getAttribute('data-font');
-            var theme = html.getAttribute('data-theme');
-            if (size && SIZES.indexOf(size) >= 0) p.size = size;
-            if (theme && THEMES.indexOf(theme) >= 0) p.theme = theme;
+            p.size = level(html.getAttribute('data-font'), SIZES, DEFAULTS.size);
+            p.theme = level(html.getAttribute('data-theme'), THEMES, DEFAULTS.theme);
             return p;
         }
-        if (SIZES.indexOf(raw.size) >= 0) p.size = raw.size;
-        if (THEMES.indexOf(raw.theme) >= 0) p.theme = raw.theme;
+        p.size = level(raw.size, SIZES, DEFAULTS.size);
+        p.theme = level(raw.theme, THEMES, DEFAULTS.theme);
+        p.lh = level(raw.lh, LEVELS.lh, DEFAULTS.lh);
+        p.space = level(raw.space, LEVELS.space, DEFAULTS.space);
+        if (typeof raw.sat === 'number' && raw.sat >= 0 && raw.sat <= 100) p.sat = Math.round(raw.sat);
         for (var i = 0; i < FLAGS.length; i++) {
             if (typeof raw[FLAGS[i]] === 'boolean') p[FLAGS[i]] = raw[FLAGS[i]];
         }
+        // Migration v1 : l'ancien interrupteur « spacing » devient un niveau.
+        if (raw.v === '1.0' && raw.spacing === true) p.space = '1';
         return p;
     }
 
     function save(p) {
-        try {
-            localStorage.setItem(KEY, JSON.stringify({
-                v: VERSION, size: p.size, theme: p.theme, spacing: p.spacing,
-                links: p.links, nomotion: p.nomotion, cursor: p.cursor
-            }));
-        } catch (e) { /* mode privé : la préférence vaut pour la session */ }
+        try { localStorage.setItem(KEY, JSON.stringify(copy(p))); }
+        catch (e) { /* mode privé : la préférence vaut pour la session */ }
     }
 
     function resolvedTheme(p) {
@@ -94,13 +104,23 @@
         var html = document.documentElement;
         html.setAttribute('data-font', p.size);
         html.setAttribute('data-theme', resolvedTheme(p));
-        html.classList.toggle('a11y-spacing', !!p.spacing);
+
+        html.classList.remove('a11y-lh-0', 'a11y-lh-1', 'a11y-lh-2');
+        html.classList.remove('a11y-space-0', 'a11y-space-1', 'a11y-space-2');
+        if (p.lh !== '0') html.classList.add('a11y-lh-' + p.lh);
+        if (p.space !== '0') html.classList.add('a11y-space-' + p.space);
+
+        html.classList.toggle('a11y-dys', !!p.dys);
+        html.classList.toggle('a11y-no-img', !!p.noimg);
         html.classList.toggle('a11y-links', !!p.links);
         html.classList.toggle('a11y-cursor', !!p.cursor);
-        var s = sysPrefs();
-        html.classList.toggle('a11y-no-motion', !!p.nomotion || s.reduce);
+        html.classList.toggle('a11y-no-motion', !!p.nomotion || sysPrefs().reduce);
 
-        // Garder les sélecteurs d'origine cohérents (thème + taille).
+        // Saturation : filtre global (les éléments fixes restent fixes, vérifié).
+        if (p.sat < 100) html.style.filter = 'saturate(' + p.sat + '%)';
+        else html.style.removeProperty('filter');
+
+        // Cohérence avec les valeurs du site.
         try {
             localStorage.setItem('vigie24-font', p.size);
             if (p.theme === 'auto') localStorage.removeItem('vigie24-theme');
@@ -119,12 +139,19 @@
         var segs = panel.querySelectorAll('[data-a11y-set]');
         for (var i = 0; i < segs.length; i++) {
             var parts = segs[i].getAttribute('data-a11y-set').split(':');
-            segs[i].setAttribute('aria-pressed', state[parts[0]] === parts[1] ? 'true' : 'false');
+            segs[i].setAttribute('aria-pressed', String(state[parts[0]]) === parts[1] ? 'true' : 'false');
         }
         var toggles = panel.querySelectorAll('[data-a11y-toggle]');
         for (var j = 0; j < toggles.length; j++) {
             var flag = toggles[j].getAttribute('data-a11y-toggle');
             if (toggles[j].checked !== !!state[flag]) toggles[j].checked = !!state[flag];
+        }
+        var ranges = panel.querySelectorAll('[data-a11y-range]');
+        for (var k = 0; k < ranges.length; k++) {
+            var name = ranges[k].getAttribute('data-a11y-range');
+            if (String(ranges[k].value) !== String(state[name])) ranges[k].value = state[name];
+            var out = ranges[k].parentNode.querySelector('.a11y-range-val');
+            if (out) out.textContent = state[name] + ' %';
         }
     }
 
@@ -136,14 +163,17 @@
 
     function copy(p) {
         return {
-            v: p.v, size: p.size, theme: p.theme, spacing: p.spacing,
-            links: p.links, nomotion: p.nomotion, cursor: p.cursor
+            v: VERSION, size: p.size, theme: p.theme, lh: p.lh, space: p.space, sat: p.sat,
+            dys: !!p.dys, noimg: !!p.noimg, links: !!p.links, nomotion: !!p.nomotion, cursor: !!p.cursor
         };
     }
 
     function describe(key, value) {
         if (key === 'size') return 'Taille du texte : ' + LABELS.size[value];
         if (key === 'theme') return 'Thème : ' + LABELS.theme[value];
+        if (key === 'lh') return 'Hauteur de ligne : ' + LABELS.lh[value];
+        if (key === 'space') return 'Espacement des textes : ' + LABELS.space[value];
+        if (key === 'sat') return 'Saturation des couleurs : ' + value + ' %';
         if (FLAGS.indexOf(key) >= 0) return LABELS[key] + ' : ' + (value ? 'activé' : 'désactivé');
         return '';
     }
@@ -152,8 +182,15 @@
         if (!state) state = sanitize(load());
         if (key === 'size' && SIZES.indexOf(value) >= 0) state.size = value;
         else if (key === 'theme' && THEMES.indexOf(value) >= 0) state.theme = value;
-        else if (FLAGS.indexOf(key) >= 0) state[key] = !!value;
+        else if (key === 'lh' && LEVELS.lh.indexOf(value) >= 0) state.lh = value;
+        else if (key === 'space' && LEVELS.space.indexOf(value) >= 0) state.space = value;
+        else if (key === 'sat') {
+            var n = parseInt(value, 10);
+            if (isNaN(n)) return copy(state);
+            state.sat = Math.max(0, Math.min(100, n));
+        } else if (FLAGS.indexOf(key) >= 0) state[key] = !!value;
         else return copy(state);
+
         save(state);
         apply(state);
         refresh();
@@ -163,7 +200,10 @@
     }
 
     function reset(source) {
-        state = { v: VERSION, size: '100', theme: 'auto', spacing: false, links: false, nomotion: false, cursor: false };
+        state = {
+            v: VERSION, size: '100', theme: 'auto', lh: '0', space: '0', sat: 100,
+            dys: false, noimg: false, links: false, nomotion: false, cursor: false
+        };
         save(state);
         apply(state);
         refresh();
@@ -174,12 +214,9 @@
 
     function openPanel() {
         if (!panel || panel.open) return;
-        // Reprendre l'état réel du document (les sélecteurs du site ont pu changer).
         var html = document.documentElement;
         var size = html.getAttribute('data-font');
-        var theme = html.getAttribute('data-theme');
         if (size && SIZES.indexOf(size) >= 0) state.size = size;
-        if (theme && THEMES.indexOf(theme) >= 0 && state.theme !== 'auto') state.theme = theme;
         refresh();
         if (typeof panel.showModal === 'function') panel.showModal();
         else panel.setAttribute('open', '');
@@ -217,16 +254,29 @@
                 set(parts[0], parts[1], 'panel');
                 return;
             }
-            var closer = ev.target.closest ? ev.target.closest('.a11y-close') : null;
-            var resetter = ev.target.closest ? ev.target.closest('.a11y-reset') : null;
-            if (closer) { closePanel(); return; }
-            if (resetter) { reset('panel'); return; }
+            if (ev.target.closest && ev.target.closest('.a11y-close')) { closePanel(); return; }
+            if (ev.target.closest && ev.target.closest('.a11y-reset')) { reset('panel'); return; }
         });
 
         root.addEventListener('change', function (ev) {
             var t = ev.target;
-            var flag = t && t.getAttribute ? t.getAttribute('data-a11y-toggle') : null;
+            if (!t || !t.getAttribute) return;
+            var flag = t.getAttribute('data-a11y-toggle');
             if (flag) set(flag, t.checked, 'panel');
+            var range = t.getAttribute('data-a11y-range');
+            if (range) set(range, t.value, 'panel');
+        });
+
+        // Retour immédiat pendant le glissement du curseur de saturation.
+        root.addEventListener('input', function (ev) {
+            var t = ev.target;
+            if (!t || !t.getAttribute) return;
+            var range = t.getAttribute('data-a11y-range');
+            if (range) {
+                var out = t.parentNode.querySelector('.a11y-range-val');
+                if (out) out.textContent = t.value + ' %';
+                apply(Object.assign(copy(state), { sat: parseInt(t.value, 10) }));
+            }
         });
 
         // Échap + clic sur le fond : gérés nativement par <dialog>.
@@ -237,7 +287,6 @@
             }
         });
 
-        // Suivre les changements de préférences système.
         try {
             var mqDark = window.matchMedia('(prefers-color-scheme: dark)');
             var handler = function () { if (state && state.theme === 'auto') apply(state); };
@@ -278,9 +327,7 @@
         }
     };
 
-    function boot() {
-        mount();
-    }
+    function boot() { mount(); }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', boot);

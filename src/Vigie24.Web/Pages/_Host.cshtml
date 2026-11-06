@@ -74,9 +74,13 @@
       var h=document.documentElement,S=['50','75','100','125','150'],T=['auto','light','dark','light-hc','dark-hc'];
       if(S.indexOf(p.size)>=0)h.setAttribute('data-font',p.size);
       if(T.indexOf(p.theme)>=0&&p.theme!=='auto')h.setAttribute('data-theme',p.theme);
-      if(p.spacing)h.classList.add('a11y-spacing');
+      if(p.lh==='1'||p.lh==='2')h.classList.add('a11y-lh-'+p.lh);
+      if(p.space==='1'||p.space==='2')h.classList.add('a11y-space-'+p.space);
+      if(p.dys)h.classList.add('a11y-dys');
+      if(p.noimg)h.classList.add('a11y-no-img');
       if(p.links)h.classList.add('a11y-links');
       if(p.cursor)h.classList.add('a11y-cursor');
+      if(typeof p.sat==='number'&&p.sat<100)h.style.filter='saturate('+(Math.max(0,Math.min(100,p.sat))/100)+')';
       var rd=false;try{rd=window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
       if(p.nomotion||rd)h.classList.add('a11y-no-motion')})();
     </script>
@@ -155,11 +159,34 @@
                 </fieldset>
 
                 <fieldset class="a11y-group">
-                    <legend>Confort de lecture</legend>
+                    <legend>Hauteur de ligne</legend>
+                    <div class="a11y-seg">
+                        <button type="button" data-a11y-set="lh:0" aria-pressed="true">Site</button>
+                        <button type="button" data-a11y-set="lh:1" aria-pressed="false">Aérée</button>
+                        <button type="button" data-a11y-set="lh:2" aria-pressed="false">Très aérée</button>
+                    </div>
+                </fieldset>
+
+                <fieldset class="a11y-group">
+                    <legend>Espacement des textes</legend>
+                    <div class="a11y-seg">
+                        <button type="button" data-a11y-set="space:0" aria-pressed="true">Normal</button>
+                        <button type="button" data-a11y-set="space:1" aria-pressed="false">Moyen</button>
+                        <button type="button" data-a11y-set="space:2" aria-pressed="false">Large</button>
+                    </div>
+                </fieldset>
+
+                <fieldset class="a11y-group">
+                    <legend>Lecture et confort</legend>
                     <label class="a11y-switch">
-                        <input type="checkbox" data-a11y-toggle="spacing" />
+                        <input type="checkbox" data-a11y-toggle="dys" />
                         <span class="a11y-switch-track" aria-hidden="true"></span>
-                        <span class="a11y-switch-text">Interlignage et espacement aérés</span>
+                        <span class="a11y-switch-text">Mode dyslexie</span>
+                    </label>
+                    <label class="a11y-switch">
+                        <input type="checkbox" data-a11y-toggle="noimg" />
+                        <span class="a11y-switch-track" aria-hidden="true"></span>
+                        <span class="a11y-switch-text">Masquer les images</span>
                     </label>
                     <label class="a11y-switch">
                         <input type="checkbox" data-a11y-toggle="links" />
@@ -176,6 +203,16 @@
                         <span class="a11y-switch-track" aria-hidden="true"></span>
                         <span class="a11y-switch-text">Curseur agrandi</span>
                     </label>
+                </fieldset>
+
+                <fieldset class="a11y-group">
+                    <legend>Saturation des couleurs</legend>
+                    <div class="a11y-range">
+                        <input type="range" min="0" max="100" step="10" value="100"
+                               data-a11y-range="sat" aria-describedby="a11y-sat-hint" />
+                        <output class="a11y-range-val">100 %</output>
+                    </div>
+                    <p class="a11y-hint" id="a11y-sat-hint">0 % rend le site entièrement en gris.</p>
                 </fieldset>
             </div>
 
