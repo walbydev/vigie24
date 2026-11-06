@@ -1010,7 +1010,7 @@ h2 { font-size: 1.3rem; color: var(--text); }
     display: flex; gap: 12px; align-items: center;
     margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
 }
-.share-qr img { image-rendering: crisp-edges; width: 96px; height: 96px; flex: 0 0 auto; background: #ffffff; border-radius: 6px; padding: 4px; }
+.share-qr img { width: 132px; height: 132px; flex: 0 0 auto; background: #ffffff; border-radius: 6px; padding: 4px; }
 .share-qr p { margin: 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.45; }
 .share-source { display: inline-block; margin-top: 12px; font-size: 0.82rem; color: var(--accent); }
 
