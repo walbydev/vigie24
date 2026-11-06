@@ -52,6 +52,7 @@
         <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     }
     <link rel="stylesheet" href="~/css/site.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/a11y.min.css" asp-append-version="true" />
     @if (isRadarBranding)
     {
         @* ============================================================
@@ -68,6 +69,16 @@
     window.vigie24Font={get:function(){return document.documentElement.getAttribute('data-font')||'100'},set:function(f){document.documentElement.setAttribute('data-font',f);try{localStorage.setItem('vigie24-font',f)}catch(e){}}};
     // Zen: cookie read server-side at prerender (no flash of anxiety-provoking articles); Secure on HTTPS
     window.vigie24Zen={set:function(on){var d=new Date();d.setTime(on?d.getTime()+365*24*3600*1000:0);var s=(location.protocol==='https:')?'; Secure':'';document.cookie='vigie24_zen='+(on?'1':'0')+'; path=/; expires='+d.toUTCString()+'; SameSite=Lax'+s}};
+    // Accessibilité: préférences du widget appliquées avant le premier rendu (aucun clignotement).
+    (function(){var p=null;try{p=JSON.parse(localStorage.getItem('a11y.prefs')||'null')}catch(e){}if(!p||typeof p!=='object')return;
+      var h=document.documentElement,S=['50','75','100','125','150'],T=['auto','light','dark','light-hc','dark-hc'];
+      if(S.indexOf(p.size)>=0)h.setAttribute('data-font',p.size);
+      if(T.indexOf(p.theme)>=0&&p.theme!=='auto')h.setAttribute('data-theme',p.theme);
+      if(p.spacing)h.classList.add('a11y-spacing');
+      if(p.links)h.classList.add('a11y-links');
+      if(p.cursor)h.classList.add('a11y-cursor');
+      var rd=false;try{rd=window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
+      if(p.nomotion||rd)h.classList.add('a11y-no-motion')})();
     </script>
 
     @* Données structurées JSON-LD (rich snippets Google) — WebSite + Organization globaux ;
@@ -101,6 +112,82 @@
 <body>
     <component type="typeof(App)" render-mode="ServerPrerendered" />
 
+    @* ============================================================
+       Widget d'accessibilité (hors arbre Blazor : aucun re-rendu ne l'écrase).
+       Sans JavaScript, le bloc reste [hidden] et le site fonctionne normalement.
+       ============================================================ *@
+    <div data-a11y-root hidden>
+        <button type="button" class="a11y-trigger" title="Réglages d'accessibilité" aria-haspopup="dialog" aria-controls="a11y-panel" aria-expanded="false">
+            <svg class="a11y-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="12" cy="4.2" r="2.1" fill="currentColor" />
+                <path d="M4.2 8.4h15.6M12 8.9v5.6m0 0-3.4 6.9M12 14.5l3.4 6.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            <span class="a11y-trigger-label">Accessibilité</span>
+        </button>
+
+        <dialog class="a11y-panel" id="a11y-panel" aria-labelledby="a11y-title">
+            <div class="a11y-head">
+                <h2 class="a11y-title" id="a11y-title">Accessibilité</h2>
+                <button type="button" class="a11y-close a11y-x" aria-label="Fermer les réglages d'accessibilité">✕</button>
+            </div>
+
+            <div class="a11y-body">
+                <fieldset class="a11y-group">
+                    <legend>Taille du texte</legend>
+                    <div class="a11y-seg">
+                        <button type="button" data-a11y-set="size:50" aria-pressed="false">50 %</button>
+                        <button type="button" data-a11y-set="size:75" aria-pressed="false">75 %</button>
+                        <button type="button" data-a11y-set="size:100" aria-pressed="true">100 %</button>
+                        <button type="button" data-a11y-set="size:125" aria-pressed="false">125 %</button>
+                        <button type="button" data-a11y-set="size:150" aria-pressed="false">150 %</button>
+                    </div>
+                </fieldset>
+
+                <fieldset class="a11y-group">
+                    <legend>Thème et contraste</legend>
+                    <div class="a11y-seg a11y-seg-2">
+                        <button type="button" data-a11y-set="theme:auto" aria-pressed="true">Automatique</button>
+                        <button type="button" data-a11y-set="theme:light" aria-pressed="false">Clair</button>
+                        <button type="button" data-a11y-set="theme:dark" aria-pressed="false">Sombre</button>
+                        <button type="button" data-a11y-set="theme:light-hc" aria-pressed="false">Clair renforcé</button>
+                        <button type="button" data-a11y-set="theme:dark-hc" aria-pressed="false">Sombre renforcé</button>
+                    </div>
+                </fieldset>
+
+                <fieldset class="a11y-group">
+                    <legend>Confort de lecture</legend>
+                    <label class="a11y-switch">
+                        <input type="checkbox" data-a11y-toggle="spacing" />
+                        <span class="a11y-switch-track" aria-hidden="true"></span>
+                        <span class="a11y-switch-text">Interlignage et espacement aérés</span>
+                    </label>
+                    <label class="a11y-switch">
+                        <input type="checkbox" data-a11y-toggle="links" />
+                        <span class="a11y-switch-track" aria-hidden="true"></span>
+                        <span class="a11y-switch-text">Liens soulignés</span>
+                    </label>
+                    <label class="a11y-switch">
+                        <input type="checkbox" data-a11y-toggle="nomotion" />
+                        <span class="a11y-switch-track" aria-hidden="true"></span>
+                        <span class="a11y-switch-text">Réduire les animations</span>
+                    </label>
+                    <label class="a11y-switch">
+                        <input type="checkbox" data-a11y-toggle="cursor" />
+                        <span class="a11y-switch-track" aria-hidden="true"></span>
+                        <span class="a11y-switch-text">Curseur agrandi</span>
+                    </label>
+                </fieldset>
+            </div>
+
+            <div class="a11y-foot">
+                <button type="button" class="a11y-reset">Réinitialiser</button>
+                <button type="button" class="a11y-close a11y-done">Fermer</button>
+            </div>
+            <p class="a11y-status" role="status" aria-live="polite"></p>
+        </dialog>
+    </div>
+
+
     <div id="blazor-error-ui">
         <environment include="Staging,Production">
             Une erreur s'est produite. Cette page ne sera pas actualisée jusqu'à ce que vous ayez redémarré l'application.
@@ -113,6 +200,7 @@
     </div>
 
     <script src="~/js/vigie24.min.js" asp-append-version="true"></script>
+    <script src="~/js/a11y.min.js" asp-append-version="true" defer></script>
     <script src="_framework/blazor.server.js"></script>
 </body>
 </html>

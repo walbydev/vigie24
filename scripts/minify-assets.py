@@ -17,7 +17,9 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent / "src" / "Vigie24.Web" / 
 PAIRS = [
     ("css/site.css", "css/site.min.css"),
     ("css/radar.css", "css/radar.min.css"),
+    ("css/a11y.css", "css/a11y.min.css"),
     ("js/vigie24.js", "js/vigie24.min.js"),
+    ("js/a11y.js", "js/a11y.min.js"),
 ]
 
 for src, dst in PAIRS:
