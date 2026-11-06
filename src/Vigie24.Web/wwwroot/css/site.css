@@ -1056,3 +1056,11 @@ h2 { font-size: 1.3rem; color: var(--text); }
     .topnav-right .zen-toggle { padding: 6px 10px; font-size: 0.8rem; }
     .theme-switcher select, .font-switcher select { padding: 6px 8px; font-size: 0.8rem; max-width: 100%; }
 }
+
+/* 390 px : l'en-tête dépassait de 3 px (marge droite du bloc thème). On resserre. */
+@media (max-width: 480px) {
+    .topnav { padding: 0 12px; }
+    .topnav .brand { margin-right: 4px; padding-right: 4px; font-size: 1.05rem; }
+    .topnav-right { gap: 4px; }
+    .theme-switcher select, .font-switcher select { padding: 6px 6px; }
+}
