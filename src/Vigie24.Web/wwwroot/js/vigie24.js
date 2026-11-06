@@ -26,20 +26,44 @@ window.vigie24 = window.vigie24 || {
             return false;
         }
     },
-    // Floating scroll buttons (top/bottom of page), right side of the content.
-    // Pure client-side: no Blazor circuit needed, works during prerender too.
+    // Ascenseur vertical (chevron haut, piste + curseur, chevron bas) fixé à droite.
+    // Toujours visible : les chevrons s'atténuent quand on est déjà en haut/en bas, et le
+    // curseur suit la position de lecture. Pur client, aucun circuit Blazor.
     initScrollFabs: function () {
         var topBtn = document.getElementById('fab-top');
         var bottomBtn = document.getElementById('fab-bottom');
         if (!topBtn || !bottomBtn) return;
+        // Blazor remplace les nœuds de la mise en page après l'hydratation : on rebinde
+        // sur le nouveau bouton, et on ne double pas les écouteurs sur l'ancien.
+        if (topBtn.dataset.v24Rail === '1') return;
+        topBtn.dataset.v24Rail = '1';
 
+        var THUMB_H = 16;
         var ticking = false;
+
         function update() {
             ticking = false;
-            var y = window.scrollY || document.documentElement.scrollTop;
-            var maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-            topBtn.classList.toggle('visible', y > 400);
-            bottomBtn.classList.toggle('visible', maxScroll > 150 && y < maxScroll - 150);
+            var doc = document.documentElement;
+            var y = window.scrollY || doc.scrollTop || 0;
+            var maxScroll = Math.max(0, doc.scrollHeight - window.innerHeight);
+            // Requêtés à chaque passe : Blazor peut remplacer les nœuds de la mise en page.
+            var thumb = document.querySelector('.scroll-thumb');
+            var track = document.querySelector('.scroll-track');
+
+            topBtn.classList.toggle('is-off', y <= 8);
+            bottomBtn.classList.toggle('is-off', y >= maxScroll - 8);
+
+            if (thumb && track) {
+                // Piste verticale sur bureau, horizontale sur mobile : on suit le grand axe.
+                var horizontal = track.clientWidth > track.clientHeight;
+                var thumbSize = horizontal ? (thumb.offsetWidth || THUMB_H) : (thumb.offsetHeight || THUMB_H);
+                var span = Math.max(0, (horizontal ? track.clientWidth : track.clientHeight) - thumbSize);
+                var ratio = maxScroll > 0 ? Math.min(1, Math.max(0, y / maxScroll)) : 0;
+                var pos = Math.round(ratio * span);
+                thumb.style.transform = horizontal
+                    ? 'translateX(' + pos + 'px)'
+                    : 'translateY(' + pos + 'px)';
+            }
         }
         function onScroll() {
             if (!ticking) { ticking = true; requestAnimationFrame(update); }
@@ -58,6 +82,8 @@ window.vigie24 = window.vigie24 || {
         });
         window.addEventListener('scroll', onScroll, { passive: true });
         window.addEventListener('resize', onScroll);
+        // Navigation améliorée de Blazor : la page change sans événement scroll.
+        document.addEventListener('enhancedload', onScroll);
         update();
     },
     // Partage d'article. Le panneau est rendu côté serveur (liens + QR) : tout ce qui est
@@ -196,14 +222,28 @@ window.vigie24 = window.vigie24 || {
 
 // Init when the DOM is ready (script is loaded at the end of <body>, but be safe
 // if a layout change ever moves it earlier).
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-        window.vigie24.initScrollFabs();
-        window.vigie24.initShare();
-        window.vigie24.initAdminGate();
-    });
-} else {
+function bootVigie24() {
     window.vigie24.initScrollFabs();
     window.vigie24.initShare();
     window.vigie24.initAdminGate();
 }
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootVigie24);
+} else {
+    bootVigie24();
+}
+
+// Blazor remplace la mise en page après l'hydratation (et à chaque navigation améliorée) :
+// on réinitialise à chaque fois que la barre d'ascenseur réapparaît dans le DOM.
+document.addEventListener('enhancedload', bootVigie24);
+(function watchRail() {
+    if (!document.body || typeof MutationObserver === 'undefined') return;
+    var obs = new MutationObserver(function () {
+        var top = document.getElementById('fab-top');
+        if (top && top.dataset.v24Rail !== '1') {
+            window.vigie24.initScrollFabs();
+            window.vigie24.initShare();
+        }
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+})();

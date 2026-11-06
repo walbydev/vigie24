@@ -109,15 +109,18 @@
             <span>Données issues de flux RSS publics</span>
         </div>
     </footer>
-    <div class="scroll-fabs">
+    <div class="scroll-fabs" role="group" aria-label="Défilement de la page">
         <button type="button" class="scroll-fab" id="fab-top" aria-label="Remonter en haut de page" title="Haut de page">
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
-                <path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                <path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </button>
+        <div class="scroll-track" aria-hidden="true">
+            <div class="scroll-thumb"></div>
+        </div>
         <button type="button" class="scroll-fab" id="fab-bottom" aria-label="Aller en bas de page" title="Bas de page">
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
-                <path d="M12 5v14M5 12l7 7 7-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </button>
     </div>

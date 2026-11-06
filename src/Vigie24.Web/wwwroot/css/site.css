@@ -884,50 +884,80 @@ h2 { font-size: 1.3rem; color: var(--text); }
 [data-theme$="-hc"] .af-chip, [data-theme$="-hc"] .pagination button { border-width: 2px; }
 [data-theme$="-hc"] .hint-popup { border: 2px solid currentColor; }
 
-/* Boutons flottants haut/bas de page (à droite du contenu) */
+/* Ascenseur vertical à droite : chevron haut / piste avec curseur / chevron bas.
+   Repère permanent de défilement (façon face-it.solutions), le curseur suit la lecture. */
 .scroll-fabs {
     position: fixed;
-    right: 1.25rem;
-    bottom: 1.25rem;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    align-items: center;
+    gap: 4px;
     z-index: 90;
 }
 .scroll-fab {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
     border: 1px solid var(--border-strong);
     background: var(--surface);
     color: var(--text-muted);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(4px);
-    transition: opacity 0.2s ease, transform 0.2s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 }
-.scroll-fab.visible {
-    opacity: 0.92;
-    visibility: visible;
-    transform: translateY(0);
+.scroll-fab.is-off {
+    opacity: 0.35;
+    cursor: default;
 }
 .scroll-fab:hover, .scroll-fab:focus-visible {
     background: var(--accent);
     border-color: var(--accent);
     color: var(--accent-ink);
-    opacity: 1;
 }
 .scroll-fab:focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
 }
+.scroll-track {
+    position: relative;
+    width: 2px;
+    height: 64px;
+    background: var(--border-strong);
+    border-radius: 1px;
+}
+.scroll-thumb {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 2px;
+    height: 16px;
+    border-radius: 1px;
+    background: var(--accent);
+    will-change: transform;
+}
+@media (max-width: 720px) {
+    /* Mobile : barre horizontale en bas à gauche, le FAB de partage occupe la droite. */
+    .scroll-fabs {
+        top: auto;
+        bottom: 1rem;
+        left: 0.75rem;
+        right: auto;
+        transform: none;
+        flex-direction: row;
+        gap: 3px;
+    }
+    .scroll-fab { width: 38px; height: 38px; }
+    .scroll-track { width: 72px; height: 6px; border-radius: 3px; }
+    .scroll-thumb { width: 20px; height: 6px; border-radius: 3px; }
+}
 @media (prefers-reduced-motion: reduce) {
-    .scroll-fab { transition: none; }
+    .scroll-fab, .scroll-thumb { transition: none; }
 }
 
 /* Fiche article : image avec badge de source (YouTube/Reddit en surimpression) */
