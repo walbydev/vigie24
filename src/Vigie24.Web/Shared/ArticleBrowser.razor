@@ -82,7 +82,7 @@
         </div>
         <div class="af-group af-group-wide">
             <label for="exclude-words">Mots à exclure</label>
-            <input id="exclude-words" class="af-input" type="text" placeholder="musk, trump, …"
+            <input id="exclude-words" class="af-input" type="text" placeholder="horoscope, people, …"
                    value="@_exclude" @oninput="OnExcludeInput"
                    aria-describedby="exclude-help" />
             <span id="exclude-help" class="muted">Séparés par des virgules. Tout article dont le titre ou le résumé contient un de ces mots est masqué.</span>
@@ -448,7 +448,7 @@ else
         ScheduleFilterSave();
     }
 
-    /// <summary>Splits the excluded-words field ("musk, trump") into distinct words.</summary>
+    /// <summary>Splits the excluded-words field ("horoscope, people") into distinct words.</summary>
     private static List<string> ParseExcludeWords(string raw) =>
         raw.Split([',', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Distinct(StringComparer.OrdinalIgnoreCase)
