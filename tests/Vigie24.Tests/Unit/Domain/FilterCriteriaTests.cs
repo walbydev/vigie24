@@ -126,4 +126,26 @@ public class FilterCriteriaTests
         Assert.Equal(a, b);
         Assert.NotEqual(a, c);
     }
+
+    [Fact]
+    public void ExcludeWords_RoundTrip_QueryStringAndJson()
+    {
+        var c = new FilterCriteria { ExcludeWords = new[] { "musk", "trump" } };
+
+        Assert.True(FilterCriteria.TryParse(c.ToQueryString(), out var fromQuery));
+        Assert.Equal(new[] { "musk", "trump" }, fromQuery.ExcludeWords);
+
+        var fromJson = FilterCriteria.FromJson(c.ToJson());
+        Assert.Equal(c, fromJson!);
+        Assert.Equal("?exclude=musk%2Ctrump", c.ToQueryString());
+    }
+
+    [Fact]
+    public void ExcludeWords_ParsesCsv_AndIsNotEmpty()
+    {
+        Assert.True(FilterCriteria.TryParse("?exclude=musk%2C%20trump%2C", out var parsed));
+        Assert.Equal(new[] { "musk", "trump" }, parsed.ExcludeWords);
+        Assert.False(parsed.IsEmpty);
+    }
 }
+

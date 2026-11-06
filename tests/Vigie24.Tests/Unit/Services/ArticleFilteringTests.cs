@@ -196,4 +196,16 @@ public class ArticleFilteringTests
 
         Assert.Contains("ILike", q.Expression.ToString());
     }
+
+    [Fact]
+    public void ExcludeWords_BuildsNotIlLikeExpression()
+    {
+        using var db = SeedAsync(BuildArticles()).GetAwaiter().GetResult();
+        var q = db.Articles.ApplyFilterCriteria(new FilterCriteria { ExcludeWords = new[] { "musk", "trump" } });
+
+        var sql = q.Expression.ToString();
+        Assert.Contains("ILike", sql, StringComparison.Ordinal);
+        Assert.Contains("Not", sql, StringComparison.Ordinal);
+    }
 }
+

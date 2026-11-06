@@ -34,6 +34,16 @@
     les coûts.
 </p>
 
+<div class="license-card project-news">
+    <h2>Nouveautés récentes</h2>
+    <ul class="project-news-list">
+        <li><strong>Filtre négatif</strong> — dans les filtres avancés, excluez des mots (par exemple « musk, trump ») : aucun article dont le titre ou le résumé les contient n'apparaît.</li>
+        <li><strong>Ascenseur vertical</strong> — un rail fixe à droite pour remonter et descendre sans chercher la barre de défilement, y compris sur les longues listes.</li>
+        <li><strong>Réglages mémorisés</strong> — filtres, mode zen et préférences d'accessibilité restent enregistrés sur l'appareil d'une visite à l'autre.</li>
+        <li><strong>Widget d'accessibilité</strong> — taille du texte, thème et contraste renforcé, hauteur de ligne, espacement, mode dyslexie, masquage des images, saturation. Un seul bouton, préférences conservées.</li>
+    </ul>
+</div>
+
 <div class="status-card project-stats">
     <div class="source-stats">
         <span class="source-stat"><strong>@_activeSources</strong> sources actives / @_totalSources</span>
@@ -136,6 +146,14 @@
         <p class="layer-desc muted">Pas de compte, pas de tracker, votes anonymes — et un durcissement continu (HTTPS HSTS, politique de sécurité, anti-abus).</p>
     </div>
 
+    <div class="layer-card project-strength">
+        <div class="layer-head">
+            <span class="layer-icon">♿</span>
+            <h3 class="layer-title">Accessible par défaut</h3>
+        </div>
+        <p class="layer-desc muted">Contrastes renforcés, police adaptée à la dyslexie, taille du texte, interlignage, espacement et masquage des images — réglables en un clic, sans compte.</p>
+    </div>
+
 </div>
 
 <p class="project-note muted">
@@ -160,7 +178,7 @@
         <li><strong>PostgreSQL 16</strong> via EF Core / Npgsql — articles, sources, tags, votes, débats, suivi des tokens.</li>
         <li><strong>Docker Compose</strong> (worker + web + base) derrière <strong>Caddy</strong> (HTTPS Let's Encrypt) ; environnement séparé staging / production.</li>
         <li><strong>IA</strong> : API <strong>Infomaniak AI</strong> (compatible OpenAI, hébergement en Suisse), modèle <strong>google/gemma-4-31B-it</strong>, avec DeepSeek en secours.</li>
-        <li><strong>🛡️ Sécurité</strong> : HTTPS HSTS (1 an), en-têtes durcis (CSP, X-Frame-Options, nosniff), limitation anti-abus des votes (30/h par IP), cookies sécurisés, pages légales (<a href="/mentions-legales">mentions légales</a>, <a href="/confidentialite">confidentialité</a>).</li>
+        <li><strong>🛡️ Sécurité</strong> : HTTPS HSTS (1 an), en-têtes durcis (CSP, X-Frame-Options, nosniff), limitation anti-abus des votes (30 votes/h par identité anonyme), cookies sécurisés, pages légales (<a href="/mentions-legales">mentions légales</a>, <a href="/confidentialite">confidentialité</a>).</li>
         <li><strong>⚡ Performance</strong> : CSS/JS minifiés et versionnés (cache immuable), aucune feuille de style inline — un HTML léger servi compressé (gzip/zstd).</li>
     </ul>
     <p class="muted">

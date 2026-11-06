@@ -73,6 +73,7 @@ services:
       - ConnectionStrings__Database=Host=postgres;Database=${DB_NAME:-vigie24_prod};Username=${DB_USER:-postgres_prod};Password=${DB_PASSWORD}
     volumes:
       - ./appsettings.Production.json:/app/appsettings.Production.json:ro
+      - vigie24_dpkeys:/app/dpkeys
     expose:
       - "8080"
     depends_on:
@@ -111,5 +112,7 @@ networks:
 volumes:
   postgres_prod_data:
     name: vigie24_prod_data
+  vigie24_dpkeys:
+    name: vigie24_dpkeys
   caddy_data:
   caddy_config:

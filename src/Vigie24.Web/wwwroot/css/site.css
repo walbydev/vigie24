@@ -190,6 +190,8 @@ a { color: var(--accent); }
 .page { display: flex; flex-direction: column; min-height: 100vh; }
 main { flex: 1; padding: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
 h1 { color: var(--text); font-size: 1.7rem; }
+/* FocusOnNavigate place le focus sur le h1 : l'anneau n'aide pas un lecteur voyant. */
+h1:focus, h1:focus-visible { outline: none; }
 h2 { font-size: 1.3rem; color: var(--text); }
 .text-success { color: var(--success); font-weight: 600; }
 .text-warning { color: var(--warning); font-weight: 600; }
@@ -444,6 +446,13 @@ h2 { font-size: 1.3rem; color: var(--text); }
 .advanced-filters .af-group { display: flex; flex-direction: column; gap: 6px; min-width: 220px; flex: 1 1 240px; }
 .advanced-filters .af-group label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .advanced-filters .af-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.advanced-filters .af-group-wide { flex: 1 1 100%; }
+.advanced-filters .af-input {
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: 8px;
+    padding: 8px 10px; font: inherit; font-size: .9rem; min-height: 38px;
+}
+.advanced-filters .af-input::placeholder { color: var(--text-muted); }
 .advanced-filters .af-chip {
     border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
     border-radius: 14px; padding: 4px 12px; font-size: 0.82rem; cursor: pointer;

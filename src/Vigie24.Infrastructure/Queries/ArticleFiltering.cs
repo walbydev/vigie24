@@ -22,6 +22,19 @@ public static class ArticleFiltering
                 || a.Sources.Any(s => EF.Functions.ILike(s.Source.Name, pattern)));
         }
 
+        // Negative filter: any excluded word found in the title or the summary removes
+        // the article. Words are matched case-insensitively, LIKE wildcards are escaped.
+        foreach (var raw in c.ExcludeWords)
+        {
+            var word = raw.Trim();
+            if (word.Length == 0)
+                continue;
+
+            var pattern = $"%{EscapeLike(word)}%";
+            q = q.Where(a => !EF.Functions.ILike(a.Title, pattern, "\\")
+                && (a.Summary == null || !EF.Functions.ILike(a.Summary, pattern, "\\")));
+        }
+
         // The displayed country is that of the primary source
         if (!string.IsNullOrEmpty(c.CountryCode))
         {
@@ -69,4 +82,10 @@ public static class ArticleFiltering
 
         return q;
     }
+
+    /// <summary>Escapes LIKE wildcards so an excluded word is matched literally.</summary>
+    private static string EscapeLike(string value) =>
+        value.Replace("\\", "\\\\", StringComparison.Ordinal)
+             .Replace("%", "\\%", StringComparison.Ordinal)
+             .Replace("_", "\\_", StringComparison.Ordinal);
 }

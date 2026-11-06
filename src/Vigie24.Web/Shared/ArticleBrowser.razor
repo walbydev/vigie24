@@ -80,6 +80,13 @@
                 }
             </select>
         </div>
+        <div class="af-group af-group-wide">
+            <label for="exclude-words">Mots à exclure</label>
+            <input id="exclude-words" class="af-input" type="text" placeholder="musk, trump, …"
+                   value="@_exclude" @oninput="OnExcludeInput"
+                   aria-describedby="exclude-help" />
+            <span id="exclude-help" class="muted">Séparés par des virgules. Tout article dont le titre ou le résumé contient un de ces mots est masqué.</span>
+        </div>
         <div class="af-group">
             <label for="min-score">Score minimum : <span class="af-value">@(_minScore > 0 ? _minScore.ToString() : "—")</span></label>
             <div class="af-range">
@@ -98,6 +105,10 @@
                 }
             </div>
         </div>
+        @if (ParseExcludeWords(_exclude).Count > 0)
+        {
+            <div class="af-note">🚫 Mots exclus : @string.Join(" · ", ParseExcludeWords(_exclude))</div>
+        }
         <button class="af-reset" @onclick="ResetFiltersAsync">✕ Réinitialiser les filtres</button>
         <div class="af-group">
             <label id="lbl-prefs">Mes préférences</label>
@@ -186,6 +197,7 @@ else
     private int _minScore;                              // 0 = aucun filtre
     private int _minRating;                             // 0 = aucune note minimale
     private int _maxAnxiety = 10;                       // 10 = aucun filtre ; 0-9 = plafond d'anxiété
+    private string _exclude = "";                       // mots exclus, séparés par des virgules
     private bool _urlHadFilters;                        // l'URL portait des filtres explicites
 
     private CancellationTokenSource? _searchCts;
@@ -328,6 +340,7 @@ else
         MaxAnxiety = (Zen.IsEnabled || ZenModeService.IsEnabledFromCookie(HttpAccessor))
             ? Math.Min(_maxAnxiety, ZenModeService.ZenMaxAnxiety)
             : _maxAnxiety,
+        ExcludeWords = ParseExcludeWords(_exclude),
         RangeFrom = _range?.From,
         RangeTo = _range?.To,
         SortField = SortField,
@@ -359,6 +372,7 @@ else
         _minScore = criteria.MinScore;
         _minRating = criteria.MinRating;
         _maxAnxiety = criteria.MaxAnxiety;
+        _exclude = string.Join(", ", criteria.ExcludeWords);
         _range = (criteria.RangeFrom, criteria.RangeTo);
         SortField = criteria.SortField;
         PageSize = criteria.PageSize;
@@ -400,6 +414,34 @@ else
         await LoadAsync();
         ScheduleFilterSave();
     }
+
+    private CancellationTokenSource? _excludeCts;
+
+    /// <summary>Debounced reload while typing excluded words (400 ms).</summary>
+    private async Task OnExcludeInput(ChangeEventArgs e)
+    {
+        _exclude = e.Value?.ToString() ?? "";
+
+        _excludeCts?.Cancel();
+        _excludeCts = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(400, _excludeCts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+        _page = 1;
+        await LoadAsync();
+        ScheduleFilterSave();
+    }
+
+    /// <summary>Splits the excluded-words field ("musk, trump") into distinct words.</summary>
+    private static List<string> ParseExcludeWords(string raw) =>
+        raw.Split([',', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
     private async Task OnCountryChanged()
     {
@@ -447,6 +489,7 @@ else
         _minScore = 0;
         _minRating = 0;
         _maxAnxiety = 10;
+        _exclude = "";
         _range = null;
         _page = 1;
         await LoadAsync();

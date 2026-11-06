@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.JSInterop;
 using Vigie24.Domain;
 using Vigie24.Domain.Models;
 using Vigie24.Infrastructure.Data;
@@ -25,30 +26,44 @@ public sealed record EngagementState(
 public sealed class EngagementService(
     Vigie24DbContext db,
     IHttpContextAccessor http,
+    IJSRuntime js,
     EngagementRateLimiter limiter) : IEngagementService
 {
     private const string VoterCookie = "voter_id";
+    private string? _voterKey;
 
-    private string? GetVoterKey() => http.HttpContext?.Request.Cookies[VoterCookie];
+    private string? CookieVoterKey() => http.HttpContext?.Request.Cookies[VoterCookie];
 
-    /// <summary>Clé d'anti-abus du visiteur courant (adresse IP rétablie par ForwardedHeaders).</summary>
-    private string ClientKey => http.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    private string? GetVoterKey() => _voterKey ??= CookieVoterKey();
 
-    private string EnsureVoterKey()
+    /// <summary>
+    /// Clé du visiteur. Lue dans le cookie au prerender (HttpContext disponible) ; sinon
+    /// demandée à `vigie24.voterId()` côté navigateur, car dans un circuit Blazor SignalR
+    /// il n'y a plus de HttpContext : écrire un cookie depuis le service y lève
+    /// « Headers are read-only ».
+    /// </summary>
+    private async ValueTask<string?> ResolveVoterKeyAsync()
     {
-        var key = GetVoterKey();
-        if (!string.IsNullOrEmpty(key)) return key;
-
-        key = Guid.NewGuid().ToString("N");
-        http.HttpContext?.Response.Cookies.Append(VoterCookie, key, new CookieOptions
+        if (!string.IsNullOrEmpty(_voterKey)) return _voterKey;
+        var fromCookie = CookieVoterKey();
+        if (!string.IsNullOrEmpty(fromCookie)) return _voterKey = fromCookie;
+        try
         {
-            HttpOnly = true,
-            SameSite = SameSiteMode.Lax,
-            Secure = http.HttpContext?.Request.IsHttps == true, // jamais en clair (HTTPS derrière Caddy)
-            MaxAge = TimeSpan.FromDays(365)
-        });
-        return key;
+            var fromJs = await js.InvokeAsync<string?>("vigie24.voterId");
+            if (!string.IsNullOrEmpty(fromJs)) return _voterKey = fromJs;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or JSDisconnectedException or JSException)
+        {
+            // prerender statique ou circuit coupé : pas encore d'identité, on réessaiera
+        }
+        return null;
     }
+
+    /// <summary>Clé d'anti-abus : identité du voteur, à défaut l'adresse IP.</summary>
+    private string ClientKey(string? voterKey) =>
+        !string.IsNullOrEmpty(voterKey)
+            ? $"v:{voterKey}"
+            : http.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
     public async Task<EngagementState> GetStateAsync(Guid articleId, CancellationToken ct = default)
     {
@@ -56,6 +71,7 @@ public sealed class EngagementService(
         if (article is null) return new EngagementState(null, 0, 0, 0, 0);
 
         int? myVote = null;
+        // Cookie seulement : on ne crée pas d'identité pour un simple affichage.
         var key = GetVoterKey();
         if (!string.IsNullOrEmpty(key))
         {
@@ -87,14 +103,16 @@ public sealed class EngagementService(
         if (value < 0 || value > 5)
             throw new ArgumentOutOfRangeException(nameof(value), "Le vote doit être entre 0 et 5.");
 
-        // Anti-abus : fenêtre fixe par IP (30 actions/heure par défaut)
-        if (!limiter.TryConsume($"vote:{ClientKey}"))
+        var voterKey = await ResolveVoterKeyAsync();
+        if (string.IsNullOrEmpty(voterKey))
+            throw new InvalidOperationException("Identité de vote indisponible dans cette session.");
+
+        // Anti-abus : fenêtre fixe par identité de voteur (30 votes/heure par défaut)
+        if (!limiter.TryConsume($"vote:{ClientKey(voterKey)}"))
             throw new RateLimitExceededException("Trop de votes depuis cette adresse. Réessayez plus tard.");
 
         var article = await db.Articles.FirstOrDefaultAsync(a => a.Id == articleId, ct)
             ?? throw new KeyNotFoundException($"Article {articleId} introuvable.");
-
-        var voterKey = EnsureVoterKey();
 
         var existing = await db.ArticleVotes
             .FirstOrDefaultAsync(v => v.ArticleId == articleId && v.VoterKey == voterKey, ct);
@@ -123,8 +141,8 @@ public sealed class EngagementService(
 
     public async Task TrackClickAsync(Guid articleId, CancellationToken ct = default)
     {
-        // Anti-abus : fenêtre fixe par IP (cohérent avec le endpoint HTTP /track)
-        if (!limiter.TryConsume($"click:{ClientKey}"))
+        // Anti-abus : fenêtre fixe par identité (cohérent avec le endpoint HTTP /track)
+        if (!limiter.TryConsume($"click:{ClientKey(GetVoterKey())}"))
             return;
 
         var article = await db.Articles.FirstOrDefaultAsync(a => a.Id == articleId, ct);

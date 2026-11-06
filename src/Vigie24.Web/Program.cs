@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using System.Xml.Linq;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpContextAccessor();
+
+// Data Protection : clés persistées hors du conteneur, sinon ProtectedLocalStorage
+// (filtres mémorisés) devient illisible après chaque redéploiement.
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(
+        builder.Configuration["DataProtection:KeysPath"]
+        ?? Path.Combine(builder.Environment.ContentRootPath, "dpkeys")))
+    .SetApplicationName("Vigie24");
 
 // Reader engagement (votes 0-5, clicks) — direct DB access in the circuit
 builder.Services.AddScoped<IEngagementService, EngagementService>();

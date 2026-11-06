@@ -26,6 +26,12 @@ public sealed record FilterCriteria
     public int MinScore { get; init; }
     public int MinRating { get; init; }
 
+    /// <summary>
+    /// Mots exclus : aucun article dont le titre ou le résumé contient l'un de ces termes
+    /// (insensible à la casse) n'est remonté. Filtre négatif, appliqué en plus des autres.
+    /// </summary>
+    public IReadOnlyList<string> ExcludeWords { get; init; } = [];
+
     /// <summary>Maximum anxiety score (0-10) — 10 = no filter (default). Articles without a score (null) always pass.</summary>
     public int MaxAnxiety { get; init; } = 10;
 
@@ -42,6 +48,7 @@ public sealed record FilterCriteria
         && SelectedSources.Count == 0
         && MinScore == 0
         && MinRating == 0
+        && ExcludeWords.Count == 0
         && MaxAnxiety == 10
         && RangeFrom is null
         && RangeTo is null
@@ -71,6 +78,8 @@ public sealed record FilterCriteria
             parts.Add($"minRating={MinRating}");
         if (MaxAnxiety < 10)
             parts.Add($"maxAnxiety={MaxAnxiety}");
+        if (ExcludeWords.Count > 0)
+            parts.Add($"exclude={Uri.EscapeDataString(string.Join(",", ExcludeWords))}");
         if (RangeFrom is { } from)
             parts.Add($"from={from:yyyy-MM-dd}");
         if (RangeTo is { } to)
@@ -129,6 +138,16 @@ public sealed record FilterCriteria
                     criteria = criteria with
                     {
                         SelectedSources = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    };
+                    break;
+                case "exclude":
+                    criteria = criteria with
+                    {
+                        ExcludeWords = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                            .Where(w => w.Length > 0)
+                            .Take(20)
+                            .Select(w => w.Length > 60 ? w[..60] : w)
+                            .ToList()
                     };
                     break;
                 case "minscore":
@@ -216,6 +235,7 @@ public sealed record FilterCriteria
             && SelectedSources.SequenceEqual(other.SelectedSources, StringComparer.Ordinal)
             && MinScore == other.MinScore
             && MinRating == other.MinRating
+            && ExcludeWords.SequenceEqual(other.ExcludeWords, StringComparer.Ordinal)
             && MaxAnxiety == other.MaxAnxiety
             && RangeFrom == other.RangeFrom
             && RangeTo == other.RangeTo
@@ -233,6 +253,8 @@ public sealed record FilterCriteria
             hash.Add(s, StringComparer.Ordinal);
         hash.Add(MinScore);
         hash.Add(MinRating);
+        foreach (var w in ExcludeWords)
+            hash.Add(w, StringComparer.Ordinal);
         hash.Add(MaxAnxiety);
         hash.Add(RangeFrom);
         hash.Add(RangeTo);

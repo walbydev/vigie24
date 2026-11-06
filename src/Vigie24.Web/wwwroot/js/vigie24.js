@@ -1,5 +1,19 @@
 // Vigie24 — shared browser helpers.
 window.vigie24 = window.vigie24 || {
+    // Identité de voteur : cookie `voter_id` créé côté navigateur (lisible par le serveur
+    // via HttpContext au prerender, et par le circuit Blazor via ce helper).
+    voterId: function () {
+        var m = document.cookie.match(/(?:^|;\s*)voter_id=([^;]+)/);
+        if (m) return decodeURIComponent(m[1]);
+        var bytes = new Uint8Array(16);
+        (window.crypto || window.msCrypto).getRandomValues(bytes);
+        var id = Array.prototype.map.call(bytes, function (b) {
+            return ('0' + b.toString(16)).slice(-2);
+        }).join('');
+        var secure = location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = 'voter_id=' + id + '; Path=/; Max-Age=31536000; SameSite=Lax' + secure;
+        return id;
+    },
     // Copies text to the clipboard, with a fallback for non-secure contexts
     // (http:// on staging) where navigator.clipboard does not exist.
     copyText: async function (text) {
