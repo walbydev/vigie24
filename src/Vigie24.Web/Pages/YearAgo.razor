@@ -53,6 +53,7 @@ else
                     <span class="chip chip-cat">Score @a.Article.EditorialScore.ToString("0.0")</span>
                 </div>
                 <p class="journal-meta">@a.Article.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @a.SourceName</p>
+                <VoteBar ArticleId="@a.Article.Id" />
             </div>
         </div>
     }

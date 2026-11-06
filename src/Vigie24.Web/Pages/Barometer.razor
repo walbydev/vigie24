@@ -102,6 +102,7 @@ else
                     <li>
                         <a href="/articles/@a.Id">@a.Title</a>
                         <span class="muted">(score @a.EditorialScore.ToString("0.0") · anxiété @a.AnxietyScore/10)</span>
+                        <VoteBar ArticleId="@a.Id" />
                     </li>
                 }
             </ul>

@@ -46,6 +46,7 @@
                     <p class="journal-justif">@justif</p>
                 }
                 <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
+                <VoteBar ArticleId="@a.Id" />
             </div>
         </div>
     }
@@ -69,6 +70,7 @@
                     <p class="journal-justif">@justif</p>
                 }
                 <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
+                <VoteBar ArticleId="@a.Id" />
             </div>
         </div>
     }
@@ -95,6 +97,7 @@
                     }
                 </p>
                 <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
+                <VoteBar ArticleId="@a.Id" />
             </div>
         </div>
     }
@@ -118,6 +121,7 @@
                     <p class="journal-justif">@justif</p>
                 }
                 <p class="journal-meta">@a.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy") · @SourceName(a)</p>
+                <VoteBar ArticleId="@a.Id" />
             </div>
         </div>
     }

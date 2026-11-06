@@ -1,0 +1,100 @@
+@using Vigie24.Services
+@using Vigie24.Web.Services
+@inject IEngagementService Engagement
+@inject ILogger<VoteBar> Logger
+
+@* Bloc de vote 0-5 réutilisable sur les pages de classement (top, journal,
+   briefing, baromètre, radar, il y a un an, débats). L'état est chargé après
+   le prerender : la clé de voteur vit dans un cookie lisible côté navigateur. *@
+<div class="vote-row" title="Votre note : 0-1 pas intéressant, 2-4 moyen, 5 très intéressant">
+    <span class="vote-label" id="vote-label-@ArticleId">Notez :</span>
+    @for (var v = 0; v <= 5; v++)
+    {
+        var voteValue = v;
+        <button class="vote-btn @VoteClass(voteValue)" @onclick="() => VoteAsync(voteValue)"
+                title="@VoteTooltip(voteValue)"
+                aria-label="Noter @voteValue sur 5 : @VoteTooltip(voteValue)"
+                aria-pressed="@(voteValue == _state.MyVote)">@voteValue</button>
+    }
+    <span class="eng-stats">
+        @if (_rateLimited)
+        {
+            <span class="muted" title="Limite anti-abus par identité anonyme">⏳ Trop de votes — réessayez plus tard.</span>
+        }
+        @if (_state.VoteCount > 0)
+        {
+            <span class="vote-stats nowrap" title="Note moyenne (0-5)">⭐&nbsp;@_state.VoteAverage.ToString("0.0")&nbsp;(<span class="nowrap">@_state.VoteCount</span>)</span>
+        }
+    </span>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid ArticleId { get; set; }
+
+    /// <summary>Vote déjà connu du parent (évite une requête par carte).</summary>
+    [Parameter]
+    public int? MyVote { get; set; }
+
+    private EngagementState _state = new(null, 0m, 0, 0, 0m);
+    private bool _rateLimited;
+    private bool _loaded;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _loaded)
+            return;
+        _loaded = true;
+        try
+        {
+            _state = await Engagement.GetStateAsync(ArticleId);
+            if (MyVote is not null && _state.MyVote != MyVote)
+                _state = _state with { MyVote = MyVote };
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex, "État de vote indisponible pour {ArticleId}", ArticleId);
+        }
+    }
+
+    private async Task VoteAsync(int value)
+    {
+        try
+        {
+            _state = await Engagement.VoteAsync(ArticleId, value);
+            _rateLimited = false;
+            StateHasChanged();
+        }
+        catch (RateLimitExceededException)
+        {
+            _rateLimited = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Vote impossible pour {ArticleId} (valeur {Value})", ArticleId, value);
+        }
+    }
+
+    private string VoteClass(int v)
+    {
+        if (v != _state.MyVote) return "";
+        return v switch
+        {
+            <= 1 => "active vote-bad",
+            >= 4 => "active vote-good",
+            _ => "active"
+        };
+    }
+
+    private static string VoteTooltip(int v) => v switch
+    {
+        0 => "0 — Pas intéressant",
+        1 => "1 — Pas intéressant",
+        2 => "2 — Bof",
+        3 => "3 — Moyen",
+        4 => "4 — Intéressant",
+        _ => "5 — Très intéressant"
+    };
+}
